@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+.animate-float {
+  animation: float 3.5s ease-in-out infinite;
+}
+
+.tenisin-glow {
+  filter: drop-shadow(0 0 12px rgba(230, 0, 38, 0.6));
+}
