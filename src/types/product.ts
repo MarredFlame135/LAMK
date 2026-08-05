@@ -32,7 +32,8 @@ export interface StorytellingMeta {
 
 export interface ProductVariant {
   id: string;                // GID de Shopify
-  size: SizeConversion;
+  size: SizeConversion;      // Requerido para compatibilidad; en no-calzado se usa un valor neutro (ver sizeLabel)
+  sizeLabel?: string;        // Etiqueta real a mostrar cuando la prenda NO es calzado, ej. "M", "AJUSTABLE", "ÚNICA"
   stock: number;
   price: number;             // MXN
   compareAtPrice?: number;   // Precio original si tiene descuento

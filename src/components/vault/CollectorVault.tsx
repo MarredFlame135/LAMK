@@ -3,33 +3,41 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { UserProfile, LeaderboardEntry } from '@/types/user';
+import { calculateGamificationTier } from '@/utils/gamification';
+import { useApp } from '@/context/AppContext';
 
 interface CollectorVaultProps {
   user: UserProfile;
+  username?: string;       // Slug público (ej. "sneaker_god_mx"), usado para resaltar en el ranking
+  isOwnProfile?: boolean;  // false cuando se ve el perfil público de otro coleccionista
 }
 
-// Datos de ejemplo para el Ranking Global Top 5
+// Datos de ejemplo para el Ranking Global Top 5 (mismo directorio que src/lib/mock-users.ts)
 const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  { position: 1, username: '@sneaker_god_mx', xp: 18900, tier: 'LEGEND' },
-  { position: 2, username: '@hype_valentina', xp: 15200, tier: 'LEGEND' },
-  { position: 3, username: 'Dante Medina (TÚ)', xp: 12400, tier: 'LEGEND', isCurrentUser: true },
-  { position: 4, username: '@kickz_puebla', xp: 9800, tier: 'COLLECTOR' },
-  { position: 5, username: '@retro_collector', xp: 7600, tier: 'COLLECTOR' },
+  { position: 1, username: 'sneaker_god_mx', xp: 18900, tier: 'LEGEND' },
+  { position: 2, username: 'hype_valentina', xp: 15200, tier: 'LEGEND' },
+  { position: 3, username: 'dante-medina', xp: 12400, tier: 'LEGEND' },
+  { position: 4, username: 'kickz_puebla', xp: 9800, tier: 'COLLECTOR' },
+  { position: 5, username: 'retro_collector', xp: 7600, tier: 'COLLECTOR' },
 ];
 
-export function CollectorVault({ user }: CollectorVaultProps) {
-  // Cálculo de XP para el siguiente nivel (Next Tier)
-  const nextTierXp = user.xp >= 12000 ? 20000 : user.xp >= 6000 ? 12000 : user.xp >= 2000 ? 6000 : 2000;
-  const xpPercentage = Math.min(100, (user.xp / nextTierXp) * 100);
+export function CollectorVault({ user, username, isOwnProfile = true }: CollectorVaultProps) {
+  // Curva de progresión geométrica (+30% de dificultad por nivel) — la misma
+  // que usa el resto del sistema, en vez de un umbral local desincronizado.
+  const tierInfo = calculateGamificationTier(user.xp);
+  const { t } = useApp();
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-[#0A0A0C] text-[#F4F4F0] space-y-8">
-      
+
       {/* Header de la Bóveda */}
       <div className="border-b border-zinc-800 pb-4">
         <span className="text-xs font-mono text-[#E60026] uppercase tracking-widest">// THE COLLECTOR VAULT</span>
-        <h1 className="text-3xl font-black uppercase tracking-tight mt-1">MI BÓVEDA & ESTATUS</h1>
+        <h1 className="text-3xl font-black uppercase tracking-tight mt-1">
+          {isOwnProfile ? t.vault.title : `PERFIL DE ${user.firstName.toUpperCase()} ${user.lastName.toUpperCase()}`}
+        </h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -56,17 +64,23 @@ export function CollectorVault({ user }: CollectorVaultProps) {
           {/* Barra de Progreso XP (Efecto Meta-Gradiente) */}
           <div className="space-y-1.5 bg-black/50 p-4 border border-zinc-800/80 rounded-lg">
             <div className="flex justify-between text-xs font-mono">
-              <span className="text-zinc-400">PUNTOS XP ACUMULADOS</span>
-              <span className="text-amber-400 font-bold">{user.xp.toLocaleString()} XP / {nextTierXp.toLocaleString()} XP</span>
+              <span className="text-zinc-400">{t.vault.xpLabel}</span>
+              <span className="text-amber-400 font-bold">
+                {user.xp.toLocaleString()} XP {tierInfo.nextTier !== 'HALL_OF_FAME' && `/ ${tierInfo.nextTierXp.toLocaleString()} XP`}
+              </span>
             </div>
             <div className="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-red-600 via-amber-500 to-amber-300 h-full transition-all duration-1000"
-                style={{ width: `${xpPercentage}%` }}
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${tierInfo.progressPercentage}%` }}
+                transition={{ duration: 1.1, ease: 'easeOut' }}
+                className="bg-gradient-to-r from-red-600 via-amber-500 to-amber-300 h-full"
               />
             </div>
             <p className="text-[10px] text-zinc-500 font-mono text-right">
-              Te faltan {(nextTierXp - user.xp).toLocaleString()} XP para subir al siguiente Rango.
+              {tierInfo.nextTier === 'HALL_OF_FAME'
+                ? '¡Rango máximo alcanzado! Eres HALL OF FAME.'
+                : `Te faltan ${tierInfo.xpRemaining.toLocaleString()} XP para subir a ${tierInfo.nextTier}.`}
             </p>
           </div>
 
@@ -106,28 +120,32 @@ export function CollectorVault({ user }: CollectorVaultProps) {
           {/* Tabla de Ranking Global */}
           <div className="bg-[#121215] border border-zinc-800 rounded-xl p-6 space-y-4">
             <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">
-              // RANKING GLOBAL DE COLECCIONISTAS
+              // {t.vault.rankGlobal}
             </h3>
 
             <div className="space-y-2">
-              {MOCK_LEADERBOARD.map((entry) => (
-                <div
-                  key={entry.position}
-                  className={`flex items-center justify-between p-3 rounded-lg border text-xs transition ${
-                    entry.isCurrentUser
-                      ? 'bg-red-950/20 border-red-600/50 text-white font-bold'
-                      : 'bg-black/40 border-zinc-800/60 text-zinc-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-amber-400 font-bold text-sm">
-                      #{entry.position < 10 ? `0${entry.position}` : entry.position}
-                    </span>
-                    <span>{entry.username}</span>
-                  </div>
-                  <span className="font-mono text-zinc-400">{entry.xp.toLocaleString()} XP</span>
-                </div>
-              ))}
+              {MOCK_LEADERBOARD.map((entry) => {
+                const isHighlighted = entry.username === (username || 'dante-medina');
+                return (
+                  <a
+                    key={entry.position}
+                    href={`/profile/${entry.username}`}
+                    className={`flex items-center justify-between p-3 rounded-lg border text-xs transition ${
+                      isHighlighted
+                        ? 'bg-red-950/20 border-red-600/50 text-white font-bold'
+                        : 'bg-black/40 border-zinc-800/60 text-zinc-300 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-amber-400 font-bold text-sm">
+                        #{entry.position < 10 ? `0${entry.position}` : entry.position}
+                      </span>
+                      <span>@{entry.username}{isHighlighted && isOwnProfile ? ' (TÚ)' : ''}</span>
+                    </div>
+                    <span className="font-mono text-zinc-400">{entry.xp.toLocaleString()} XP</span>
+                  </a>
+                );
+              })}
             </div>
             <p className="text-[10px] text-zinc-500 font-mono">
               El ranking se actualiza en tiempo real con cada compra completada.

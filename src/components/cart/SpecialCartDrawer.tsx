@@ -18,6 +18,7 @@ export function SpecialCartDrawer() {
     removeItem,
     updateQuantity,
     verificationStatus,
+    otpDevHint,
     triggerWhatsAppVerification,
     verifyOtpCode,
   } = useCart();
@@ -93,7 +94,9 @@ export function SpecialCartDrawer() {
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
                     <h4 className="text-xs font-bold uppercase line-clamp-1">{item.productTitle}</h4>
-                    <p className="text-[11px] text-zinc-400">Talla: {item.variant.size.mx} MX ({item.variant.size.usMen} US)</p>
+                    <p className="text-[11px] text-zinc-400">
+                      Talla: {item.variant.sizeLabel || `${item.variant.size.mx} MX (${item.variant.size.usMen} US)`}
+                    </p>
                     <p className="text-xs font-semibold text-[#E60026] mt-1">
                       ${item.variant.price.toLocaleString()} MXN
                     </p>
@@ -153,7 +156,14 @@ export function SpecialCartDrawer() {
             {/* Modal Secundario de Verificación WhatsApp OTP */}
             {showOtpModal ? (
               <div className="p-3 bg-zinc-900 border border-red-900/50 rounded space-y-2">
-                <p className="text-xs font-bold text-zinc-200">VERIFICA TU WHATSAPP PARA CONTINUAR</p>
+                <p className="text-xs font-bold text-zinc-200">
+                  VERIFICA TU WHATSAPP (+52 {phoneInput}) PARA CONTINUAR
+                </p>
+                {otpDevHint && (
+                  <p className="text-[10px] text-amber-400 font-mono">
+                    MODO DEV (sin credenciales de WhatsApp configuradas): tu código es <strong>{otpDevHint}</strong>
+                  </p>
+                )}
                 <input
                   type="text"
                   placeholder="Código de 4 dígitos"
@@ -175,18 +185,37 @@ export function SpecialCartDrawer() {
                 >
                   CONFIRMAR CÓDIGO
                 </button>
+                <button
+                  onClick={() => setShowOtpModal(false)}
+                  className="w-full py-1.5 text-zinc-500 hover:text-zinc-300 text-[10px] uppercase tracking-wider"
+                >
+                  Cambiar número
+                </button>
               </div>
             ) : (
-              <button
-                onClick={() => {
-                  // Si requiere verificación previa, mostramos modal de OTP
-                  setShowOtpModal(true);
-                  triggerWhatsAppVerification(phoneInput || '5500000000');
-                }}
-                className="w-full py-3 bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition shadow-lg shadow-red-900/20"
-              >
-                PROCEDER AL PAGO SEGURO 🔒
-              </button>
+              <div className="space-y-2">
+                <input
+                  type="tel"
+                  placeholder="Tu WhatsApp a 10 dígitos"
+                  maxLength={10}
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, ''))}
+                  className="w-full p-2.5 bg-black border border-zinc-800 rounded text-center font-mono text-sm text-white focus:border-[#E60026] outline-none"
+                />
+                <button
+                  onClick={() => {
+                    if (phoneInput.length !== 10) {
+                      alert('Ingresa tu WhatsApp a 10 dígitos para verificar tu compra.');
+                      return;
+                    }
+                    setShowOtpModal(true);
+                    triggerWhatsAppVerification(phoneInput);
+                  }}
+                  className="w-full py-3 bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition shadow-lg shadow-red-900/20"
+                >
+                  PROCEDER AL PAGO SEGURO 🔒
+                </button>
+              </div>
             )}
 
             <p className="text-[10px] text-center text-zinc-500 uppercase tracking-widest">

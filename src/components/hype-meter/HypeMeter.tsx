@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { HypeMeterData } from '@/types/product';
+import { useApp } from '@/context/AppContext';
 
 interface HypeMeterProps {
   data: HypeMeterData;
@@ -11,13 +12,14 @@ interface HypeMeterProps {
 
 export function HypeMeter({ data }: HypeMeterProps) {
   const { score, viewsLast24h, stockRemaining, label } = data;
+  const { t } = useApp();
 
   return (
     <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-lg space-y-2 my-4">
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5 font-bold tracking-wider text-[#E60026]">
           <span className="animate-bounce">🔥</span>
-          <span>HYPE METER: {label}</span>
+          <span>{t.product.hypeMeter}: {label}</span>
         </div>
         <span className="text-zinc-400 text-[11px]">
           👁️ {viewsLast24h} vistas hoy

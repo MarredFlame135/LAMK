@@ -1,4 +1,4 @@
-// api/social-push/route.ts
+// src/app/api/social-push/route.ts
 
 import { NextResponse } from 'next/server';
 

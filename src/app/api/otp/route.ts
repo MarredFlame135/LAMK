@@ -1,4 +1,4 @@
-// api/otp/route.ts
+// src/app/api/otp/route.ts
 
 import { NextResponse } from 'next/server';
 

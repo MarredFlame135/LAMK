@@ -3,6 +3,8 @@
 export const SHOPIFY_CONFIG = {
   domain: process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN || 'lookatmykicks.myshopify.com',
   storefrontAccessToken: process.env.NEXT_PUBLIC_SHOPIFY_STOREFRONT_ACCESS_TOKEN || '',
+  // Token privado opcional (solo servidor): si está presente, shopifyFetch lo prefiere sobre el público.
+  privateAccessToken: process.env.SHOPIFY_PRIVATE_ACCESS_TOKEN || '',
   apiVersion: process.env.SHOPIFY_API_VERSION || '2024-07',
 };
 

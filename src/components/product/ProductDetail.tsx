@@ -7,6 +7,8 @@ import { Product, ProductVariant } from '@/types/product';
 import { HypeMeter } from '@/components/hype-meter/HypeMeter';
 import { FitAdvisorBadge } from '@/components/product/FitAdvisorBadge';
 import { useCart } from '@/hooks/useCart';
+import { CATEGORY_LABELS } from '@/lib/catalog';
+import { useApp } from '@/context/AppContext';
 
 interface ProductDetailProps {
   product: Product;
@@ -14,6 +16,7 @@ interface ProductDetailProps {
 
 export function ProductDetail({ product }: ProductDetailProps) {
   const { addItem } = useCart();
+  const { t } = useApp();
   const [selectedImage, setSelectedImage] = useState(product.images[0] || '/placeholder-sneaker.webp');
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants.find((v) => v.isAvailable) || null
@@ -82,11 +85,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
             {/* Hype Meter */}
             <HypeMeter data={product.hypeMeter} />
 
-            {/* Selector de Tallas (MX / US Conversion) */}
+            {/* Selector de Talla: calzado usa conversión MX/US, el resto usa su propia talla (S/M/L, ÚNICA, AJUSTABLE...) */}
             <div className="mt-6 space-y-3">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-bold tracking-wider uppercase">SELECCIONA TU TALLA</span>
-                <span className="text-zinc-400">Tallas en México (MX)</span>
+                <span className="text-zinc-400">{product.category === 'SNEAKERS' ? 'Tallas en México (MX)' : CATEGORY_LABELS[product.category]}</span>
               </div>
 
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
@@ -105,8 +108,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
                           : 'border-zinc-900 bg-zinc-950 text-zinc-600 cursor-not-allowed line-through'
                       }`}
                     >
-                      <span>{variant.size.mx} MX</span>
-                      <span className="text-[9px] text-zinc-500 font-normal">({variant.size.usMen} US)</span>
+                      {variant.sizeLabel ? (
+                        <span>{variant.sizeLabel}</span>
+                      ) : (
+                        <>
+                          <span>{variant.size.mx} MX</span>
+                          <span className="text-[9px] text-zinc-500 font-normal">({variant.size.usMen} US)</span>
+                        </>
+                      )}
                     </button>
                   );
                 })}
@@ -120,7 +129,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
             {/* Storytelling del Par */}
             <div className="mt-6 p-4 bg-[#121215] border border-zinc-800/60 rounded-lg space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-300">STORYTELLING</h3>
+              <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-300">{t.product.storytelling}</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">{product.storytelling.storySummary}</p>
               <div className="text-[11px] text-zinc-500 pt-1 border-t border-zinc-800/40">
                 Colorway: <span className="text-zinc-300">{product.storytelling.colorway}</span>
@@ -135,7 +144,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 onClick={() => alert('¡Te avisaremos por WhatsApp en cuanto vuelva a estar disponible!')}
                 className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-widest rounded transition"
               >
-                NOTIFICARME CUANDO VUELVA (BACK-IN-STOCK) 🔔
+                {t.product.notifyBackInStock} 🔔
               </button>
             ) : (
               <button
@@ -143,7 +152,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 disabled={!selectedVariant}
                 className="w-full py-4 bg-[#E60026] hover:bg-red-700 text-white font-black text-sm uppercase tracking-widest rounded transition shadow-lg shadow-red-900/30 flex items-center justify-center gap-2"
               >
-                <span>AÑADIR AL CARRITO ESPECIAL</span>
+                <span>{t.product.addToCart}</span>
                 <span>→</span>
               </button>
             )}

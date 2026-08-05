@@ -13,12 +13,21 @@ export async function shopifyFetch<T>({
   variables?: Record<string, unknown>;
 }): Promise<T> {
   try {
-    const response = await fetch(getStorefrontEndpoint(), {
+    const endpoint = getStorefrontEndpoint();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Usar Token Privado o Público de Storefront API
+    if (SHOPIFY_CONFIG.privateAccessToken) {
+      headers['Shopify-Storefront-Private-Token'] = SHOPIFY_CONFIG.privateAccessToken;
+    } else {
+      headers['X-Shopify-Storefront-Access-Token'] = SHOPIFY_CONFIG.storefrontAccessToken;
+    }
+
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Shopify-Storefront-Access-Token': SHOPIFY_CONFIG.storefrontAccessToken,
-      },
+      headers,
       body: JSON.stringify({ query, variables }),
       next: { revalidate: 60 }, // Cache por 60 segundos
     });
@@ -43,7 +52,7 @@ function formatShopifyProduct(node: any): Product {
   
   const variants: ProductVariant[] = node.variants?.edges?.map((e: any) => {
     const v = e.node;
-    const sizeVal = parseFloat(v.title) || 27; // Talla por defecto si no aplica
+    const sizeVal = parseFloat(v.title) || 27;
     
     return {
       id: v.id,
@@ -104,7 +113,7 @@ export async function getProducts(query?: string): Promise<Product[]> {
 // Método público: Obtener un solo producto por handle
 export async function getProductByHandle(handle: string): Promise<Product | null> {
   const data = await shopifyFetch<any>({
-    query:GET_PRODUCT_BY_HANDLE_QUERY,
+    query: GET_PRODUCT_BY_HANDLE_QUERY,
     variables: { handle },
   });
 

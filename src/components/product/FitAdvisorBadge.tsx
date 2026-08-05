@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { FitAdvisor } from '@/types/product';
+import { useApp } from '@/context/AppContext';
 
 interface FitAdvisorBadgeProps {
   advisor: FitAdvisor;
@@ -18,12 +19,13 @@ const FIT_LABELS: Record<FitAdvisor['fitType'], { text: string; icon: string }> 
 export function FitAdvisorBadge({ advisor }: FitAdvisorBadgeProps) {
   const { fitType, recommendationNote } = advisor;
   const { text, icon } = FIT_LABELS[fitType];
+  const { t } = useApp();
 
   return (
     <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-lg space-y-1">
       <div className="flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#E60026]">
         <span>{icon}</span>
-        <span>FIT ADVISOR: {text}</span>
+        <span>{t.product.fitGuide}: {text}</span>
       </div>
       <p className="text-[11px] text-zinc-400 leading-relaxed">{recommendationNote}</p>
     </div>

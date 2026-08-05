@@ -3,6 +3,7 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Product } from '@/types/product';
 
 interface HypeCarouselProps {
@@ -30,10 +31,15 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
 
         {/* Carrusel Deslizable */}
         <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-zinc-800">
-          {trendingProducts.map((product) => (
-            <div
+          {trendingProducts.map((product, idx) => (
+            <motion.div
               key={product.id}
-              className="flex-none w-72 bg-[#121215] border border-zinc-800 rounded-xl p-4 hover:border-red-600/50 transition group"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: idx * 0.06 }}
+              whileHover={{ y: -6, borderColor: 'rgba(230,0,38,0.5)', boxShadow: '0 20px 40px -12px rgba(230,0,38,0.25)' }}
+              className="flex-none w-72 bg-[#121215] border border-zinc-800 rounded-xl p-4 group"
             >
               <div className="relative aspect-square bg-black rounded-lg overflow-hidden mb-3">
                 <img
@@ -60,7 +66,7 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
                   VER PAR →
                 </a>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 

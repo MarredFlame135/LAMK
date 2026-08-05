@@ -22,6 +22,11 @@ export interface DemandRequest {
   customerEmail: string;
   createdAt: string;
   notified: boolean;
+  // Campos adicionales capturados por TENISIN (asistente IA) — opcionales para
+  // no romper otros consumidores del tipo que ya usaban el contrato original.
+  rawQuery?: string;          // Texto exacto que escribió el cliente en el chat
+  wasMatched?: boolean;       // true si TENISIN encontró un producto disponible
+  source?: 'TENISIN_CHAT';    // Origen de la petición, por si en el futuro hay más canales
 }
 
 export interface AIImagePipelineJob {

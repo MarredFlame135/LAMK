@@ -2,37 +2,63 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { OfflineSale } from '@/types/admin';
 
+const LOCAL_STORAGE_KEY = 'lamk_offline_sales_v1';
+
+// Datos de arranque solo para la primera vez que se abre el panel (nunca
+// sobrescriben lo que el admin ya haya registrado y guardado en el navegador).
+const SEED_SALES: OfflineSale[] = [
+  {
+    id: 'SALE-101',
+    customerName: 'Carlos Mendoza',
+    customerPhone: '5512345678',
+    itemsSummary: 'Yeezy Boost 350 V2 Onyx (Talla 28 MX)',
+    totalAmount: 5800,
+    amountPaid: 3000,
+    pendingBalance: 2800,
+    dueDate: '2026-08-15',
+    paymentStatus: 'PARTIAL_DEBT',
+    createdAt: '2026-07-30',
+  },
+  {
+    id: 'SALE-102',
+    customerName: 'Sofía Guerrero',
+    customerPhone: '5587654321',
+    itemsSummary: 'Air Jordan 1 Retro High OG Lost & Found (Talla 24 MX)',
+    totalAmount: 9200,
+    amountPaid: 9200,
+    pendingBalance: 0,
+    dueDate: '2026-07-30',
+    paymentStatus: 'PAID',
+    createdAt: '2026-07-28',
+  },
+];
+
 export function OfflineSalesModule() {
-  // Estado local para la lista de ventas físicas
-  const [sales, setSales] = useState<OfflineSale[]>([
-    {
-      id: 'SALE-101',
-      customerName: 'Carlos Mendoza',
-      customerPhone: '5512345678',
-      itemsSummary: 'Yeezy Boost 350 V2 Onyx (Talla 28 MX)',
-      totalAmount: 5800,
-      amountPaid: 3000,
-      pendingBalance: 2800,
-      dueDate: '2026-08-15',
-      paymentStatus: 'PARTIAL_DEBT',
-      createdAt: '2026-07-30',
-    },
-    {
-      id: 'SALE-102',
-      customerName: 'Sofía Guerrero',
-      customerPhone: '5587654321',
-      itemsSummary: 'Air Jordan 1 Retro High OG Lost & Found (Talla 24 MX)',
-      totalAmount: 9200,
-      amountPaid: 9200,
-      pendingBalance: 0,
-      dueDate: '2026-07-30',
-      paymentStatus: 'PAID',
-      createdAt: '2026-07-28',
-    },
-  ]);
+  const [sales, setSales] = useState<OfflineSale[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // 1. Cargar ventas guardadas del navegador (persistencia real, igual que useCart)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      setSales(saved ? JSON.parse(saved) : SEED_SALES);
+    } catch (e) {
+      console.error('Error al restaurar ventas offline:', e);
+      setSales(SEED_SALES);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // 2. Guardar automáticamente cada cambio
+  useEffect(() => {
+    if (isLoaded) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sales));
+    }
+  }, [sales, isLoaded]);
 
   // Formulario para nueva venta física
   const [form, setForm] = useState({

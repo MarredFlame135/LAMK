@@ -15,6 +15,8 @@ export function useCart() {
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('NOT_REQUIRED');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  const [otpCode, setOtpCode] = useState<string | null>(null);
+  const [otpDevHint, setOtpDevHint] = useState<string | null>(null); // Solo se llena en modo desarrollo (sin credenciales de WhatsApp reales)
 
   // 1. Cargar carrito guardado en el navegador (Persistencia Offline)
   useEffect(() => {
@@ -95,17 +97,44 @@ export function useCart() {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
   };
 
-  // Lógica de Doble Verificación Inteligente por WhatsApp
+  // Lógica de Doble Verificación Inteligente por WhatsApp: se genera un código
+  // real en el cliente y se manda a /api/otp para su envío por WhatsApp Cloud API.
   const triggerWhatsAppVerification = async (phone: string) => {
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    setOtpCode(code);
+    setOtpDevHint(null);
     setVerificationStatus('PENDING_OTP');
-    // Aquí se conecta con api/otp/send-whatsapp (se construirá en el backend serverless)
-    console.log(`Enviando OTP a ${phone} via WhatsApp API...`);
+
+    try {
+      const res = await fetch('/api/otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        console.error('Error al enviar OTP:', data);
+        setVerificationStatus('FAILED');
+        return;
+      }
+
+      // En modo desarrollo (sin WHATSAPP_API_TOKEN configurado) el endpoint no
+      // envía un WhatsApp real; devolvemos el código en pantalla para poder probar.
+      if (data.devCode) {
+        setOtpDevHint(data.devCode);
+      }
+    } catch (e) {
+      console.error('Error de red al solicitar OTP:', e);
+      setVerificationStatus('FAILED');
+    }
   };
 
   const verifyOtpCode = (enteredCode: string): boolean => {
-    // Simulación de verificación OTP exitosa
-    if (enteredCode === '1234' || enteredCode.length === 4) {
+    if (otpCode && enteredCode === otpCode) {
       setVerificationStatus('VERIFIED');
+      setOtpCode(null);
+      setOtpDevHint(null);
       return true;
     }
     setVerificationStatus('FAILED');
@@ -124,6 +153,7 @@ export function useCart() {
     shippingAddress,
     setShippingAddress,
     verificationStatus,
+    otpDevHint,
     addItem,
     removeItem,
     updateQuantity,

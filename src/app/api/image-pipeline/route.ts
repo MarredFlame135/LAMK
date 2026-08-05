@@ -1,4 +1,4 @@
-// api/image-pipeline/route.ts
+// src/app/api/image-pipeline/route.ts
 
 import { NextResponse } from 'next/server';
 
