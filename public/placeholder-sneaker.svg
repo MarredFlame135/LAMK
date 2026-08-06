@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#121215"/>
+  <rect x="0.5" y="0.5" width="399" height="399" fill="none" stroke="#27272a" stroke-width="1"/>
+  <g fill="none" stroke="#3f3f46" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M120 250 q0 -20 25 -25 l70 -12 q20 -4 35 8 l40 30 q10 8 25 8 h30 q15 0 15 15 v15 q0 10 -10 10 H120 q-15 0 -15 -15 v-19 q0 -10 15 -15 z"/>
+  </g>
+  <text x="200" y="330" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14" letter-spacing="2" fill="#52525b">SIN IMAGEN DISPONIBLE</text>
+</svg>

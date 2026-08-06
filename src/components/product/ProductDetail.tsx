@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Product, ProductVariant } from '@/types/product';
 import { HypeMeter } from '@/components/hype-meter/HypeMeter';
 import { FitAdvisorBadge } from '@/components/product/FitAdvisorBadge';
@@ -17,7 +18,7 @@ interface ProductDetailProps {
 export function ProductDetail({ product }: ProductDetailProps) {
   const { addItem } = useCart();
   const { t } = useApp();
-  const [selectedImage, setSelectedImage] = useState(product.images[0] || '/placeholder-sneaker.webp');
+  const [selectedImage, setSelectedImage] = useState(product.images[0] || '/placeholder-sneaker.svg');
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants.find((v) => v.isAvailable) || null
   );
@@ -34,10 +35,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
         {/* Galería de Imágenes en Alta Resoluciòn */}
         <div className="space-y-4">
           <div className="relative aspect-square bg-[#121215] border border-zinc-800 rounded-xl overflow-hidden group">
-            <img
+            <Image
               src={selectedImage}
               alt={product.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
             />
             {product.isSoldOut && (
               <div className="absolute top-4 right-4 bg-red-600 text-white font-bold text-xs uppercase px-3 py-1 rounded">
@@ -53,11 +57,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 <button
                   key={idx}
                   onClick={() => setSelectedImage(img)}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border transition ${
+                  className={`relative w-20 h-20 rounded-lg overflow-hidden border transition ${
                     selectedImage === img ? 'border-[#E60026]' : 'border-zinc-800 opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <img src={img} alt={`Vista ${idx}`} className="w-full h-full object-cover" />
+                  <Image src={img} alt={`Vista ${idx}`} fill sizes="80px" className="object-cover" />
                 </button>
               ))}
             </div>

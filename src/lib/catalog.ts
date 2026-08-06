@@ -194,6 +194,7 @@ export const CATEGORY_LABELS: Record<Product['category'], string> = {
   APPAREL: 'ROPA',
   ACCESSORIES: 'BOLSOS Y GORRAS',
   COLLECTIBLES: 'PELUCHES',
+  JEWELRY: 'JOYERÍA',
 };
 
 export function getCatalog(): Product[] {
@@ -211,13 +212,14 @@ export function getProductById(id: string): Product | undefined {
 // Búsqueda simple usada por Tenisin y por el catálogo: coincide por título,
 // marca, categoría, colaboración o colorway. Suficiente para lenguaje natural
 // corto ("bape hoodie", "gorra azul", "tenis jordan talla 26").
-export function searchCatalog(query: string): Product[] {
+// Acepta un catálogo explícito (ej. el real de Shopify) o usa el mock local.
+export function searchCatalog(query: string, products: Product[] = CATALOG): Product[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
 
   const terms = q.split(/\s+/).filter(Boolean);
 
-  return CATALOG.filter((p) => {
+  return products.filter((p) => {
     const haystack = [
       p.title,
       p.brand,

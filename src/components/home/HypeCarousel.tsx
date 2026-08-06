@@ -3,6 +3,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Product } from '@/types/product';
 
@@ -42,10 +43,13 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
               className="flex-none w-72 bg-[#121215] border border-zinc-800 rounded-xl p-4 group"
             >
               <div className="relative aspect-square bg-black rounded-lg overflow-hidden mb-3">
-                <img
-                  src={product.images[0] || '/placeholder-sneaker.webp'}
+                <Image
+                  src={product.images[0] || '/placeholder-sneaker.svg'}
                   alt={product.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                  fill
+                  sizes="288px"
+                  loading={idx < 4 ? 'eager' : 'lazy'}
+                  className="object-cover group-hover:scale-105 transition duration-500"
                 />
                 <span className="absolute top-2 left-2 bg-red-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase font-mono">
                   🔥 {product.hypeMeter.score}% HYPE

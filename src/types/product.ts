@@ -46,7 +46,7 @@ export interface Product {
   handle: string;            // ej. "jordan-1-retro-high-travis-scott"
   title: string;
   brand: string;             // ej. "Nike", "Yeezy", "Fear of God"
-  category: 'SNEAKERS' | 'APPAREL' | 'ACCESSORIES' | 'COLLECTIBLES';
+  category: 'SNEAKERS' | 'APPAREL' | 'ACCESSORIES' | 'COLLECTIBLES' | 'JEWELRY';
   description: string;
   images: string[];          // URLs procesadas en WebP 4K por IA
   variants: ProductVariant[];

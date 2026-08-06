@@ -2,10 +2,10 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SAAS_CONFIG } from '@/lib/saas-config';
-import { searchCatalog, CATEGORY_LABELS } from '@/lib/catalog';
+import { searchCatalog, getCatalog, CATEGORY_LABELS } from '@/lib/catalog';
 import { logDemandRequest, updateDemandRequest } from '@/hooks/useLeads';
 import { Product } from '@/types/product';
 
@@ -29,13 +29,27 @@ export function TenisinWidget() {
   // Cuando una búsqueda no encuentra nada disponible, guardamos el id del lead
   // pendiente para completarlo con el WhatsApp en cuanto el cliente lo escriba.
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
+  // Catálogo real de Shopify (con fallback a mock) cargado una vez al montar.
+  const catalogRef = useRef<Product[]>(getCatalog());
+
+  useEffect(() => {
+    fetch('/api/catalog')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.products) && data.products.length > 0) {
+          catalogRef.current = data.products;
+        }
+      })
+      .catch((err) => console.error('TENISIN: no se pudo cargar el catálogo real, usando mock:', err));
+  }, []);
 
   const respond = (text: string, products?: Product[]) => {
     setMessages((prev) => [...prev, { sender: 'TENISIN', text, products }]);
   };
 
   const runSearch = (query: string) => {
-    const results = searchCatalog(query).filter((p) => !p.isSoldOut && p.variants.some((v) => v.isAvailable));
+    const catalog = catalogRef.current;
+    const results = searchCatalog(query, catalog).filter((p) => !p.isSoldOut && p.variants.some((v) => v.isAvailable));
 
     if (results.length > 0) {
       setMascotState('happy');
@@ -56,9 +70,9 @@ export function TenisinWidget() {
 
     // Sin resultado disponible: buscamos alternativas de la misma categoría/marca
     // entre TODO el catálogo (incluyendo agotados) para sugerir algo parecido.
-    const anyMatch = searchCatalog(query);
+    const anyMatch = searchCatalog(query, catalog);
     const fallbackCategory = anyMatch[0]?.category;
-    const alternatives = searchCatalog(fallbackCategory ? CATEGORY_LABELS[fallbackCategory] : query)
+    const alternatives = searchCatalog(fallbackCategory ? CATEGORY_LABELS[fallbackCategory] : query, catalog)
       .filter((p) => !p.isSoldOut)
       .slice(0, 3);
 

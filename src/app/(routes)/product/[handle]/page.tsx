@@ -3,23 +3,33 @@
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { ProductDetail } from '@/components/product/ProductDetail';
-import { getProductByHandle, getCatalog } from '@/lib/catalog';
+import { getProductByHandleLive } from '@/lib/catalog-source';
+import { recordView, getViews24h, computeHypeMeter } from '@/lib/hype';
 
 interface ProductPageProps {
   params: { handle: string };
 }
 
-// Genera las rutas estáticas para cada producto del catálogo en build time
-export function generateStaticParams() {
-  return getCatalog().map((p) => ({ handle: p.handle }));
-}
+// Nota: ya no se usa generateStaticParams() con handles fijos del mock — el
+// catálogo real de Shopify cambia (nuevos drops, productos agotados/eliminados),
+// así que cada handle se resuelve dinámicamente en request time.
+export const dynamic = 'force-dynamic';
 
-export default function ProductPage({ params }: ProductPageProps) {
-  const product = getProductByHandle(params.handle);
+export default async function ProductPage({ params }: ProductPageProps) {
+  const { product } = await getProductByHandleLive(params.handle);
 
   if (!product) {
     notFound();
   }
 
-  return <ProductDetail product={product} />;
+  // RF-05: cada visita a la ficha cuenta como una vista real para el Hype Meter.
+  recordView(product.id);
+  const views24h = getViews24h(product.id);
+  const { score, label } = computeHypeMeter(views24h, product.hypeMeter.stockRemaining);
+  const productWithFreshHype = {
+    ...product,
+    hypeMeter: { ...product.hypeMeter, score, label, viewsLast24h: views24h },
+  };
+
+  return <ProductDetail product={productWithFreshHype} />;
 }

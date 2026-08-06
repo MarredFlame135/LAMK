@@ -12,77 +12,139 @@ export async function shopifyFetch<T>({
   query: string;
   variables?: Record<string, unknown>;
 }): Promise<T> {
-  try {
-    const endpoint = getStorefrontEndpoint();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+  const endpoint = getStorefrontEndpoint();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
 
-    // Usar Token Privado o Público de Storefront API
-    if (SHOPIFY_CONFIG.privateAccessToken) {
-      headers['Shopify-Storefront-Private-Token'] = SHOPIFY_CONFIG.privateAccessToken;
-    } else {
-      headers['X-Shopify-Storefront-Access-Token'] = SHOPIFY_CONFIG.storefrontAccessToken;
-    }
-
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ query, variables }),
-      next: { revalidate: 60 }, // Cache por 60 segundos
-    });
-
-    const body = await response.json();
-
-    if (body.errors) {
-      console.error('GraphQL Errors:', body.errors);
-      throw new Error(body.errors[0]?.message || 'Error en petición Shopify GraphQL');
-    }
-
-    return body.data;
-  } catch (error) {
-    console.error('Error al conectar con Shopify Storefront API:', error);
-    throw error;
+  // Usar Token Privado o Público de Storefront API
+  if (SHOPIFY_CONFIG.privateAccessToken) {
+    headers['Shopify-Storefront-Private-Token'] = SHOPIFY_CONFIG.privateAccessToken;
+  } else {
+    headers['X-Shopify-Storefront-Access-Token'] = SHOPIFY_CONFIG.storefrontAccessToken;
   }
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ query, variables }),
+    next: { revalidate: 60 }, // Cache por 60 segundos
+  });
+
+  const body = await response.json();
+
+  // Shopify puede devolver `errors` (ej. campos sin permiso, como quantityAvailable
+  // sin el scope de inventario) JUNTO con `data` parcialmente válida. Solo debe
+  // considerarse fatal si no hay datos utilizables — de lo contrario se loguea
+  // y se sigue con lo que sí vino, en vez de tirar todo el catálogo por un campo.
+  if (body.errors) {
+    const uniqueMessages = Array.from(new Set(body.errors.map((e: any) => e.message)));
+    console.warn(`Shopify GraphQL devolvió ${body.errors.length} error(es) parcial(es):`, uniqueMessages);
+  }
+  if (!body.data) {
+    throw new Error(body.errors?.[0]?.message || 'Error en petición Shopify GraphQL: sin datos');
+  }
+
+  return body.data;
+}
+
+// Categorías de negocio reales vistas en el inventario de LAMK MX. El campo
+// `vendor` de Shopify siempre trae el nombre de la tienda, no la marca real,
+// así que la marca se extrae del título con un heurístico best-effort.
+const PRODUCT_TYPE_TO_CATEGORY: Record<string, Product['category']> = {
+  CASUAL: 'SNEAKERS',
+  CONFORT: 'SNEAKERS',
+  RUNNING: 'SNEAKERS',
+  ROPA: 'APPAREL',
+  ACCESORIOS: 'ACCESSORIES',
+  JOYERÍA: 'JEWELRY',
+  JOYERIA: 'JEWELRY',
+};
+
+function mapCategory(productType: string): Product['category'] {
+  return PRODUCT_TYPE_TO_CATEGORY[(productType || '').toUpperCase().trim()] || 'ACCESSORIES';
+}
+
+// Palabras de categoría que suelen abrir el título (ej. "TENIS SAMBA OG...",
+// "GORRA DANDY HATS x JUNIOR H...") — se recortan para exponer la marca real.
+const LEADING_CATEGORY_WORDS = [
+  'TENIS', 'SANDALIA', 'GORRA', 'HOODIE', 'T-SHIRT', 'TSHIRT', 'PLAYERA',
+  'BOMBER JACKET', 'SHORT', 'PULSO', 'PULSERA', 'CHAMARRA', 'SUDADERA', 'COLLAR',
+];
+
+function guessBrandFromTitle(title: string, category: Product['category']): string {
+  let rest = title.trim();
+  for (const word of LEADING_CATEGORY_WORDS) {
+    const re = new RegExp(`^${word}\\s+`, 'i');
+    if (re.test(rest)) {
+      rest = rest.replace(re, '');
+      break;
+    }
+  }
+  // Corta en la primera comilla (donde suele empezar el nombre del colorway/modelo)
+  const quoteIdx = rest.search(/['"‘’]/);
+  const brand = (quoteIdx > 0 ? rest.slice(0, quoteIdx) : rest).trim();
+  return brand || category;
+}
+
+// Convierte el título de una variante en la conversión de tallas correspondiente.
+// Solo sneakers reales usan MX/US/EU; el resto (ropa, accesorios) usa su propia
+// etiqueta (S/M/L, "Default Title" → ÚNICA) vía sizeLabel — ver types/product.ts.
+function parseVariantSize(variantTitle: string, category: Product['category']) {
+  if (category === 'SNEAKERS') {
+    const mx = parseFloat(variantTitle.replace(/mx/i, '').trim());
+    if (!isNaN(mx)) {
+      return {
+        size: { mx, usMen: mx - 18, usWomen: mx - 16.5, eu: mx + 15.5, cm: mx },
+        sizeLabel: undefined as string | undefined,
+      };
+    }
+  }
+  const label = variantTitle === 'Default Title' ? 'ÚNICA' : variantTitle;
+  return {
+    size: { mx: 0, usMen: 0, usWomen: 0, eu: 0, cm: 0 },
+    sizeLabel: label,
+  };
 }
 
 // Función auxiliar para formatear la respuesta raw de GraphQL al tipo Product
 function formatShopifyProduct(node: any): Product {
   const images = node.images?.edges?.map((e: any) => e.node.url) || [];
-  
-  const variants: ProductVariant[] = node.variants?.edges?.map((e: any) => {
+  const category = mapCategory(node.productType);
+
+  const variants: ProductVariant[] = (node.variants?.edges || []).map((e: any) => {
     const v = e.node;
-    const sizeVal = parseFloat(v.title) || 27;
-    
+    const { size, sizeLabel } = parseVariantSize(v.title, category);
+
     return {
       id: v.id,
       sku: v.sku || '',
       price: parseFloat(v.price.amount),
       compareAtPrice: v.compareAtPrice ? parseFloat(v.compareAtPrice.amount) : undefined,
-      stock: v.quantityAvailable ?? 1,
+      // quantityAvailable requiere el scope `unauthenticated_read_product_inventory`.
+      // Mientras no esté activo llega null: nos apoyamos en availableForSale (sí
+      // confiable) y evitamos inventar una cantidad falsa.
+      stock: typeof v.quantityAvailable === 'number' ? v.quantityAvailable : (v.availableForSale ? 1 : 0),
       isAvailable: v.availableForSale,
-      size: {
-        mx: sizeVal,
-        usMen: sizeVal + 2,
-        usWomen: sizeVal + 3.5,
-        eu: sizeVal + 15.5,
-        cm: sizeVal,
-      },
+      size,
+      sizeLabel,
     };
-  }) || [];
+  });
 
+  const availableVariants = variants.filter((v) => v.isAvailable).length;
   const totalStock = variants.reduce((acc, v) => acc + v.stock, 0);
+  const hasInventoryData = variants.length > 0; // placeholder de señal, ver src/lib/hype.ts para el cálculo real
 
   return {
     id: node.id,
     handle: node.handle,
     title: node.title,
-    brand: node.vendor || 'LAMK Exclusive',
-    category: 'SNEAKERS',
+    brand: guessBrandFromTitle(node.title, category),
+    category,
     description: node.description || '',
     images,
     variants,
-    isSoldOut: totalStock === 0,
+    isSoldOut: availableVariants === 0,
     fitAdvisor: node.fitAdvisor?.value ? JSON.parse(node.fitAdvisor.value) : {
       fitType: 'TRUE_TO_SIZE',
       recommendationNote: 'Viene exactamente a la talla.',
@@ -92,22 +154,36 @@ function formatShopifyProduct(node: any): Product {
       colorway: 'Exclusive',
     },
     hypeMeter: {
-      score: totalStock < 3 ? 95 : 70,
-      viewsLast24h: 120,
-      stockRemaining: totalStock,
-      label: totalStock < 3 ? 'ULTIMOS PARES' : 'ALTA DEMANDA',
+      score: availableVariants > 0 && availableVariants <= 2 ? 95 : availableVariants === 0 ? 0 : 70,
+      viewsLast24h: 0, // se completa en tiempo real — ver src/lib/hype.ts
+      stockRemaining: hasInventoryData ? totalStock : availableVariants,
+      label: availableVariants === 0 ? 'DROPPED' : availableVariants <= 2 ? 'ULTIMOS PARES' : 'ALTA DEMANDA',
     },
   };
 }
 
-// Método público: Obtener catálogo de productos
+// Método público: Obtener catálogo de productos (con paginación hasta 100 productos)
 export async function getProducts(query?: string): Promise<Product[]> {
-  const data = await shopifyFetch<any>({
-    query: GET_PRODUCTS_QUERY,
-    variables: { first: 20, query },
-  });
+  const all: Product[] = [];
+  let cursor: string | undefined;
+  let hasNextPage = true;
+  let safety = 0;
 
-  return data.products.edges.map((e: any) => formatShopifyProduct(e.node));
+  while (hasNextPage && safety < 5) {
+    const data: any = await shopifyFetch<any>({
+      query: GET_PRODUCTS_QUERY,
+      variables: { first: 20, query, after: cursor },
+    });
+
+    const edges = data.products?.edges || [];
+    all.push(...edges.map((e: any) => formatShopifyProduct(e.node)));
+
+    hasNextPage = data.products?.pageInfo?.hasNextPage || false;
+    cursor = edges[edges.length - 1]?.cursor;
+    safety += 1;
+  }
+
+  return all;
 }
 
 // Método público: Obtener un solo producto por handle
