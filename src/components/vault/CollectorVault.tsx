@@ -112,6 +112,45 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
             )}
           </div>
 
+          {/* Historial Real de Pedidos (solo en tu propia bóveda) */}
+          {isOwnProfile && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">
+                // HISTORIAL DE PEDIDOS
+              </h3>
+              {!user.recentOrders || user.recentOrders.length === 0 ? (
+                <div className="p-6 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-500 text-xs">
+                  Todavía no tienes pedidos registrados en Shopify.
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-zinc-800/80 rounded-lg">
+                  <table className="w-full text-left text-xs">
+                    <thead className="text-zinc-500 font-mono border-b border-zinc-800 bg-black/40">
+                      <tr>
+                        <th className="py-2 px-3">PEDIDO</th>
+                        <th className="py-2 px-3">FECHA</th>
+                        <th className="py-2 px-3 text-right">TOTAL</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/60">
+                      {user.recentOrders.map((order) => (
+                        <tr key={order.id} className="hover:bg-zinc-900/40">
+                          <td className="py-2 px-3 font-bold text-zinc-200">{order.name}</td>
+                          <td className="py-2 px-3 text-zinc-400 font-mono">
+                            {order.date ? new Date(order.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                          </td>
+                          <td className="py-2 px-3 text-right font-mono text-[#E60026] font-bold">
+                            ${order.total.toLocaleString()} {order.currency}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Panel Derecho: Ranking Global (Leaderboard) & Niveles */}

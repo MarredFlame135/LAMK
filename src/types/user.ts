@@ -22,6 +22,14 @@ export interface UserPreferences {
   apparelSize?: 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 }
 
+export interface OrderSummary {
+  id: string;
+  name: string;         // ej. "#1042"
+  date: string;
+  total: number;
+  currency: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -31,7 +39,7 @@ export interface UserProfile {
   avatarUrl?: string;
   isRegistered: boolean;
   preferences?: UserPreferences;
-  
+
   // Módulo de Gamificación & Collector Vault (Costo $0)
   xp: number;                        // 1 MXN gastado = 1 XP
   tier: CollectorTier;
@@ -39,6 +47,7 @@ export interface UserProfile {
   collection: CollectionItem[];       // Bóveda de pares comprados
   ordersCount: number;
   totalSpent: number;
+  recentOrders?: OrderSummary[];      // Historial real de pedidos (Shopify), opcional (mock no lo trae)
 }
 
 export interface LeaderboardEntry {

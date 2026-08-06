@@ -12,7 +12,7 @@ import {
   CUSTOMER_ACCESS_TOKEN_DELETE_MUTATION,
   GET_CUSTOMER_QUERY,
 } from './queries';
-import { UserProfile, CollectionItem } from '@/types/user';
+import { UserProfile, CollectionItem, OrderSummary } from '@/types/user';
 import { calculateGamificationTier } from '@/utils/gamification';
 
 export interface CustomerAccessToken {
@@ -100,6 +100,14 @@ export async function getCustomerProfile(accessToken: string): Promise<UserProfi
   const xp = Math.round(totalSpent);
   const tier = calculateGamificationTier(xp).currentTier;
 
+  const recentOrders: OrderSummary[] = orderEdges.slice(0, 15).map((e: any) => ({
+    id: e.node.id,
+    name: e.node.name,
+    date: e.node.processedAt,
+    total: parseFloat(e.node.currentTotalPrice?.amount || '0'),
+    currency: e.node.currentTotalPrice?.currencyCode || 'MXN',
+  }));
+
   return {
     id: customer.id,
     email: customer.email,
@@ -112,5 +120,6 @@ export async function getCustomerProfile(accessToken: string): Promise<UserProfi
     collection,
     ordersCount: customer.numberOfOrders ?? orderEdges.length,
     totalSpent,
+    recentOrders,
   };
 }

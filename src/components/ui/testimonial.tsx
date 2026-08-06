@@ -1,0 +1,61 @@
+// src/components/ui/testimonial.tsx
+//
+// Tarjeta de testimonio con avatar, estrellas y cita. `isExample` marca
+// visualmente el contenido de muestra (ver Home: reemplazar por reseñas
+// reales de clientes en cuanto existan — Google/Shopify reviews, etc.).
+
+import React from 'react';
+import { Star, BadgeCheck } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export interface TestimonialData {
+  id: string;
+  name: string;
+  handle?: string;
+  avatarUrl?: string;
+  quote: string;
+  rating?: number; // 0-5
+  isExample?: boolean;
+}
+
+export function TestimonialCard({ data, className }: { data: TestimonialData; className?: string }) {
+  const rating = data.rating ?? 5;
+
+  return (
+    <div className={cn('relative p-5 bg-[#121215] border border-zinc-800 rounded-2xl space-y-3', className)}>
+      {data.isExample && (
+        <span className="absolute top-3 right-3 text-[9px] font-mono uppercase tracking-widest text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+          Ejemplo
+        </span>
+      )}
+
+      <div className="flex gap-0.5">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Star key={i} className={cn('h-3.5 w-3.5', i < rating ? 'fill-amber-400 text-amber-400' : 'text-zinc-700')} />
+        ))}
+      </div>
+
+      <p className="text-sm text-zinc-300 leading-relaxed">"{data.quote}"</p>
+
+      <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/60">
+        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-red-600 to-amber-400 p-0.5">
+          <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
+            {data.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={data.avatarUrl} alt={data.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-black text-white">{data.name[0]}</span>
+            )}
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-bold text-white">{data.name}</span>
+            <BadgeCheck className="h-3.5 w-3.5 text-[#E60026]" />
+          </div>
+          {data.handle && <span className="text-[10px] text-zinc-500 font-mono">{data.handle}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}

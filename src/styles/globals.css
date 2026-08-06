@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tokens de tema (next-themes) recoloreados a la paleta oficial LAMK MX —
+   NO son los valores azules genéricos de la plantilla de 21st, son la
+   paleta "Luxury Asphalt" (#0A0A0C / #EDE7DA / #E60026 / #E8B84B) que ya
+   define todo el resto del sitio, para que ThemeToggle y los componentes
+   tipo shadcn (card, radio-group, etc.) se vean consistentes con la marca. */
+:root {
+  --background: #EDE7DA;
+  --foreground: #14110E;
+  --card: #FFFFFF;
+  --popover: #FFFFFF;
+  --primary: #E60026;
+  --secondary: #F3EFE4;
+  --muted: #F3EFE4;
+  --accent: #E8B84B;
+  --border: #E2DACB;
+  --input: #E2DACB;
+  --ring: #E60026;
+  --destructive: #ef4444;
+  --sidebar: #F9F7F0;
+  --radius: 0.75rem;
+  --font-sans: inherit;
+  --font-mono: 'Courier New', monospace;
+}
+
+.dark {
+  --background: #0A0A0C;
+  --foreground: #F4F4F0;
+  --card: #121215;
+  --popover: #121215;
+  --primary: #E60026;
+  --secondary: #18181B;
+  --muted: #18181B;
+  --accent: #E8B84B;
+  --border: #27272A;
+  --input: #27272A;
+  --ring: #E60026;
+  --destructive: #ef4444;
+  --sidebar: #0A0A0C;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
 @keyframes float {
   0%, 100% {
     transform: translateY(0px) rotate(0deg);
@@ -17,4 +62,14 @@
 
 .tenisin-glow {
   filter: drop-shadow(0 0 12px rgba(230, 0, 38, 0.6));
+}
+
+/* Texto brillante en movimiento (AnimatedText / animated-shiny-text) */
+@keyframes shine {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.animate-shine {
+  animation: shine 3s linear infinite;
 }

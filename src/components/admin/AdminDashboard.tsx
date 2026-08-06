@@ -2,12 +2,11 @@
 
 'use client';
 
-'use client';
-
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { OfflineSalesModule } from './OfflineSalesModule';
 import { DemandRequestsPanel } from './DemandRequestsPanel';
+import { AnalyticsPanel } from './AnalyticsPanel';
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -40,6 +39,9 @@ export function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Dashboard Analítico Dinámico: ventas físicas, más deseados, demanda de agotados */}
+      <AnalyticsPanel />
 
       {/* Peticiones capturadas por TENISIN (búsquedas atendidas y no atendidas) */}
       <DemandRequestsPanel />
