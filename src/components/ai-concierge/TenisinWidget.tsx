@@ -3,34 +3,63 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SAAS_CONFIG } from '@/lib/saas-config';
-import { searchCatalog, getCatalog, CATEGORY_LABELS } from '@/lib/catalog';
+import { searchCatalog, getCatalog } from '@/lib/catalog';
 import { logDemandRequest, updateDemandRequest } from '@/hooks/useLeads';
+import { haptics } from '@/lib/haptics';
 import { Product } from '@/types/product';
 
 type MascotState = 'idle' | 'thinking' | 'happy' | 'notFound';
+type CategoryKey = 'SNEAKERS' | 'APPAREL' | 'GORRAS' | 'BOLSOS' | 'PELUCHES';
+
+interface ChatOption {
+  label: string;
+  onClick: () => void;
+}
 
 interface ChatMessage {
   sender: 'TENISIN' | 'USER';
   text: string;
   products?: Product[];
+  options?: ChatOption[];
 }
 
 const PHONE_REGEX = /\b\d{10}\b/;
 
+const CATEGORY_OPTIONS: { key: CategoryKey; label: string }[] = [
+  { key: 'SNEAKERS', label: '👟 SNEAKERS' },
+  { key: 'APPAREL', label: '👕 ROPA / APPAREL' },
+  { key: 'GORRAS', label: '🧢 GORRAS' },
+  { key: 'BOLSOS', label: '👜 BOLSOS' },
+  { key: 'PELUCHES', label: '🧸 PELUCHES' },
+];
+
+function matchCategory(key: CategoryKey, catalog: Product[]): Product[] {
+  switch (key) {
+    case 'SNEAKERS': return catalog.filter((p) => p.category === 'SNEAKERS');
+    case 'APPAREL': return catalog.filter((p) => p.category === 'APPAREL');
+    case 'GORRAS': return catalog.filter((p) => p.category === 'ACCESSORIES' && /gorra|cap\b/i.test(p.title));
+    case 'BOLSOS': return catalog.filter((p) => p.category === 'ACCESSORIES' && /bolso|bag|mini/i.test(p.title));
+    case 'PELUCHES': return catalog.filter((p) => p.category === 'COLLECTIBLES');
+  }
+}
+
+const inStock = (p: Product) => !p.isSoldOut && p.variants.some((v) => v.isAvailable);
+
 export function TenisinWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [mascotState, setMascotState] = useState<MascotState>('idle');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { sender: 'TENISIN', text: SAAS_CONFIG.mascotGreeting },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [awaitingOtherQuery, setAwaitingOtherQuery] = useState(false);
   // Cuando una búsqueda no encuentra nada disponible, guardamos el id del lead
   // pendiente para completarlo con el WhatsApp en cuanto el cliente lo escriba.
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
   // Catálogo real de Shopify (con fallback a mock) cargado una vez al montar.
   const catalogRef = useRef<Product[]>(getCatalog());
+  const hasGreeted = useRef(false);
 
   useEffect(() => {
     fetch('/api/catalog')
@@ -43,39 +72,145 @@ export function TenisinWidget() {
       .catch((err) => console.error('TENISIN: no se pudo cargar el catálogo real, usando mock:', err));
   }, []);
 
-  const respond = (text: string, products?: Product[]) => {
-    setMessages((prev) => [...prev, { sender: 'TENISIN', text, products }]);
+  const respond = (text: string, extra?: { products?: Product[]; options?: ChatOption[] }) => {
+    setMessages((prev) => [...prev, { sender: 'TENISIN', text, ...extra }]);
+  };
+  const say = (text: string) => setMessages((prev) => [...prev, { sender: 'USER', text }]);
+
+  // Saludo + árbol de selección guiado al abrir el chat por primera vez
+  useEffect(() => {
+    if (isOpen && !hasGreeted.current) {
+      hasGreeted.current = true;
+      setMessages([
+        { sender: 'TENISIN', text: '¡Hola! Soy TENISIN 👟, voy a ayudarte a encontrar lo que buscas.' },
+      ]);
+      setTimeout(() => showCategoryMenu(), 400);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const showCategoryMenu = () => {
+    respond('¿Qué tipo de producto buscas?', {
+      options: [
+        ...CATEGORY_OPTIONS.map((c) => ({ label: c.label, onClick: () => handleCategoryClick(c.key, c.label) })),
+        { label: '🔍 OTRO / PEDIDO ESPECIAL', onClick: () => handleOtherClick() },
+      ],
+    });
   };
 
-  const runSearch = (query: string) => {
-    const catalog = catalogRef.current;
-    const results = searchCatalog(query, catalog).filter((p) => !p.isSoldOut && p.variants.some((v) => v.isAvailable));
+  const notifyMeFlow = (rawQuery: string, productId?: string, productTitle?: string) => {
+    setMascotState('notFound');
+    const lead = logDemandRequest({
+      productId: productId || 'N/A',
+      productTitle: productTitle || rawQuery,
+      rawQuery,
+      wasMatched: false,
+    });
+    setPendingLeadId(lead.id);
+    respond('Ya anoté tu búsqueda para que el equipo la revise antes de comprar más inventario. Si me dejas tu WhatsApp (10 dígitos) te aviso apenas esté disponible 📲');
+  };
 
-    if (results.length > 0) {
-      setMascotState('happy');
-      const top = results.slice(0, 3);
-      logDemandRequest({
-        productId: top[0].id,
-        productTitle: top[0].title,
-        rawQuery: query,
-        wasMatched: true,
+  const handleOtherClick = () => {
+    haptics.tap();
+    say('🔍 Otro / Pedido especial');
+    respond('Perfecto, cuéntame: escribe el nombre del par o prenda que buscas y en el siguiente mensaje déjame tu WhatsApp para avisarte cuando lo consigamos.');
+    setAwaitingOtherQuery(true);
+  };
+
+  const handleCategoryClick = (key: CategoryKey, label: string) => {
+    haptics.tap();
+    say(label);
+    setMascotState('thinking');
+
+    setTimeout(() => {
+      const matches = matchCategory(key, catalogRef.current).filter(inStock);
+
+      if (matches.length === 0) {
+        respond(`Justo ahorita no tengo ${label.replace(/^\S+\s/, '').toLowerCase()} en inventario 😔`);
+        notifyMeFlow(label);
+        return;
+      }
+
+      setMascotState('idle');
+      const brands = Array.from(new Set(matches.map((p) => p.brand))).slice(0, 8);
+
+      if (brands.length <= 1) {
+        showSizeOrResults(key, brands[0] || matches[0].brand, matches);
+        return;
+      }
+
+      respond(`Tengo estas marcas disponibles en ${label.replace(/^\S+\s/, '')}:`, {
+        options: brands.map((b) => ({ label: b, onClick: () => handleBrandClick(key, b, label) })),
       });
-      respond(
-        `👟 ¡Encontré ${results.length === 1 ? 'un par' : `${results.length} opciones`} en inventario! Toca la tarjeta para ver tallas y agregar al carrito.`,
-        top
-      );
-      setTimeout(() => setMascotState('idle'), 4000);
+    }, 700);
+  };
+
+  const handleBrandClick = (key: CategoryKey, brand: string, categoryLabel: string) => {
+    haptics.tap();
+    say(brand);
+    setMascotState('thinking');
+    setTimeout(() => {
+      const matches = matchCategory(key, catalogRef.current).filter((p) => p.brand === brand && inStock(p));
+      showSizeOrResults(key, brand, matches, categoryLabel);
+    }, 500);
+  };
+
+  const showSizeOrResults = (key: CategoryKey, brand: string, products: Product[], categoryLabel?: string) => {
+    setMascotState('idle');
+    if (products.length === 0) {
+      notifyMeFlow(`${brand} ${categoryLabel || ''}`.trim());
       return;
     }
 
-    // Sin resultado disponible: buscamos alternativas de la misma categoría/marca
-    // entre TODO el catálogo (incluyendo agotados) para sugerir algo parecido.
-    const anyMatch = searchCatalog(query, catalog);
-    const fallbackCategory = anyMatch[0]?.category;
-    const alternatives = searchCatalog(fallbackCategory ? CATEGORY_LABELS[fallbackCategory] : query, catalog)
-      .filter((p) => !p.isSoldOut)
-      .slice(0, 3);
+    const isSneaker = key === 'SNEAKERS';
+    const sizeLabels = Array.from(new Set(
+      products.flatMap((p) => p.variants.filter((v) => v.isAvailable).map((v) => isSneaker ? `${v.size.mx} MX` : (v.sizeLabel || '')))
+    )).filter(Boolean).sort();
 
+    if (sizeLabels.length <= 1) {
+      showResults(products, `${brand} ${products[0].title}`);
+      return;
+    }
+
+    respond(`¿Qué talla buscas de ${brand}?`, {
+      options: sizeLabels.map((s) => ({ label: s, onClick: () => handleSizeClick(brand, s, isSneaker, products) })),
+    });
+  };
+
+  const handleSizeClick = (brand: string, sizeLabel: string, isSneaker: boolean, products: Product[]) => {
+    haptics.tap();
+    say(sizeLabel);
+    setMascotState('thinking');
+    setTimeout(() => {
+      const filtered = products.filter((p) =>
+        p.variants.some((v) => v.isAvailable && (isSneaker ? `${v.size.mx} MX` === sizeLabel : v.sizeLabel === sizeLabel))
+      );
+      if (filtered.length === 0) {
+        notifyMeFlow(`${brand} talla ${sizeLabel}`);
+        return;
+      }
+      showResults(filtered, `${brand} talla ${sizeLabel}`);
+    }, 500);
+  };
+
+  const showResults = (products: Product[], rawQuery: string) => {
+    setMascotState('happy');
+    const top = products.slice(0, 3);
+    logDemandRequest({ productId: top[0].id, productTitle: top[0].title, rawQuery, wasMatched: true });
+    respond(`👟 ¡Encontré ${top.length === 1 ? 'un par' : `${top.length} opciones`}! Toca la tarjeta para ver detalle y agregar al carrito.`, { products: top });
+    setTimeout(() => setMascotState('idle'), 4000);
+  };
+
+  const runFreeformSearch = (query: string) => {
+    const catalog = catalogRef.current;
+    const results = searchCatalog(query, catalog).filter(inStock);
+
+    if (results.length > 0) {
+      showResults(results, query);
+      return;
+    }
+
+    const anyMatch = searchCatalog(query, catalog);
     setMascotState('notFound');
     const lead = logDemandRequest({
       productId: anyMatch[0]?.id || 'N/A',
@@ -84,13 +219,7 @@ export function TenisinWidget() {
       wasMatched: false,
     });
     setPendingLeadId(lead.id);
-
-    respond(
-      anyMatch.length > 0
-        ? `😢 Justo ese par está agotado o sin talla disponible. Ya anoté tu búsqueda para que el equipo la revise. Mientras tanto, aquí tienes algo similar — y si me dejas tu WhatsApp (10 dígitos) te aviso apenas vuelva.`
-        : `🤔 No encontré nada con eso en el catálogo todavía. Ya le avisé al equipo de tu búsqueda para que la considere en el próximo drop. Si me dejas tu WhatsApp (10 dígitos) te aviso en cuanto entre.`,
-      alternatives.length > 0 ? alternatives : undefined
-    );
+    respond('🤔 No encontré nada con eso todavía. Ya le avisé al equipo de tu búsqueda. Si me dejas tu WhatsApp (10 dígitos) te aviso en cuanto entre.');
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -101,37 +230,59 @@ export function TenisinWidget() {
     setMessages((prev) => [...prev, { sender: 'USER', text: userText }]);
     setInputMessage('');
 
+    // Paso 1 del flujo "OTRO": el texto libre es el nombre del artículo buscado
+    if (awaitingOtherQuery) {
+      setAwaitingOtherQuery(false);
+      const lead = logDemandRequest({
+        productId: 'N/A',
+        productTitle: userText,
+        rawQuery: userText,
+        wasMatched: false,
+      });
+      setPendingLeadId(lead.id);
+      respond(`Anotado: "${userText}". Ahora déjame tu WhatsApp (10 dígitos) para avisarte en cuanto lo consigamos 📲`);
+      return;
+    }
+
     // Si estábamos esperando un WhatsApp para notificar restock, priorizamos eso
     const phoneMatch = userText.match(PHONE_REGEX);
     if (pendingLeadId && phoneMatch) {
       updateDemandRequest(pendingLeadId, { customerPhone: phoneMatch[0] });
       setPendingLeadId(null);
       setMascotState('happy');
+      haptics.success();
       respond(`✅ ¡Listo! Guardé tu WhatsApp ${phoneMatch[0]} — te escribimos en cuanto haya disponibilidad.`);
       setTimeout(() => setMascotState('idle'), 3000);
       return;
     }
 
     setMascotState('thinking');
-    setTimeout(() => runSearch(userText), 900);
+    setTimeout(() => runFreeformSearch(userText), 900);
   };
 
   // Obtener la ruta de la imagen según la pose actual
   const currentMascotImage = SAAS_CONFIG.mascotPoses[mascotState] || SAAS_CONFIG.mascotPoses.idle;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-
-      {/* Ventana de Chat Abierta de TENISIN */}
+    <>
+      {/* Ventana de Chat: bottom sheet full-width en mobile, panel flotante en sm+ */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.94 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className="mb-4 w-80 sm:w-96 bg-[#0A0A0C]/95 backdrop-blur-md border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden text-[#F4F4F0] flex flex-col h-[28rem]"
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm sm:hidden"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="fixed inset-x-0 bottom-0 z-50 w-full h-[75vh] rounded-t-3xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[30rem] sm:rounded-2xl bg-[#0A0A0C]/95 backdrop-blur-md border border-zinc-800 shadow-2xl overflow-hidden text-[#F4F4F0] flex flex-col"
+            >
 
             {/* Header de TENISIN */}
             <div className="p-4 bg-gradient-to-r from-red-900/60 to-black border-b border-zinc-800 flex items-center justify-between">
@@ -156,16 +307,10 @@ export function TenisinWidget() {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-zinc-400 hover:text-white font-bold text-lg px-2"
+                className="text-zinc-400 hover:text-white font-bold text-lg px-2 min-w-[44px] min-h-[44px]"
               >
                 ✕
               </button>
-            </div>
-
-            {/* Banner explicativo animado */}
-            <div className="p-3 bg-zinc-900/80 border-b border-zinc-800 text-[11px] text-zinc-300 flex items-center gap-2">
-              <span>🎬</span>
-              <p><strong>Club LAMK:</strong> Suma XP con cada compra y desbloquea el Rango LEGEND.</p>
             </div>
 
             {/* Conversación */}
@@ -188,6 +333,21 @@ export function TenisinWidget() {
                     {m.text}
                   </div>
 
+                  {/* Botones de opciones (árbol guiado) */}
+                  {m.options && (
+                    <div className="mt-2 w-full flex flex-wrap gap-1.5">
+                      {m.options.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={opt.onClick}
+                          className="px-3 py-2 min-h-[36px] bg-[#121215] border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-lg text-[11px] font-bold text-zinc-200 transition-colors"
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Tarjetas de producto sugeridas por TENISIN */}
                   {m.products && (
                     <div className="mt-2 w-[85%] space-y-2">
@@ -198,7 +358,9 @@ export function TenisinWidget() {
                           whileHover={{ x: 3, borderColor: 'rgba(230,0,38,0.6)' }}
                           className="flex items-center gap-2 p-2 bg-[#121215] border border-zinc-800 rounded-lg transition-colors"
                         >
-                          <img src={p.images[0]} alt={p.title} className="w-10 h-10 object-cover rounded bg-black" />
+                          <div className="relative w-10 h-10 rounded bg-black overflow-hidden shrink-0">
+                            <Image src={p.images[0]} alt={p.title} fill sizes="40px" className="object-cover" />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[10px] font-bold uppercase truncate">{p.title}</p>
                             <p className="text-[10px] text-[#E60026] font-mono">${p.variants[0]?.price.toLocaleString()} MXN</p>
@@ -233,55 +395,57 @@ export function TenisinWidget() {
             <form onSubmit={handleSendMessage} className="p-3 border-t border-zinc-800 bg-[#121215] flex gap-2">
               <input
                 type="text"
-                placeholder={pendingLeadId ? 'Tu WhatsApp a 10 dígitos...' : 'Pregúntale a TENISIN por un par...'}
+                placeholder={pendingLeadId ? 'Tu WhatsApp a 10 dígitos...' : awaitingOtherQuery ? 'Nombre del par o prenda...' : 'O escríbele directo a TENISIN...'}
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                className="flex-1 p-2 bg-black border border-zinc-800 rounded-lg text-xs text-white outline-none focus:border-red-600 font-mono"
+                className="flex-1 p-2.5 min-h-[44px] bg-black border border-zinc-800 rounded-lg text-xs text-white outline-none focus:border-red-600 font-mono"
               />
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 type="submit"
-                className="px-4 py-2 bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-colors"
+                className="px-4 py-2 min-h-[44px] bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-colors"
               >
                 ENVIAR
               </motion.button>
             </form>
 
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
       {/* Botón Flotante con Poses + Flotación CSS + Aura Neón */}
-      <motion.button
-        onClick={() => setIsOpen(!isOpen)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="group relative flex items-center gap-3 p-2 pr-4 bg-gradient-to-r from-[#0A0A0C] to-zinc-900 text-white rounded-full shadow-2xl border border-zinc-800 hover:border-red-600/60 transition-colors"
-      >
-        <div className="relative w-12 h-12 flex items-center justify-center animate-float tenisin-glow">
-          <img
-            src={currentMascotImage}
-            alt={SAAS_CONFIG.mascotName}
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
-        </div>
+      <div className="fixed bottom-6 right-6 z-30">
+        <motion.button
+          onClick={() => { haptics.tap(); setIsOpen(!isOpen); }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="group relative flex items-center gap-3 p-2 pr-4 min-h-[48px] bg-gradient-to-r from-[#0A0A0C] to-zinc-900 text-white rounded-full shadow-2xl border border-zinc-800 hover:border-red-600/60 transition-colors"
+        >
+          <div className="relative w-12 h-12 flex items-center justify-center animate-float tenisin-glow">
+            <img
+              src={currentMascotImage}
+              alt={SAAS_CONFIG.mascotName}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          </div>
 
-        <div className="text-left hidden sm:block">
-          <span className="block font-black text-xs uppercase tracking-wider text-white">
-            {SAAS_CONFIG.mascotName}
-          </span>
-          <span className="block text-[9px] font-mono text-emerald-400">
-            ● EN VIVO
-          </span>
-        </div>
+          <div className="text-left hidden sm:block">
+            <span className="block font-black text-xs uppercase tracking-wider text-white">
+              {SAAS_CONFIG.mascotName}
+            </span>
+            <span className="block text-[9px] font-mono text-emerald-400">
+              ● EN VIVO
+            </span>
+          </div>
 
-        <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-[#E60026] rounded-full border-2 border-black animate-ping" />
-      </motion.button>
-
-    </div>
+          <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-[#E60026] rounded-full border-2 border-black animate-ping" />
+        </motion.button>
+      </div>
+    </>
   );
 }

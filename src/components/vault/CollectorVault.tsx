@@ -7,6 +7,8 @@ import { motion } from 'framer-motion';
 import { UserProfile, LeaderboardEntry } from '@/types/user';
 import { calculateGamificationTier } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
+import { HolographicCard } from '@/components/ui/holographic-card';
+import { ReviewForm } from './ReviewForm';
 
 interface CollectorVaultProps {
   user: UserProfile;
@@ -97,16 +99,16 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {user.collection.map((item) => (
-                  <div
+                  <HolographicCard
                     key={item.id}
-                    className="relative p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-lg overflow-hidden group hover:border-amber-500/50 transition"
+                    className="p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-lg overflow-hidden group hover:border-amber-500/50 transition-colors"
                   >
                     <div className="aspect-square bg-black rounded mb-2 overflow-hidden">
-                      <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover group-hover:scale-110 transition duration-300" />
+                      <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
                     </div>
                     <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
                     <span className="text-[9px] font-mono text-amber-400 block mt-0.5">{item.serialNumber}</span>
-                  </div>
+                  </HolographicCard>
                 ))}
               </div>
             )}
@@ -150,6 +152,9 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
               )}
             </div>
           )}
+
+          {/* Reseña verificada — solo si tiene compra real */}
+          {isOwnProfile && user.ordersCount > 0 && <ReviewForm />}
 
         </div>
 

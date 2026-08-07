@@ -14,6 +14,7 @@ import { getProducts, getProductByHandle as getShopifyProductByHandle } from '@/
 import { SHOPIFY_CONFIG } from '@/lib/shopify/config';
 import { getCatalog, getProductByHandle as getMockProductByHandle } from '@/lib/catalog';
 import { getAllViews24h, getViews24h, computeHypeMeter } from '@/lib/hype';
+import { getHiddenProductIds } from '@/lib/inventory-store';
 
 const hasShopifyCredentials = Boolean(SHOPIFY_CONFIG.domain && (SHOPIFY_CONFIG.storefrontAccessToken || SHOPIFY_CONFIG.privateAccessToken));
 
@@ -25,32 +26,40 @@ function withRealHype(product: Product, views24h: number): Product {
   };
 }
 
-export async function getCatalogLive(): Promise<{ products: Product[]; source: 'shopify' | 'mock' }> {
+// `includeHidden` es solo para el panel admin (Gestión de inventario), que
+// necesita ver también los productos desactivados para poder reactivarlos.
+export async function getCatalogLive(options: { includeHidden?: boolean } = {}): Promise<{ products: Product[]; source: 'shopify' | 'mock' }> {
   const viewsById = getAllViews24h();
+  const hiddenIds = options.includeHidden ? new Set<string>() : new Set(getHiddenProductIds());
+  const applyFilters = (products: Product[]) => products.filter((p) => !hiddenIds.has(p.id)).map((p) => withRealHype(p, viewsById[p.id] || 0));
 
   if (hasShopifyCredentials) {
     try {
       const products = await getProducts();
       if (products.length > 0) {
-        return { products: products.map((p) => withRealHype(p, viewsById[p.id] || 0)), source: 'shopify' };
+        return { products: applyFilters(products), source: 'shopify' };
       }
       console.warn('Shopify devolvió 0 productos; usando catálogo mock de respaldo.');
     } catch (err) {
       console.error('No se pudo cargar el catálogo real de Shopify, usando mock de respaldo:', err);
     }
   }
-  return { products: getCatalog().map((p) => withRealHype(p, viewsById[p.id] || 0)), source: 'mock' };
+  return { products: applyFilters(getCatalog()), source: 'mock' };
 }
 
 export async function getProductByHandleLive(handle: string): Promise<{ product: Product | null; source: 'shopify' | 'mock' }> {
+  const hiddenIds = new Set(getHiddenProductIds());
+
   if (hasShopifyCredentials) {
     try {
       const product = await getShopifyProductByHandle(handle);
-      if (product) return { product: withRealHype(product, getViews24h(product.id)), source: 'shopify' };
+      if (product && !hiddenIds.has(product.id)) return { product: withRealHype(product, getViews24h(product.id)), source: 'shopify' };
+      if (product) return { product: null, source: 'shopify' }; // oculto por el admin
     } catch (err) {
       console.error(`No se pudo cargar el producto "${handle}" de Shopify, probando mock de respaldo:`, err);
     }
   }
   const mock = getMockProductByHandle(handle) || null;
+  if (mock && hiddenIds.has(mock.id)) return { product: null, source: 'mock' };
   return { product: mock ? withRealHype(mock, getViews24h(mock.id)) : null, source: 'mock' };
 }

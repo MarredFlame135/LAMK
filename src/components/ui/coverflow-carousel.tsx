@@ -46,7 +46,7 @@ export function CoverflowCarousel({ items, className }: CoverflowCarouselProps) 
 
   return (
     <div className={cn('relative w-full', className)}>
-      <div className="relative h-80 sm:h-96 flex items-center justify-center [perspective:1200px]">
+      <div className="relative h-80 sm:h-96 flex items-center justify-center overflow-x-hidden [perspective:1200px]">
         {items.map((item, idx) => {
           const offset = idx - active;
           const isActive = offset === 0;

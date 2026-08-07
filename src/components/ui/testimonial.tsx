@@ -1,10 +1,12 @@
 // src/components/ui/testimonial.tsx
 //
 // Tarjeta de testimonio con avatar, estrellas y cita. `isExample` marca
-// visualmente el contenido de muestra (ver Home: reemplazar por reseñas
-// reales de clientes en cuanto existan — Google/Shopify reviews, etc.).
+// contenido de muestra; `verifiedPurchase` marca una reseña real de un
+// cliente con pedido confirmado (On-Feet Review, RF-4.4) — solo esas
+// muestran el sello de Compra Verificada.
 
 import React from 'react';
+import Image from 'next/image';
 import { Star, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,9 +15,11 @@ export interface TestimonialData {
   name: string;
   handle?: string;
   avatarUrl?: string;
+  photoUrl?: string; // foto "on-feet" del par puesto
   quote: string;
   rating?: number; // 0-5
   isExample?: boolean;
+  verifiedPurchase?: boolean;
 }
 
 export function TestimonialCard({ data, className }: { data: TestimonialData; className?: string }) {
@@ -35,6 +39,12 @@ export function TestimonialCard({ data, className }: { data: TestimonialData; cl
         ))}
       </div>
 
+      {data.photoUrl && (
+        <div className="relative aspect-video rounded-lg overflow-hidden bg-black">
+          <Image src={data.photoUrl} alt={`Foto de ${data.name}`} fill sizes="320px" className="object-cover" />
+        </div>
+      )}
+
       <p className="text-sm text-zinc-300 leading-relaxed">"{data.quote}"</p>
 
       <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/60">
@@ -51,9 +61,13 @@ export function TestimonialCard({ data, className }: { data: TestimonialData; cl
         <div>
           <div className="flex items-center gap-1">
             <span className="text-xs font-bold text-white">{data.name}</span>
-            <BadgeCheck className="h-3.5 w-3.5 text-[#E60026]" />
+            {data.verifiedPurchase && <BadgeCheck className="h-3.5 w-3.5 text-[#E60026]" />}
           </div>
-          {data.handle && <span className="text-[10px] text-zinc-500 font-mono">{data.handle}</span>}
+          {data.verifiedPurchase ? (
+            <span className="text-[10px] text-emerald-400 font-mono">Compra Verificada</span>
+          ) : (
+            data.handle && <span className="text-[10px] text-zinc-500 font-mono">{data.handle}</span>
+          )}
         </div>
       </div>
     </div>

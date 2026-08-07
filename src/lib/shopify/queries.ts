@@ -140,6 +140,17 @@ export const CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION = `
   }
 `;
 
+export const CUSTOMER_RECOVER_MUTATION = `
+  mutation customerRecover($email: String!) {
+    customerRecover(email: $email) {
+      customerUserErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 export const CUSTOMER_ACCESS_TOKEN_DELETE_MUTATION = `
   mutation customerAccessTokenDelete($customerAccessToken: String!) {
     customerAccessTokenDelete(customerAccessToken: $customerAccessToken) {

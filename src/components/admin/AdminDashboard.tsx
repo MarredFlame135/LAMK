@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { OfflineSalesModule } from './OfflineSalesModule';
 import { DemandRequestsPanel } from './DemandRequestsPanel';
 import { AnalyticsPanel } from './AnalyticsPanel';
+import { InventoryManager } from './InventoryManager';
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -45,6 +46,9 @@ export function AdminDashboard() {
 
       {/* Peticiones capturadas por TENISIN (búsquedas atendidas y no atendidas) */}
       <DemandRequestsPanel />
+
+      {/* Alta y baja de inventario */}
+      <InventoryManager />
 
       {/* Módulo de Ventas Offline, Deudas y Publicación Masiva */}
       <OfflineSalesModule />

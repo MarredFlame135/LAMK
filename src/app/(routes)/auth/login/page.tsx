@@ -63,7 +63,12 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">Contraseña</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs text-zinc-400">Contraseña</label>
+              <a href="/auth/reset-password" className="text-[10px] text-zinc-500 hover:text-[#E60026] transition">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
             <input
               type="password"
               required

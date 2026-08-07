@@ -9,6 +9,7 @@ import React from 'react';
 import { ExpandableGallery, GalleryItem } from '@/components/ui/gallery-animation';
 import { TestimonialCard, TestimonialData } from '@/components/ui/testimonial';
 import { Product } from '@/types/product';
+import { getReviews } from '@/lib/reviews-store';
 
 const EXAMPLE_TESTIMONIALS: TestimonialData[] = [
   {
@@ -49,6 +50,18 @@ export function SocialProofSection({ products }: SocialProofSectionProps) {
     href: `/product/${p.handle}`,
   }));
 
+  // Reseñas reales de clientes con compra verificada primero; solo se
+  // completa con ejemplos si aún no hay suficientes reales.
+  const realReviews: TestimonialData[] = getReviews().map((r) => ({
+    id: r.id,
+    name: r.customerName,
+    quote: r.text,
+    rating: r.rating,
+    photoUrl: r.photoUrl,
+    verifiedPurchase: true,
+  }));
+  const testimonials = [...realReviews, ...EXAMPLE_TESTIMONIALS].slice(0, Math.max(3, realReviews.length));
+
   return (
     <section className="py-16 bg-[#0A0A0C]">
       <div className="max-w-7xl mx-auto px-4 space-y-16">
@@ -74,7 +87,7 @@ export function SocialProofSection({ products }: SocialProofSectionProps) {
             <h2 className="text-2xl font-black uppercase tracking-tight mt-1">LO QUE DICEN NUESTROS COLECCIONISTAS</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {EXAMPLE_TESTIMONIALS.map((t) => (
+            {testimonials.map((t) => (
               <TestimonialCard key={t.id} data={t} />
             ))}
           </div>

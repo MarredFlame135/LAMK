@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     // Simulación del pipeline de IA (Remoción de fondo + Reiluminación)
     // En producción se conecta a APIs como Cloudinary, Photoroom o Remove.bg API
-    const processedUrl = imageUrl.includes('http')
+    const processedUrl = imageUrl.startsWith('http') || imageUrl.startsWith('data:')
       ? imageUrl
       : 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=1200&q=80';
 

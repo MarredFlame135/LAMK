@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { HeroSection } from '@/components/home/HeroSection';
+import { HypeMarquee } from '@/components/home/HypeMarquee';
 import { DropsCoverflow } from '@/components/home/DropsCoverflow';
 import { HypeCarousel } from '@/components/home/HypeCarousel';
 import { SocialProofSection } from '@/components/home/SocialProofSection';
@@ -15,6 +16,7 @@ export default async function HomePage() {
   return (
     <div className="bg-[#0A0A0C] text-[#F4F4F0] min-h-screen">
       <HeroSection />
+      <HypeMarquee />
 
       {/* Carrusel 3D de Drops principales */}
       <DropsCoverflow products={products} />

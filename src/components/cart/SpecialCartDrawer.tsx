@@ -57,16 +57,20 @@ export function SpecialCartDrawer() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-stretch justify-center sm:justify-end">
       {/* Fondo Oscuro con desenfoque (Glassmorphism) */}
       <div
         className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Panel Lateral Deslizante */}
-      <div className="relative z-10 w-full max-w-md bg-[#0A0A0C] text-[#F4F4F0] border-l border-zinc-800 flex flex-col h-full shadow-2xl">
-        
+      {/* Bottom Sheet en mobile / Panel Lateral Deslizante en sm+ */}
+      <div className="relative z-10 w-full sm:max-w-md h-[92vh] sm:h-full bg-[#0A0A0C] text-[#F4F4F0] border-t sm:border-t-0 sm:border-l border-zinc-800 rounded-t-3xl sm:rounded-none flex flex-col shadow-2xl animate-[slideUpSheet_0.32s_ease-out] sm:animate-[slideInDrawer_0.32s_ease-out]">
+        {/* Handle visual del bottom sheet (solo mobile) */}
+        <div className="sm:hidden flex justify-center pt-2.5 pb-1">
+          <span className="w-10 h-1 rounded-full bg-zinc-700" />
+        </div>
+
         {/* Header del Carrito */}
         <div className="p-5 border-b border-zinc-800 flex items-center justify-between bg-[#121215]">
           <div className="flex items-center gap-2">
@@ -77,7 +81,7 @@ export function SpecialCartDrawer() {
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="text-zinc-400 hover:text-white text-xl font-bold px-2"
+            className="text-zinc-400 hover:text-white text-xl font-bold min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             ✕
           </button>
@@ -134,14 +138,14 @@ export function SpecialCartDrawer() {
                     <div className="flex items-center border border-zinc-700 rounded bg-black">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="px-2 py-0.5 text-xs text-zinc-400 hover:text-white"
+                        className="min-w-[36px] min-h-[36px] text-xs text-zinc-400 hover:text-white"
                       >
                         -
                       </button>
                       <span className="px-2 text-xs font-bold">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="px-2 py-0.5 text-xs text-zinc-400 hover:text-white"
+                        className="min-w-[36px] min-h-[36px] text-xs text-zinc-400 hover:text-white"
                       >
                         +
                       </button>
@@ -149,7 +153,7 @@ export function SpecialCartDrawer() {
 
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="text-[10px] text-zinc-500 hover:text-red-500 uppercase tracking-wider"
+                      className="text-[10px] text-zinc-500 hover:text-red-500 uppercase tracking-wider min-h-[36px] px-2"
                     >
                       Eliminar
                     </button>

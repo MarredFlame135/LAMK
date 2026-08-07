@@ -10,6 +10,9 @@ import { FitAdvisorBadge } from '@/components/product/FitAdvisorBadge';
 import { useCart } from '@/hooks/useCart';
 import { CATEGORY_LABELS } from '@/lib/catalog';
 import { useApp } from '@/context/AppContext';
+import { logDemandRequest } from '@/hooks/useLeads';
+import { haptics } from '@/lib/haptics';
+import { isValidMexicanPhone } from '@/lib/validators';
 
 interface ProductDetailProps {
   product: Product;
@@ -22,10 +25,28 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants.find((v) => v.isAvailable) || null
   );
+  const [notifyPhone, setNotifyPhone] = useState('');
+  const [notifySubmitted, setNotifySubmitted] = useState(false);
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
     addItem(product.title, product.id, selectedImage, selectedVariant);
+    haptics.success();
+  };
+
+  const handleNotifyMe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isValidMexicanPhone(notifyPhone)) return;
+    logDemandRequest({
+      productId: product.id,
+      productTitle: product.title,
+      requestedSize: selectedVariant?.sizeLabel || (selectedVariant ? `${selectedVariant.size.mx} MX` : undefined),
+      customerPhone: notifyPhone,
+      rawQuery: product.title,
+      wasMatched: false,
+    });
+    haptics.success();
+    setNotifySubmitted(true);
   };
 
   return (
@@ -144,12 +165,29 @@ export function ProductDetail({ product }: ProductDetailProps) {
           {/* Botón Principal de Acción */}
           <div className="pt-4">
             {product.isSoldOut ? (
-              <button
-                onClick={() => alert('¡Te avisaremos por WhatsApp en cuanto vuelva a estar disponible!')}
-                className="w-full py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-widest rounded transition"
-              >
-                {t.product.notifyBackInStock} 🔔
-              </button>
+              notifySubmitted ? (
+                <div className="w-full py-4 bg-emerald-950/40 border border-emerald-800 text-emerald-400 font-bold text-xs uppercase tracking-widest rounded text-center">
+                  ✅ Te avisaremos por WhatsApp en cuanto vuelva
+                </div>
+              ) : (
+                <form onSubmit={handleNotifyMe} className="flex gap-2">
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    placeholder="Tu WhatsApp a 10 dígitos"
+                    value={notifyPhone}
+                    onChange={(e) => setNotifyPhone(e.target.value.replace(/\D/g, ''))}
+                    className="flex-1 min-h-[48px] px-4 bg-black border border-zinc-800 rounded text-sm text-white outline-none focus:border-[#E60026]"
+                  />
+                  <button
+                    type="submit"
+                    className="px-5 min-h-[48px] bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-widest rounded transition whitespace-nowrap"
+                  >
+                    {t.product.notifyBackInStock} 🔔
+                  </button>
+                </form>
+              )
             ) : (
               <button
                 onClick={handleAddToCart}

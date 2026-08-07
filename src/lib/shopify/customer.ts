@@ -10,10 +10,12 @@ import {
   CUSTOMER_CREATE_MUTATION,
   CUSTOMER_ACCESS_TOKEN_CREATE_MUTATION,
   CUSTOMER_ACCESS_TOKEN_DELETE_MUTATION,
+  CUSTOMER_RECOVER_MUTATION,
   GET_CUSTOMER_QUERY,
 } from './queries';
 import { UserProfile, CollectionItem, OrderSummary } from '@/types/user';
 import { calculateGamificationTier } from '@/utils/gamification';
+import { normalizeMexicanPhoneE164 } from '@/lib/validators';
 
 export interface CustomerAccessToken {
   accessToken: string;
@@ -32,9 +34,19 @@ export async function registerCustomer(input: {
   lastName: string;
   phone?: string;
 }): Promise<CustomerAccessToken> {
+  // Shopify exige E.164 (+52XXXXXXXXXX) — un número de 10 dígitos suelto
+  // rebota con "Phone is invalid". Si no se puede normalizar, mejor omitirlo
+  // que bloquear el registro completo por un campo opcional.
+  let normalizedPhone: string | undefined;
+  if (input.phone && input.phone.trim()) {
+    const normalized = normalizeMexicanPhoneE164(input.phone);
+    if (!normalized) throw new Error('El teléfono debe ser un número mexicano válido a 10 dígitos.');
+    normalizedPhone = normalized;
+  }
+
   const createData: any = await shopifyFetch({
     query: CUSTOMER_CREATE_MUTATION,
-    variables: { input },
+    variables: { input: { ...input, phone: normalizedPhone } },
   });
 
   const createErrors = collectUserErrors(createData.customerCreate?.customerUserErrors);
@@ -58,6 +70,21 @@ export async function loginCustomer(input: { email: string; password: string }):
   if (!token) throw new Error('Correo o contraseña incorrectos.');
 
   return token;
+}
+
+// Dispara el correo de recuperación NATIVO de Shopify (plantilla configurada
+// en Shopify Admin → Configuración → Notificaciones). Por diseño de Shopify
+// (para no filtrar qué correos están registrados) esto no distingue entre
+// "correo existe" y "correo no existe": siempre hay que mostrar el mismo
+// mensaje de éxito en la UI.
+export async function recoverCustomerPassword(email: string): Promise<void> {
+  const data: any = await shopifyFetch({
+    query: CUSTOMER_RECOVER_MUTATION,
+    variables: { email },
+  });
+
+  const errors = collectUserErrors(data.customerRecover?.customerUserErrors);
+  if (errors) throw new Error(errors);
 }
 
 export async function logoutCustomer(accessToken: string): Promise<void> {
