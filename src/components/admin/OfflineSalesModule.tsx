@@ -5,60 +5,16 @@
 import React, { useState, useEffect } from 'react';
 import { OfflineSale } from '@/types/admin';
 
-const LOCAL_STORAGE_KEY = 'lamk_offline_sales_v1';
-
-// Datos de arranque solo para la primera vez que se abre el panel (nunca
-// sobrescriben lo que el admin ya haya registrado y guardado en el navegador).
-const SEED_SALES: OfflineSale[] = [
-  {
-    id: 'SALE-101',
-    customerName: 'Carlos Mendoza',
-    customerPhone: '5512345678',
-    itemsSummary: 'Yeezy Boost 350 V2 Onyx (Talla 28 MX)',
-    totalAmount: 5800,
-    amountPaid: 3000,
-    pendingBalance: 2800,
-    dueDate: '2026-08-15',
-    paymentStatus: 'PARTIAL_DEBT',
-    createdAt: '2026-07-30',
-  },
-  {
-    id: 'SALE-102',
-    customerName: 'Sofía Guerrero',
-    customerPhone: '5587654321',
-    itemsSummary: 'Air Jordan 1 Retro High OG Lost & Found (Talla 24 MX)',
-    totalAmount: 9200,
-    amountPaid: 9200,
-    pendingBalance: 0,
-    dueDate: '2026-07-30',
-    paymentStatus: 'PAID',
-    createdAt: '2026-07-28',
-  },
-];
-
 export function OfflineSalesModule() {
   const [sales, setSales] = useState<OfflineSale[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 1. Cargar ventas guardadas del navegador (persistencia real, igual que useCart)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      setSales(saved ? JSON.parse(saved) : SEED_SALES);
-    } catch (e) {
-      console.error('Error al restaurar ventas offline:', e);
-      setSales(SEED_SALES);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
-
-  // 2. Guardar automáticamente cada cambio
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(sales));
-    }
-  }, [sales, isLoaded]);
+  // Ventas físicas reales del servidor (data/offline-sales.json) — antes
+  // vivían en localStorage y no sincronizaban entre el celular y la
+  // computadora del admin, ni con nadie más que abriera el panel.
+  const loadSales = () => {
+    fetch('/api/admin/sales').then((r) => r.json()).then((d) => setSales(d.sales || []));
+  };
+  useEffect(() => { loadSales(); }, []);
 
   // Formulario para nueva venta física
   const [form, setForm] = useState({
@@ -75,27 +31,26 @@ export function OfflineSalesModule() {
   // Cálculo de deuda total en el sistema
   const totalDebt = sales.reduce((acc, sale) => acc + sale.pendingBalance, 0);
 
-  // Registrar nueva venta en tienda
-  const handleCreateSale = (e: React.FormEvent) => {
+  // Registrar nueva venta en tienda (servidor — ver src/lib/sales-store.ts)
+  const handleCreateSale = async (e: React.FormEvent) => {
     e.preventDefault();
     const total = parseFloat(form.totalAmount) || 0;
     const paid = parseFloat(form.amountPaid) || 0;
-    const pending = Math.max(0, total - paid);
 
-    const newSale: OfflineSale = {
-      id: `SALE-${Date.now().toString().slice(-4)}`,
-      customerName: form.customerName,
-      customerPhone: form.customerPhone,
-      itemsSummary: form.itemsSummary,
-      totalAmount: total,
-      amountPaid: paid,
-      pendingBalance: pending,
-      dueDate: form.dueDate || new Date().toISOString().split('T')[0],
-      paymentStatus: pending === 0 ? 'PAID' : 'PARTIAL_DEBT',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+    await fetch('/api/admin/sales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customerName: form.customerName,
+        customerPhone: form.customerPhone,
+        itemsSummary: form.itemsSummary,
+        totalAmount: total,
+        amountPaid: paid,
+        dueDate: form.dueDate,
+      }),
+    });
 
-    setSales([newSale, ...sales]);
+    loadSales();
     setForm({ customerName: '', customerPhone: '', itemsSummary: '', totalAmount: '', amountPaid: '', dueDate: '' });
     alert('¡Venta física registrada correctamente!');
   };

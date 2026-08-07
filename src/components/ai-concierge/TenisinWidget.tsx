@@ -98,9 +98,9 @@ export function TenisinWidget() {
     });
   };
 
-  const notifyMeFlow = (rawQuery: string, productId?: string, productTitle?: string) => {
+  const notifyMeFlow = async (rawQuery: string, productId?: string, productTitle?: string) => {
     setMascotState('notFound');
-    const lead = logDemandRequest({
+    const lead = await logDemandRequest({
       productId: productId || 'N/A',
       productTitle: productTitle || rawQuery,
       rawQuery,
@@ -201,7 +201,7 @@ export function TenisinWidget() {
     setTimeout(() => setMascotState('idle'), 4000);
   };
 
-  const runFreeformSearch = (query: string) => {
+  const runFreeformSearch = async (query: string) => {
     const catalog = catalogRef.current;
     const results = searchCatalog(query, catalog).filter(inStock);
 
@@ -212,7 +212,7 @@ export function TenisinWidget() {
 
     const anyMatch = searchCatalog(query, catalog);
     setMascotState('notFound');
-    const lead = logDemandRequest({
+    const lead = await logDemandRequest({
       productId: anyMatch[0]?.id || 'N/A',
       productTitle: anyMatch[0]?.title || query,
       rawQuery: query,
@@ -233,13 +233,12 @@ export function TenisinWidget() {
     // Paso 1 del flujo "OTRO": el texto libre es el nombre del artículo buscado
     if (awaitingOtherQuery) {
       setAwaitingOtherQuery(false);
-      const lead = logDemandRequest({
+      logDemandRequest({
         productId: 'N/A',
         productTitle: userText,
         rawQuery: userText,
         wasMatched: false,
-      });
-      setPendingLeadId(lead.id);
+      }).then((lead) => setPendingLeadId(lead.id));
       respond(`Anotado: "${userText}". Ahora déjame tu WhatsApp (10 dígitos) para avisarte en cuanto lo consigamos 📲`);
       return;
     }

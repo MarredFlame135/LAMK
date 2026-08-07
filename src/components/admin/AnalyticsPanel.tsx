@@ -7,9 +7,9 @@
 // con extremos redondeados, grilla recesiva, tooltip por barra.
 //
 // Fuentes de datos, todas reales (nada inventado):
-//  - Ventas físicas: localStorage (mismo store que OfflineSalesModule)
+//  - Ventas físicas: servidor (src/lib/sales-store.ts) vía /api/admin/sales
 //  - Más deseados: vistas reales por producto (src/lib/hype.ts) vía /api/admin/analytics
-//  - Demanda de agotados: peticiones reales capturadas por TENISIN (useLeads)
+//  - Demanda de agotados: peticiones reales capturadas por TENISIN (useLeads, servidor)
 //  - Ventas/top-sellers de Shopify: requieren Admin API con scopes — estado vacío honesto
 
 'use client';
@@ -20,8 +20,6 @@ import { OfflineSale } from '@/types/admin';
 import { useLeads } from '@/hooks/useLeads';
 import { CATEGORY_LABELS } from '@/lib/catalog';
 import { Product } from '@/types/product';
-
-const SALES_KEY = 'lamk_offline_sales_v1';
 
 // Paleta categórica validada (dataviz skill, dark mode, superficie #121215) —
 // ver scripts/validate_palette.js. Orden fijo, nunca se reasigna por ranking.
@@ -46,12 +44,10 @@ interface TopViewedItem {
 function useOfflineSalesReadOnly(): OfflineSale[] {
   const [sales, setSales] = useState<OfflineSale[]>([]);
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(SALES_KEY);
-      if (saved) setSales(JSON.parse(saved));
-    } catch (e) {
-      console.error('Error al leer ventas offline para analíticas:', e);
-    }
+    fetch('/api/admin/sales')
+      .then((r) => r.json())
+      .then((d) => setSales(d.sales || []))
+      .catch((e) => console.error('Error al leer ventas offline para analíticas:', e));
   }, []);
   return sales;
 }

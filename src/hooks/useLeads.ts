@@ -1,38 +1,24 @@
 // src/hooks/useLeads.ts
 //
-// Persiste las peticiones que TENISIN captura de los clientes (búsquedas sin
-// resultado, productos agotados, WhatsApp para notificar restock) para que el
-// admin las vea en su dashboard. Mismo patrón de persistencia que useCart.ts.
+// Cliente delgado sobre /api/admin/leads (servidor, ver src/lib/leads-store.ts).
+// Antes esto guardaba en localStorage del navegador — lo que capturaba el
+// cliente en su celular nunca le llegaba al admin en su computadora. Ahora
+// todo pasa por el servidor, compartido de verdad entre todos.
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { DemandRequest } from '@/types/admin';
 
-const LOCAL_STORAGE_KEY = 'lamk_tenisin_leads_v1';
-const UPDATE_EVENT = 'lamk:leads-updated';
-
-function readLeads(): DemandRequest[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return saved ? (JSON.parse(saved) as DemandRequest[]) : [];
-  } catch (e) {
-    console.error('Error al leer peticiones de TENISIN:', e);
-    return [];
-  }
+async function fetchLeads(): Promise<DemandRequest[]> {
+  const res = await fetch('/api/admin/leads');
+  const data = await res.json();
+  return data.leads || [];
 }
 
-function writeLeads(leads: DemandRequest[]) {
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(leads));
-  // Notifica a cualquier otro componente montado en la misma pestaña (ej. el
-  // admin dashboard abierto al mismo tiempo que un cliente usa TENISIN).
-  window.dispatchEvent(new CustomEvent(UPDATE_EVENT));
-}
-
-// Llamado por TENISIN cada vez que un cliente busca algo. Se puede invocar sin
-// hook (fuera de React) porque solo toca localStorage + un evento del DOM.
-export function logDemandRequest(input: {
+// Llamado por TENISIN / ProductDetail cada vez que un cliente busca algo o
+// pide que le avisen. Devuelve una Promise — los call sites deben esperarla.
+export async function logDemandRequest(input: {
   productId: string;
   productTitle: string;
   requestedSize?: string;
@@ -40,56 +26,55 @@ export function logDemandRequest(input: {
   customerEmail?: string;
   rawQuery: string;
   wasMatched: boolean;
-}): DemandRequest {
-  const lead: DemandRequest = {
-    id: `LEAD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    productId: input.productId,
-    productTitle: input.productTitle,
-    requestedSize: input.requestedSize || 'N/A',
-    customerPhone: input.customerPhone || '',
-    customerEmail: input.customerEmail || '',
-    createdAt: new Date().toISOString(),
-    notified: false,
-    rawQuery: input.rawQuery,
-    wasMatched: input.wasMatched,
-    source: 'TENISIN_CHAT',
-  };
-
-  const current = readLeads();
-  writeLeads([lead, ...current]);
-  return lead;
+}): Promise<DemandRequest> {
+  const res = await fetch('/api/admin/leads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const data = await res.json();
+  return data.lead;
 }
 
-// Actualiza un lead existente (ej. cuando el cliente da su WhatsApp después
-// de que TENISIN le preguntó, o el admin lo marca como atendido/notificado).
-export function updateDemandRequest(id: string, patch: Partial<DemandRequest>) {
-  const current = readLeads();
-  const updated = current.map((l) => (l.id === id ? { ...l, ...patch } : l));
-  writeLeads(updated);
+export async function updateDemandRequest(id: string, patch: Partial<DemandRequest>): Promise<void> {
+  await fetch('/api/admin/leads', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, patch }),
+  });
 }
 
-export function deleteDemandRequest(id: string) {
-  writeLeads(readLeads().filter((l) => l.id !== id));
+export async function deleteDemandRequest(id: string): Promise<void> {
+  await fetch('/api/admin/leads', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id }),
+  });
 }
 
-// Hook de lectura reactiva para el Admin Dashboard.
+// Hook de lectura reactiva para el Admin Dashboard. Se re-consulta cada vez
+// que la pestaña vuelve a tener foco, además de al montar.
 export function useLeads() {
   const [leads, setLeads] = useState<DemandRequest[]>([]);
 
-  const refresh = useCallback(() => setLeads(readLeads()), []);
+  const refresh = useCallback(() => {
+    fetchLeads().then(setLeads).catch((err) => console.error('Error al cargar peticiones de TENISIN:', err));
+  }, []);
 
   useEffect(() => {
     refresh();
-    window.addEventListener(UPDATE_EVENT, refresh);
-    window.addEventListener('storage', refresh); // sincroniza entre pestañas
-    return () => {
-      window.removeEventListener(UPDATE_EVENT, refresh);
-      window.removeEventListener('storage', refresh);
-    };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
   }, [refresh]);
 
-  const markNotified = (id: string) => updateDemandRequest(id, { notified: true });
-  const remove = (id: string) => deleteDemandRequest(id);
+  const markNotified = async (id: string) => {
+    await updateDemandRequest(id, { notified: true });
+    refresh();
+  };
+  const remove = async (id: string) => {
+    await deleteDemandRequest(id);
+    refresh();
+  };
 
   return { leads, markNotified, remove, refresh };
 }
