@@ -85,7 +85,7 @@ export function HolographicCard({ children, className }: HolographicCardProps) {
       <div
         className="pointer-events-none absolute inset-0 mix-blend-overlay opacity-80"
         style={{
-          background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.65) 0%, rgba(232,184,75,0.35) 25%, rgba(230,0,38,0.25) 45%, transparent 70%)`,
+          background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.65) 0%, rgba(232,184,75,0.35) 25%, rgba(255,30,66,0.25) 45%, transparent 70%)`,
         }}
       />
     </div>

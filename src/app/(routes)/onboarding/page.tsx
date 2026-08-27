@@ -48,19 +48,19 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-[#0A0A0C] text-[#F4F4F0] px-4 py-12">
-      <div className="w-full max-w-lg bg-[#121215] border border-zinc-800 rounded-2xl p-8 space-y-8">
+    <div className="min-h-[80vh] flex items-center justify-center bg-background text-foreground px-4 py-12">
+      <div className="w-full max-w-lg bg-card border border-border rounded-2xl p-8 space-y-8">
 
         {/* Progreso */}
         <div className="space-y-2">
           <div className="flex justify-between text-[10px] font-mono text-zinc-500 uppercase">
             {steps.map((s, i) => (
-              <span key={s} className={i <= step ? 'text-[#E60026] font-bold' : ''}>{s}</span>
+              <span key={s} className={i <= step ? 'text-[#FF1E42] font-bold' : ''}>{s}</span>
             ))}
           </div>
           <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
             <motion.div
-              className="bg-gradient-to-r from-red-600 to-[#E60026] h-full"
+              className="bg-gradient-to-r from-red-600 to-[#FF1E42] h-full"
               animate={{ width: `${((step + 1) / steps.length) * 100}%` }}
               transition={{ duration: 0.4 }}
             />
@@ -70,7 +70,7 @@ export default function OnboardingPage() {
         <AnimatePresence mode="wait">
           {step === 0 && (
             <motion.div key="s0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-              <h2 className="text-xl font-black uppercase">¿Cuál es tu talla?</h2>
+              <h2 className="font-display text-xl font-black uppercase">¿Cuál es tu talla?</h2>
               <div>
                 <label className="block text-xs text-zinc-400 mb-2">Talla de calzado (MX)</label>
                 <input
@@ -80,9 +80,9 @@ export default function OnboardingPage() {
                   step={0.5}
                   value={shoeSize}
                   onChange={(e) => setShoeSize(parseFloat(e.target.value))}
-                  className="w-full accent-[#E60026]"
+                  className="w-full accent-[#FF1E42]"
                 />
-                <p className="text-center text-2xl font-black text-[#E60026] mt-2">{shoeSize} MX</p>
+                <p className="text-center text-2xl font-black text-[#FF1E42] mt-2">{shoeSize} MX</p>
               </div>
               <div>
                 <label className="block text-xs text-zinc-400 mb-2">Talla de ropa</label>
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
                       key={s}
                       onClick={() => setApparelSize(s)}
                       className={`px-4 py-2 rounded-lg text-xs font-bold border transition ${
-                        apparelSize === s ? 'bg-[#E60026] border-[#E60026] text-white' : 'bg-black border-zinc-800 text-zinc-400'
+                        apparelSize === s ? 'bg-[#FF1E42] border-[#FF1E42] text-white' : 'bg-black border-border text-zinc-400'
                       }`}
                     >
                       {s}
@@ -105,7 +105,7 @@ export default function OnboardingPage() {
 
           {step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-              <h2 className="text-xl font-black uppercase">¿Qué marcas te laten?</h2>
+              <h2 className="font-display text-xl font-black uppercase">¿Qué marcas te laten?</h2>
               <p className="text-xs text-zinc-500">Elige todas las que quieras.</p>
               <div className="flex flex-wrap gap-2">
                 {BRANDS.map((b) => (
@@ -113,7 +113,7 @@ export default function OnboardingPage() {
                     key={b}
                     onClick={() => setBrands(toggle(brands, b))}
                     className={`px-4 py-2 rounded-full text-xs font-bold border transition ${
-                      brands.includes(b) ? 'bg-[#E60026] border-[#E60026] text-white' : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                      brands.includes(b) ? 'bg-[#FF1E42] border-[#FF1E42] text-white' : 'bg-black border-border text-zinc-400 hover:border-zinc-600'
                     }`}
                   >
                     {b}
@@ -125,7 +125,7 @@ export default function OnboardingPage() {
 
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-              <h2 className="text-xl font-black uppercase">¿Cuál es tu estilo?</h2>
+              <h2 className="font-display text-xl font-black uppercase">¿Cuál es tu estilo?</h2>
               <p className="text-xs text-zinc-500">Esto nos ayuda a que TENISIN te recomiende mejor.</p>
               <div className="flex flex-wrap gap-2">
                 {STYLES.map((s) => (
@@ -133,7 +133,7 @@ export default function OnboardingPage() {
                     key={s}
                     onClick={() => setStyles(toggle(styles, s))}
                     className={`px-4 py-2 rounded-full text-xs font-bold border transition ${
-                      styles.includes(s) ? 'bg-[#E60026] border-[#E60026] text-white' : 'bg-black border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                      styles.includes(s) ? 'bg-[#FF1E42] border-[#FF1E42] text-white' : 'bg-black border-border text-zinc-400 hover:border-zinc-600'
                     }`}
                   >
                     {s}
@@ -158,16 +158,16 @@ export default function OnboardingPage() {
           {step < steps.length - 1 ? (
             <button
               onClick={() => setStep(step + 1)}
-              className="px-6 py-2.5 bg-[#E60026] hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-lg transition"
+              className="px-6 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-lg transition"
             >
               Siguiente →
             </button>
           ) : (
             <button
               onClick={finish}
-              className="px-6 py-2.5 bg-[#E60026] hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-lg transition"
+              className="px-6 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-lg transition"
             >
-              Entrar al Club 🔥
+              Entrar al Club
             </button>
           )}
         </div>

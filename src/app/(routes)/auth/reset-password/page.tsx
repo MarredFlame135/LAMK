@@ -25,11 +25,11 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-[#0A0A0C] text-[#F4F4F0] px-4">
-      <div className="w-full max-w-sm bg-[#121215] border border-zinc-800 rounded-2xl p-8 space-y-6">
+    <div className="min-h-[80vh] flex items-center justify-center bg-background text-foreground px-4">
+      <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 space-y-6">
         <div className="text-center space-y-1">
-          <span className="text-xs font-mono text-[#E60026] uppercase tracking-widest">// CLUB LAMK</span>
-          <h1 className="text-2xl font-black uppercase tracking-tight">Recupera tu contraseña</h1>
+          <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// CLUB LAMK</span>
+          <h1 className="font-display text-2xl font-black uppercase tracking-tight">Recupera tu contraseña</h1>
         </div>
 
         {sent ? (
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
             <p className="text-sm text-zinc-300">
               Si <strong>{email}</strong> tiene una cuenta con nosotros, te llegará un correo con instrucciones para restablecer tu contraseña.
             </p>
-            <a href="/auth/login" className="inline-block text-xs text-[#E60026] font-bold hover:underline">
+            <a href="/auth/login" className="inline-block text-xs text-[#FF1E42] font-bold hover:underline">
               ← Volver a iniciar sesión
             </a>
           </div>
@@ -50,14 +50,14 @@ export default function ResetPasswordPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-sm text-white outline-none focus:border-[#E60026]"
+                className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
                 placeholder="tu@correo.com"
               />
             </div>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-[#E60026] hover:bg-red-700 disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-lg transition"
+              className="w-full py-3 bg-[#FF1E42] hover:bg-red-700 disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-lg transition"
             >
               {isLoading ? 'ENVIANDO...' : 'ENVIAR ENLACE DE RECUPERACIÓN'}
             </button>

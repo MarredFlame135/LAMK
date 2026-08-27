@@ -159,20 +159,27 @@ function formatShopifyProduct(node: any): Product {
       stockRemaining: hasInventoryData ? totalStock : availableVariants,
       label: availableVariants === 0 ? 'DROPPED' : availableVariants <= 2 ? 'ULTIMOS PARES' : 'ALTA DEMANDA',
     },
+    publishedAt: node.publishedAt,
   };
 }
 
-// Método público: Obtener catálogo de productos (con paginación hasta 100 productos)
+// Método público: Obtener catálogo de productos COMPLETO — pagina hasta que
+// Shopify diga que ya no hay más (hasNextPage: false), sin tope artificial.
+// El límite de "safety" de abajo (100 páginas × 50 = 5,000 productos) es
+// solo una válvula de escape contra un bug de paginación infinita, no un
+// techo de inventario real — ningún catálogo de LAMK MX se acerca a eso.
 export async function getProducts(query?: string): Promise<Product[]> {
   const all: Product[] = [];
   let cursor: string | undefined;
   let hasNextPage = true;
   let safety = 0;
+  const PAGE_SIZE = 50;
+  const MAX_PAGES = 100;
 
-  while (hasNextPage && safety < 5) {
+  while (hasNextPage && safety < MAX_PAGES) {
     const data: any = await shopifyFetch<any>({
       query: GET_PRODUCTS_QUERY,
-      variables: { first: 20, query, after: cursor },
+      variables: { first: PAGE_SIZE, query, after: cursor },
     });
 
     const edges = data.products?.edges || [];
@@ -181,6 +188,10 @@ export async function getProducts(query?: string): Promise<Product[]> {
     hasNextPage = data.products?.pageInfo?.hasNextPage || false;
     cursor = edges[edges.length - 1]?.cursor;
     safety += 1;
+  }
+
+  if (hasNextPage) {
+    console.warn(`getProducts: se alcanzó el límite de seguridad de ${MAX_PAGES} páginas (${all.length} productos) sin agotar la paginación de Shopify.`);
   }
 
   return all;

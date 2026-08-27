@@ -45,7 +45,7 @@ export function ThemeToggle() {
             key={value}
             htmlFor={`theme-${value}`}
             className={`flex items-center justify-center h-6 w-6 rounded-full cursor-pointer transition ${
-              isActive ? 'bg-[#E60026] text-white' : 'text-zinc-500 hover:text-zinc-300'
+              isActive ? 'bg-[#FF1E42] text-white' : 'text-zinc-500 hover:text-zinc-300'
             }`}
             title={label}
           >

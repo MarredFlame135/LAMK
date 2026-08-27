@@ -16,7 +16,7 @@ export function ThemeAndLangSwitcher() {
         onClick={() => setLang(lang === 'ES' ? 'EN' : 'ES')}
         className="px-3 py-1 rounded-full bg-zinc-900/80 border border-zinc-800 text-amber-400 font-bold font-mono text-[11px] hover:scale-105 transition"
       >
-        🌐 {lang}
+        {lang}
       </button>
 
       {/* Light / Dark / System real vía next-themes */}

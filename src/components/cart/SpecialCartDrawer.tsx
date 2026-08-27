@@ -6,6 +6,8 @@ import React, { useState } from 'react';
 import { useCart } from '@/hooks/useCart';
 import { isValidMexicanPostalCode, isValidMexicanPhone } from '@/lib/validators';
 import { ShippingAddress } from '@/types/cart';
+import { useApp } from '@/context/AppContext';
+import { Magnetic } from '@/components/ui/Magnetic';
 
 const EMPTY_ADDRESS_FORM = {
   fullName: '', phone: '', street: '', exteriorNumber: '', interiorNumber: '',
@@ -31,6 +33,7 @@ export function SpecialCartDrawer() {
     triggerWhatsAppVerification,
     verifyOtpCode,
   } = useCart();
+  const { t } = useApp();
 
   const [otpInput, setOtpInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
@@ -65,18 +68,18 @@ export function SpecialCartDrawer() {
       />
 
       {/* Bottom Sheet en mobile / Panel Lateral Deslizante en sm+ */}
-      <div className="relative z-10 w-full sm:max-w-md h-[92vh] sm:h-full bg-[#0A0A0C] text-[#F4F4F0] border-t sm:border-t-0 sm:border-l border-zinc-800 rounded-t-3xl sm:rounded-none flex flex-col shadow-2xl animate-[slideUpSheet_0.32s_ease-out] sm:animate-[slideInDrawer_0.32s_ease-out]">
+      <div className="relative z-10 w-full sm:max-w-md h-[92vh] sm:h-full bg-background text-foreground border-t sm:border-t-0 sm:border-l border-border rounded-t-3xl sm:rounded-none flex flex-col shadow-2xl animate-[slideUpSheet_0.32s_ease-out] sm:animate-[slideInDrawer_0.32s_ease-out]">
         {/* Handle visual del bottom sheet (solo mobile) */}
         <div className="sm:hidden flex justify-center pt-2.5 pb-1">
           <span className="w-10 h-1 rounded-full bg-zinc-700" />
         </div>
 
         {/* Header del Carrito */}
-        <div className="p-5 border-b border-zinc-800 flex items-center justify-between bg-[#121215]">
+        <div className="p-5 border-b border-border flex items-center justify-between bg-card">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-[#E60026] animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-[#FF1E42] animate-pulse" />
             <h2 className="text-sm font-bold tracking-widest uppercase">
-              TU SELECCIÓN ({items.reduce((a, b) => a + b.quantity, 0)})
+              {t.cart.title} ({items.reduce((a, b) => a + b.quantity, 0)})
             </h2>
           </div>
           <button
@@ -88,17 +91,17 @@ export function SpecialCartDrawer() {
         </div>
 
         {/* Barra de Progreso de Envío Gratis / Perks VIP */}
-        <div className="p-4 bg-zinc-900/60 border-b border-zinc-800">
+        <div className="p-4 bg-zinc-900/60 border-b border-border">
           <div className="flex justify-between text-xs mb-1 font-semibold">
             {remainingForFreeShipping > 0 ? (
-              <span>Te faltan <strong className="text-[#E60026]">${remainingForFreeShipping.toLocaleString()} MXN</strong> para Envío Gratis</span>
+              <span>{t.cart.freeShippingRemaining} <strong className="text-[#FF1E42]">${remainingForFreeShipping.toLocaleString()} MXN</strong> {t.cart.freeShippingRemainingTail}</span>
             ) : (
-              <span className="text-emerald-400 font-bold">¡ENVÍO GRATIS Y BENEFICIO VIP DESBLOQUEADO! 🔥</span>
+              <span className="text-emerald-400 font-bold">{t.cart.freeShippingUnlocked}</span>
             )}
           </div>
           <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-gradient-to-r from-red-600 to-[#E60026] h-full transition-all duration-500"
+              className="bg-gradient-to-r from-red-600 to-[#FF1E42] h-full transition-all duration-500"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -108,14 +111,14 @@ export function SpecialCartDrawer() {
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {items.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
-              <p className="text-lg font-medium">TU CARRITO ESTÁ VACÍO</p>
-              <p className="text-xs mt-1">Explora el catálogo y asegura tu par antes de que se agote.</p>
+              <p className="text-lg font-medium">{t.cart.empty}</p>
+              <p className="text-xs mt-1">{t.cart.emptyHint}</p>
             </div>
           ) : (
             items.map((item) => (
               <div
                 key={item.id}
-                className="flex gap-4 p-3 bg-[#121215] border border-zinc-800/80 rounded-lg hover:border-zinc-700 transition"
+                className="flex gap-4 p-3 bg-card border border-border/80 rounded-lg hover:border-zinc-700 transition"
               >
                 <img
                   src={item.productImage || '/placeholder-sneaker.svg'}
@@ -128,7 +131,7 @@ export function SpecialCartDrawer() {
                     <p className="text-[11px] text-zinc-400">
                       Talla: {item.variant.sizeLabel || `${item.variant.size.mx} MX (${item.variant.size.usMen} US)`}
                     </p>
-                    <p className="text-xs font-semibold text-[#E60026] mt-1">
+                    <p className="text-xs font-semibold text-[#FF1E42] mt-1">
                       ${item.variant.price.toLocaleString()} MXN
                     </p>
                   </div>
@@ -155,7 +158,7 @@ export function SpecialCartDrawer() {
                       onClick={() => removeItem(item.id)}
                       className="text-[10px] text-zinc-500 hover:text-red-500 uppercase tracking-wider min-h-[36px] px-2"
                     >
-                      Eliminar
+                      {t.cart.remove}
                     </button>
                   </div>
                 </div>
@@ -166,28 +169,28 @@ export function SpecialCartDrawer() {
 
         {/* Footer y Resumen de Pago */}
         {items.length > 0 && (
-          <div className="p-5 border-t border-zinc-800 bg-[#121215] space-y-3">
+          <div className="p-5 border-t border-border bg-card space-y-3">
             <div className="space-y-1 text-xs text-zinc-400">
               <div className="flex justify-between">
-                <span>Subtotal</span>
+                <span>{t.cart.subtotal}</span>
                 <span className="text-white">${subtotal.toLocaleString()} MXN</span>
               </div>
               <div className="flex justify-between">
-                <span>Envío</span>
+                <span>{t.cart.shipping}</span>
                 <span className="text-white">
-                  {shippingCost === 0 ? <strong className="text-emerald-400">GRATIS</strong> : `$${shippingCost} MXN`}
+                  {shippingCost === 0 ? <strong className="text-emerald-400">{t.cart.free}</strong> : `$${shippingCost} MXN`}
                 </span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-zinc-800">
-                <span>TOTAL ESTIMADO</span>
-                <span className="text-[#E60026]">${total.toLocaleString()} MXN</span>
+              <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-border">
+                <span>{t.cart.total}</span>
+                <span className="text-[#FF1E42]">${total.toLocaleString()} MXN</span>
               </div>
             </div>
 
             {/* Paso 1: Dirección de envío con validación de CP mexicano (RF-07) */}
             {!shippingAddress?.isNormalized ? (
-              <form onSubmit={handleSaveAddress} className="p-3 bg-zinc-900 border border-zinc-800 rounded space-y-2">
-                <p className="text-xs font-bold text-zinc-200">DIRECCIÓN DE ENVÍO</p>
+              <form onSubmit={handleSaveAddress} className="p-3 bg-zinc-900 border border-border rounded space-y-2">
+                <p className="text-xs font-bold text-zinc-200">{t.cart.addressTitle}</p>
                 <input
                   required
                   placeholder="Nombre completo"
@@ -257,19 +260,19 @@ export function SpecialCartDrawer() {
 
                 <button
                   type="submit"
-                  className="w-full py-2.5 bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase rounded transition"
+                  className="w-full py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white font-bold text-xs uppercase rounded transition"
                 >
-                  GUARDAR DIRECCIÓN →
+                  {t.cart.saveAddress}
                 </button>
               </form>
             ) : (
               <>
                 <div className="flex items-center justify-between text-[10px] p-2 bg-emerald-950/30 border border-emerald-900/50 rounded">
                   <span className="text-emerald-400">
-                    📦 {shippingAddress.street} {shippingAddress.exteriorNumber}, {shippingAddress.neighborhood}, CP {shippingAddress.postalCode}
+                    {shippingAddress.street} {shippingAddress.exteriorNumber}, {shippingAddress.neighborhood}, CP {shippingAddress.postalCode}
                   </span>
                   <button onClick={() => setShippingAddress(null)} className="text-zinc-400 hover:text-white uppercase font-bold ml-2">
-                    Cambiar
+                    {t.cart.changeAddress}
                   </button>
                 </div>
 
@@ -301,7 +304,7 @@ export function SpecialCartDrawer() {
                       alert('Código incorrecto. Intenta de nuevo.');
                     }
                   }}
-                  className="w-full py-2 bg-[#E60026] hover:bg-red-700 font-bold text-xs uppercase rounded"
+                  className="w-full py-2 bg-[#FF1E42] hover:bg-red-700 font-bold text-xs uppercase rounded"
                 >
                   CONFIRMAR CÓDIGO
                 </button>
@@ -320,28 +323,30 @@ export function SpecialCartDrawer() {
                   maxLength={10}
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value.replace(/\D/g, ''))}
-                  className="w-full p-2.5 bg-black border border-zinc-800 rounded text-center font-mono text-sm text-white focus:border-[#E60026] outline-none"
+                  className="w-full p-2.5 bg-black border border-border rounded text-center font-mono text-sm text-white focus:border-[#FF1E42] outline-none"
                 />
-                <button
-                  onClick={() => {
-                    if (phoneInput.length !== 10) {
-                      alert('Ingresa tu WhatsApp a 10 dígitos para verificar tu compra.');
-                      return;
-                    }
-                    setShowOtpModal(true);
-                    triggerWhatsAppVerification(phoneInput);
-                  }}
-                  className="w-full py-3 bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition shadow-lg shadow-red-900/20"
-                >
-                  PROCEDER AL PAGO SEGURO 🔒
-                </button>
+                <Magnetic className="block w-full" strength={0.2}>
+                  <button
+                    onClick={() => {
+                      if (phoneInput.length !== 10) {
+                        alert('Ingresa tu WhatsApp a 10 dígitos para verificar tu compra.');
+                        return;
+                      }
+                      setShowOtpModal(true);
+                      triggerWhatsAppVerification(phoneInput);
+                    }}
+                    className="w-full py-3 bg-[#FF1E42] hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest rounded transition shadow-lg shadow-red-900/20"
+                  >
+                    {t.cart.proceedToPay}
+                  </button>
+                </Magnetic>
               </div>
             )}
               </>
             )}
 
             <p className="text-[10px] text-center text-zinc-500 uppercase tracking-widest">
-              Pagos 100% encriptados vía Shopify Checkout
+              {t.cart.encryptedFooter}
             </p>
           </div>
         )}

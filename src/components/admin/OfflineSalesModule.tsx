@@ -88,7 +88,7 @@ export function OfflineSalesModule() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-[#0A0A0C] text-[#F4F4F0] min-h-screen space-y-8">
+    <div className="max-w-7xl mx-auto p-6 bg-[#050507] text-[#FFFFFF] min-h-screen space-y-8">
       
       {/* Header Admin */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-6">
@@ -97,14 +97,14 @@ export function OfflineSalesModule() {
             <span className="h-3 w-3 rounded-full bg-emerald-500 animate-ping" />
             <span className="text-xs font-mono uppercase tracking-widest text-zinc-400">ADMIN CONTROL CENTER</span>
           </div>
-          <h1 className="text-2xl font-black uppercase tracking-tight mt-1">VENTAS OFFLINE & CONTROL DE DEUDAS</h1>
+          <h1 className="font-display text-2xl font-black uppercase tracking-tight mt-1">VENTAS OFFLINE & CONTROL DE DEUDAS</h1>
         </div>
 
         {/* Botón de Publicación Masiva (RF-09) */}
         <button
           onClick={handleSocialPush}
           disabled={isPublishingSocial}
-          className="px-6 py-3 bg-[#E60026] hover:bg-red-700 font-black text-xs uppercase tracking-widest rounded shadow-lg shadow-red-900/30 transition flex items-center justify-center gap-2"
+          className="px-6 py-3 bg-[#FF1E42] hover:bg-red-700 font-black text-xs uppercase tracking-widest rounded shadow-lg shadow-red-900/30 transition flex items-center justify-center gap-2"
         >
           <span>{isPublishingSocial ? 'PUBLICANDO...' : '🚀 PUBLICACIÓN MASIVA (IG / FB / WA)'}</span>
         </button>
@@ -112,15 +112,15 @@ export function OfflineSalesModule() {
 
       {/* Tarjeta Métricas Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-[#121215] border border-zinc-800 rounded-lg">
+        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg">
           <span className="text-xs text-zinc-400 font-mono">SALDO TOTAL PENDIENTE DE COBRO</span>
-          <p className="text-2xl font-bold text-[#E60026] mt-1">${totalDebt.toLocaleString()} MXN</p>
+          <p className="text-2xl font-bold text-[#FF1E42] mt-1">${totalDebt.toLocaleString()} MXN</p>
         </div>
-        <div className="p-4 bg-[#121215] border border-zinc-800 rounded-lg">
+        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg">
           <span className="text-xs text-zinc-400 font-mono">VENTAS FÍSICAS REGISTRADAS</span>
           <p className="text-2xl font-bold text-white mt-1">{sales.length}</p>
         </div>
-        <div className="p-4 bg-[#121215] border border-zinc-800 rounded-lg">
+        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg">
           <span className="text-xs text-zinc-400 font-mono">ESTADO DE COBRANZA</span>
           <p className="text-2xl font-bold text-emerald-400 mt-1">OPTIMO</p>
         </div>
@@ -129,7 +129,7 @@ export function OfflineSalesModule() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Formulario para Registrar Nueva Venta Físicas */}
-        <div className="lg:col-span-1 p-5 bg-[#121215] border border-zinc-800 rounded-lg space-y-4">
+        <div className="lg:col-span-1 p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 border-b border-zinc-800 pb-2">
             REGISTRAR VENTA EN TIENDA / DROP
           </h3>
@@ -141,7 +141,7 @@ export function OfflineSalesModule() {
                 required
                 value={form.customerName}
                 onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#E60026] outline-none"
+                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#FF1E42] outline-none"
                 placeholder="ej. Juan Pérez"
               />
             </div>
@@ -153,7 +153,7 @@ export function OfflineSalesModule() {
                 required
                 value={form.customerPhone}
                 onChange={(e) => setForm({ ...form, customerPhone: e.target.value })}
-                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#E60026] outline-none"
+                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#FF1E42] outline-none"
                 placeholder="ej. 5512345678"
               />
             </div>
@@ -165,7 +165,7 @@ export function OfflineSalesModule() {
                 required
                 value={form.itemsSummary}
                 onChange={(e) => setForm({ ...form, itemsSummary: e.target.value })}
-                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#E60026] outline-none"
+                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#FF1E42] outline-none"
                 placeholder="ej. Travis Scott Mocha Talla 27.5"
               />
             </div>
@@ -178,7 +178,7 @@ export function OfflineSalesModule() {
                   required
                   value={form.totalAmount}
                   onChange={(e) => setForm({ ...form, totalAmount: e.target.value })}
-                  className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#E60026] outline-none"
+                  className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#FF1E42] outline-none"
                   placeholder="6500"
                 />
               </div>
@@ -189,7 +189,7 @@ export function OfflineSalesModule() {
                   required
                   value={form.amountPaid}
                   onChange={(e) => setForm({ ...form, amountPaid: e.target.value })}
-                  className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#E60026] outline-none"
+                  className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#FF1E42] outline-none"
                   placeholder="3000"
                 />
               </div>
@@ -201,7 +201,7 @@ export function OfflineSalesModule() {
                 type="date"
                 value={form.dueDate}
                 onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
-                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#E60026] outline-none"
+                className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white focus:border-[#FF1E42] outline-none"
               />
             </div>
 
@@ -215,7 +215,7 @@ export function OfflineSalesModule() {
         </div>
 
         {/* Tabla / Lista de Registro de Deudas */}
-        <div className="lg:col-span-2 p-5 bg-[#121215] border border-zinc-800 rounded-lg space-y-4">
+        <div className="lg:col-span-2 p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 border-b border-zinc-800 pb-2">
             LIBRO DE SALDOS PENDIENTES & CLIENTES
           </h3>
@@ -236,7 +236,7 @@ export function OfflineSalesModule() {
                   <tr key={sale.id} className="hover:bg-zinc-900/40">
                     <td className="py-3 font-semibold">{sale.customerName}</td>
                     <td className="py-3 text-zinc-400 max-w-[180px] truncate">{sale.itemsSummary}</td>
-                    <td className="py-3 font-bold text-[#E60026]">
+                    <td className="py-3 font-bold text-[#FF1E42]">
                       ${sale.pendingBalance.toLocaleString()} MXN
                     </td>
                     <td className="py-3">

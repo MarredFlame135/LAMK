@@ -17,26 +17,27 @@ export function HypeMeter({ data }: HypeMeterProps) {
   return (
     <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-lg space-y-2 my-4">
       <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 font-bold tracking-wider text-[#E60026]">
-          <span className="animate-bounce">🔥</span>
-          <span>{t.product.hypeMeter}: {label}</span>
+        <div className="flex items-center gap-1.5 font-bold tracking-[0.15em] text-[#FF1E42] uppercase font-mono">
+          <span>{t.product.hypeMeter}: INDEX {score.toFixed(1)} · {label}</span>
         </div>
-        <span className="text-zinc-400 text-[11px]">
-          👁️ {viewsLast24h} vistas hoy
-        </span>
+        {viewsLast24h > 0 && (
+          <span className="text-zinc-400 text-[10px] font-mono uppercase tracking-[0.15em]">
+            Terminal Active · {viewsLast24h} Viewing
+          </span>
+        )}
       </div>
 
       {/* Barra de progreso de Hype */}
       <div className="w-full bg-black h-2 rounded-full overflow-hidden border border-zinc-800">
         <div
-          className="bg-gradient-to-r from-orange-500 via-red-600 to-[#E60026] h-full transition-all duration-700"
+          className="bg-gradient-to-r from-[#FF1E42] to-[#C5A059] h-full transition-all duration-700"
           style={{ width: `${score}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-[10px] text-zinc-400 font-mono">
-        <span>Stock: {stockRemaining > 0 ? `${stockRemaining} pares restantes` : 'Agotado'}</span>
-        <span>Demanda: {score}%</span>
+      <div className="flex justify-between text-[10px] text-zinc-400 font-mono uppercase tracking-[0.1em]">
+        <span>{stockRemaining > 0 ? `Deadstock · ${stockRemaining} Units Allocated` : 'Sold Out'}</span>
+        <span>Verified Allocation · {score.toFixed(1)}</span>
       </div>
     </div>
   );

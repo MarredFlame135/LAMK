@@ -2,44 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens de tema (next-themes) recoloreados a la paleta oficial LAMK MX —
-   NO son los valores azules genéricos de la plantilla de 21st, son la
-   paleta "Luxury Asphalt" (#0A0A0C / #EDE7DA / #E60026 / #E8B84B) que ya
-   define todo el resto del sitio, para que ThemeToggle y los componentes
-   tipo shadcn (card, radio-group, etc.) se vean consistentes con la marca. */
+/* Tokens de tema (next-themes) — paleta "Obsidian & Raw Bone" (rebrand
+   2026-08-27 v2, reemplaza "LAMK Hype Intelligence"). El brief del cliente
+   solo dio valores de modo OSCURO; el claro ("Raw Bone" claro) lo derivé yo
+   manteniendo los mismos dos acentos — ver nota en memoria del proyecto.
+   Contraste verificado WCAG AA en modo oscuro (par por defecto de la app):
+   texto secundario #8E8E98/fondo #050507 ≈ 6.3:1, Muted Gold ≈ 8.3:1,
+   Laser Crimson ≈ 5.3:1 — todos superan el mínimo AA de 4.5:1 para texto
+   normal. Los nombres de variable no cambiaron, así que todo lo que ya usa
+   bg-background/text-foreground/bg-card/border-border heredó el rebrand
+   automáticamente sin tocar esos archivos uno por uno. */
 :root {
-  --background: #EDE7DA;
+  --background: #F5F1E8;
   --foreground: #14110E;
   --card: #FFFFFF;
   --popover: #FFFFFF;
-  --primary: #E60026;
-  --secondary: #F3EFE4;
-  --muted: #F3EFE4;
-  --accent: #E8B84B;
-  --border: #E2DACB;
-  --input: #E2DACB;
-  --ring: #E60026;
+  --primary: #FF1E42;
+  --secondary: #EDE7DA;
+  --muted: #EDE7DA;
+  --accent: #C5A059;
+  --border: rgba(0, 0, 0, 0.06);
+  --input: rgba(0, 0, 0, 0.1);
+  --ring: #FF1E42;
   --destructive: #ef4444;
-  --sidebar: #F9F7F0;
+  --sidebar: #FFFFFF;
   --radius: 0.75rem;
-  --font-sans: inherit;
-  --font-mono: 'Courier New', monospace;
+  /* --font-sans / --font-display / --font-mono los define next/font en
+     layout.tsx (Inter / Space Grotesk / JetBrains Mono) inyectándolos como
+     variables en <html> — aquí no hace falta declararlos. */
 }
 
 .dark {
-  --background: #0A0A0C;
-  --foreground: #F4F4F0;
-  --card: #121215;
-  --popover: #121215;
-  --primary: #E60026;
-  --secondary: #18181B;
-  --muted: #18181B;
-  --accent: #E8B84B;
-  --border: #27272A;
-  --input: #27272A;
-  --ring: #E60026;
+  --background: #050507;
+  --foreground: #F5F3ED;
+  --card: #0E0E13;
+  --popover: #0E0E13;
+  --primary: #FF1E42;
+  --secondary: #17171D;
+  --muted: #17171D;
+  --accent: #C5A059;
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #FF1E42;
   --destructive: #ef4444;
-  --sidebar: #0A0A0C;
+  --sidebar: #050507;
+}
+
+/* Cursor a medida (CustomCursor.tsx) — oculta el cursor nativo solo en
+   dispositivos con mouse real; togglea la clase por JS tras confirmar
+   pointer:fine, así touch nunca pierde su cursor/tap normal. */
+@media (pointer: fine) {
+  .cursor-none-active,
+  .cursor-none-active a,
+  .cursor-none-active button,
+  .cursor-none-active input,
+  .cursor-none-active select,
+  .cursor-none-active textarea {
+    cursor: none !important;
+  }
+}
+
+/* Vitrina con desenfoque — superficies "card" que además piden vidrio
+   ahumado (Hero de TENISIN, HUD de producto) usan esta clase en vez de
+   repetir el backdrop-blur-xl a mano en cada componente. */
+.vault-glass {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 html, body {
@@ -66,7 +94,7 @@ body {
 }
 
 .tenisin-glow {
-  filter: drop-shadow(0 0 12px rgba(230, 0, 38, 0.6));
+  filter: drop-shadow(0 0 12px rgba(255, 30, 66, 0.6));
 }
 
 /* Texto brillante en movimiento (AnimatedText / animated-shiny-text) */

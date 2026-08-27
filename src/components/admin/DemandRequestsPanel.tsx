@@ -15,7 +15,7 @@ export function DemandRequestsPanel() {
   const pendingCount = leads.filter((l) => !l.wasMatched && !l.notified).length;
 
   return (
-    <div className="p-5 bg-[#121215] border border-zinc-800 rounded-lg space-y-4">
+    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
       <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
         <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
           <span>👟</span> PETICIONES DE CLIENTES (TENISIN)

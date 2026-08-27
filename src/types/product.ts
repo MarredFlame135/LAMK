@@ -54,4 +54,5 @@ export interface Product {
   fitAdvisor: FitAdvisor;
   hypeMeter: HypeMeterData;
   isSoldOut: boolean;
+  publishedAt?: string;      // ISO — solo viene poblado desde Shopify real (ver discovery.ts "JUST DROPPED")
 }

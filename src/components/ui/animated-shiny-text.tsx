@@ -16,7 +16,7 @@ interface AnimatedTextProps {
 }
 
 export function AnimatedText({ children, className, gradient }: AnimatedTextProps) {
-  const [base, mid, shine] = gradient || ['rgba(237,231,218,0.65)', 'rgba(237,231,218,0.65)', '#E8B84B'];
+  const [base, mid, shine] = gradient || ['rgba(237,231,218,0.65)', 'rgba(237,231,218,0.65)', '#C5A059'];
 
   return (
     <span

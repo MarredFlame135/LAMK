@@ -7,16 +7,18 @@
 
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useApp } from '@/context/AppContext';
 
 export function HeaderAuthLink() {
   const { user, isLoading, logout } = useAuth();
+  const { t } = useApp();
 
   if (isLoading) return <span className="text-zinc-600">···</span>;
 
   if (!user) {
     return (
       <a href="/auth/login" className="text-zinc-400 hover:text-white transition">
-        INICIAR SESIÓN
+        {t.nav.login}
       </a>
     );
   }
@@ -24,10 +26,10 @@ export function HeaderAuthLink() {
   return (
     <div className="flex items-center gap-3">
       <a href="/vault" className="text-amber-400 hover:text-amber-300 transition">
-        HOLA, {user.firstName.toUpperCase()}
+        {t.nav.hello} {user.firstName.toUpperCase()}
       </a>
       <button onClick={logout} className="text-zinc-500 hover:text-red-400 transition normal-case font-normal">
-        Salir
+        {t.nav.logout}
       </button>
     </div>
   );

@@ -50,13 +50,13 @@ export function ReviewForm() {
   if (submitted) {
     return (
       <div className="p-5 bg-emerald-950/30 border border-emerald-800 rounded-xl text-center text-sm text-emerald-400">
-        ✅ ¡Gracias! Tu reseña verificada ya está en LAMK.
+        VERIFIED · ¡Gracias! Tu reseña ya está en LAMK.
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-5 bg-[#121215] border border-zinc-800 rounded-xl space-y-3">
+    <form onSubmit={handleSubmit} className="p-5 bg-card border border-border rounded-xl space-y-3">
       <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">// DEJA TU RESEÑA VERIFICADA</h3>
 
       <div className="flex gap-1">
@@ -73,7 +73,7 @@ export function ReviewForm() {
         onChange={(e) => setText(e.target.value)}
         placeholder="Cuéntanos qué te pareció tu par..."
         rows={3}
-        className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-xs text-white outline-none focus:border-[#E60026]"
+        className="w-full p-3 bg-black border border-border rounded-lg text-xs text-white outline-none focus:border-[#FF1E42]"
       />
 
       <label className="flex items-center justify-center gap-2 h-20 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-red-600/60 transition text-[11px] text-zinc-500 overflow-hidden relative">
@@ -91,7 +91,7 @@ export function ReviewForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-2.5 min-h-[44px] bg-[#E60026] hover:bg-red-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-widest rounded-lg transition"
+        className="w-full py-2.5 min-h-[44px] bg-[#FF1E42] hover:bg-red-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-widest rounded-lg transition"
       >
         {isSubmitting ? 'ENVIANDO...' : 'PUBLICAR RESEÑA'}
       </button>

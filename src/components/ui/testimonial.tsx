@@ -26,9 +26,9 @@ export function TestimonialCard({ data, className }: { data: TestimonialData; cl
   const rating = data.rating ?? 5;
 
   return (
-    <div className={cn('relative p-5 bg-[#121215] border border-zinc-800 rounded-2xl space-y-3', className)}>
+    <div className={cn('relative p-5 bg-card border border-border rounded-2xl space-y-3', className)}>
       {data.isExample && (
-        <span className="absolute top-3 right-3 text-[9px] font-mono uppercase tracking-widest text-zinc-600 border border-zinc-800 rounded px-1.5 py-0.5">
+        <span className="absolute top-3 right-3 text-[9px] font-mono uppercase tracking-widest text-zinc-600 border border-border rounded px-1.5 py-0.5">
           Ejemplo
         </span>
       )}
@@ -47,7 +47,7 @@ export function TestimonialCard({ data, className }: { data: TestimonialData; cl
 
       <p className="text-sm text-zinc-300 leading-relaxed">"{data.quote}"</p>
 
-      <div className="flex items-center gap-3 pt-2 border-t border-zinc-800/60">
+      <div className="flex items-center gap-3 pt-2 border-t border-border/60">
         <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-red-600 to-amber-400 p-0.5">
           <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
             {data.avatarUrl ? (
@@ -61,7 +61,7 @@ export function TestimonialCard({ data, className }: { data: TestimonialData; cl
         <div>
           <div className="flex items-center gap-1">
             <span className="text-xs font-bold text-white">{data.name}</span>
-            {data.verifiedPurchase && <BadgeCheck className="h-3.5 w-3.5 text-[#E60026]" />}
+            {data.verifiedPurchase && <BadgeCheck className="h-3.5 w-3.5 text-[#FF1E42]" />}
           </div>
           {data.verifiedPurchase ? (
             <span className="text-[10px] text-emerald-400 font-mono">Compra Verificada</span>

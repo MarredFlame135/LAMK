@@ -40,6 +40,7 @@ export const GET_PRODUCTS_QUERY = `
           vendor
           productType
           description
+          publishedAt
           images(first: 5) {
             edges {
               node {
@@ -182,14 +183,20 @@ export const GET_CUSTOMER_QUERY = `
               amount
               currencyCode
             }
-            lineItems(first: 5) {
+            lineItems(first: 20) {
               edges {
                 node {
                   title
                   quantity
+                  originalTotalPrice {
+                    amount
+                  }
                   variant {
                     image {
                       url
+                    }
+                    product {
+                      id
                     }
                   }
                 }

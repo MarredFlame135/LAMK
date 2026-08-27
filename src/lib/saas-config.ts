@@ -18,11 +18,11 @@ export const SAAS_CONFIG = {
     notFound: '/assets/branding/tenisin-notfound.png', // Sugiriendo alternativos o Back-in-Stock
   },
 
-  // Paleta de Colores Configurable para SaaS
+  // Paleta de Colores "Obsidian & Raw Bone" (rebrand 2026-08-27 v2)
   themeColors: {
-    asphaltDark: '#0A0A0C',
-    boneLight: '#EDE7DA',
-    alertRed: '#E60026',
-    goldAccent: '#E8B84B',
+    obsidianDark: '#050507',
+    rawBoneLight: '#F5F1E8',
+    laserCrimson: '#FF1E42',
+    mutedGold: '#C5A059',
   },
 };

@@ -41,7 +41,7 @@ export interface UserProfile {
   preferences?: UserPreferences;
 
   // Módulo de Gamificación & Collector Vault (Costo $0)
-  xp: number;                        // 1 MXN gastado = 1 XP
+  xp: number;                        // $1 MXN gastado = 1 XP, más un bono si el producto tenía Hype (ver calculateHypeXp)
   tier: CollectorTier;
   rankPosition?: number;             // Posición en el ranking global
   collection: CollectionItem[];       // Bóveda de pares comprados

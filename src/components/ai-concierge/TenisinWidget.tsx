@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SAAS_CONFIG } from '@/lib/saas-config';
 import { searchCatalog, getCatalog } from '@/lib/catalog';
 import { logDemandRequest, updateDemandRequest } from '@/hooks/useLeads';
+import { logLayawayRequest } from '@/hooks/useLayaway';
 import { haptics } from '@/lib/haptics';
 import { Product } from '@/types/product';
 
@@ -24,9 +25,37 @@ interface ChatMessage {
   text: string;
   products?: Product[];
   options?: ChatOption[];
+  resultsSizeLabel?: string; // talla en contexto cuando `products` viene de una búsqueda, para el botón "Apartar"
 }
 
 const PHONE_REGEX = /\b\d{10}\b/;
+
+// Estado del flujo guiado de apartado ("layaway") que arranca TENISIN cuando
+// el cliente toca "📌 Apartar" en una tarjeta de producto.
+interface LayawayDraft {
+  product: Product;
+  sizeLabel?: string;
+  percentage: number;
+  depositAmount: number;
+  phone?: string;
+}
+
+// Interpreta lo que el cliente escribe cuando elige "OTRO MONTO": acepta un
+// porcentaje ("40%", "40") o un monto directo en pesos ("$3000", "3000").
+function parseCustomDeposit(text: string, price: number): { percentage: number; depositAmount: number } | null {
+  const pctMatch = text.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+  if (pctMatch) {
+    const percentage = Math.min(100, Math.max(1, parseFloat(pctMatch[1])));
+    return { percentage, depositAmount: Math.round((price * percentage) / 100) };
+  }
+  const amountMatch = text.match(/\$?\s*(\d{2,7}(?:\.\d+)?)/);
+  if (amountMatch) {
+    const depositAmount = Math.round(Math.min(price, Math.max(1, parseFloat(amountMatch[1]))));
+    const percentage = Math.round((depositAmount / price) * 100);
+    return { percentage, depositAmount };
+  }
+  return null;
+}
 
 const CATEGORY_OPTIONS: { key: CategoryKey; label: string }[] = [
   { key: 'SNEAKERS', label: '👟 SNEAKERS' },
@@ -47,6 +76,7 @@ function matchCategory(key: CategoryKey, catalog: Product[]): Product[] {
 }
 
 const inStock = (p: Product) => !p.isSoldOut && p.variants.some((v) => v.isAvailable);
+const getProductPrice = (p: Product) => p.variants.find((v) => v.isAvailable)?.price ?? p.variants[0]?.price ?? 0;
 
 export function TenisinWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -57,6 +87,10 @@ export function TenisinWidget() {
   // Cuando una búsqueda no encuentra nada disponible, guardamos el id del lead
   // pendiente para completarlo con el WhatsApp en cuanto el cliente lo escriba.
   const [pendingLeadId, setPendingLeadId] = useState<string | null>(null);
+  // Flujo de apartado en curso: qué producto/%/monto ya se eligió, y en qué
+  // paso está (esperando WhatsApp o esperando el comentario opcional).
+  const [layawayDraft, setLayawayDraft] = useState<LayawayDraft | null>(null);
+  const [layawayStep, setLayawayStep] = useState<'custom_amount' | 'phone' | 'note' | null>(null);
   // Catálogo real de Shopify (con fallback a mock) cargado una vez al montar.
   const catalogRef = useRef<Product[]>(getCatalog());
   const hasGreeted = useRef(false);
@@ -72,7 +106,7 @@ export function TenisinWidget() {
       .catch((err) => console.error('TENISIN: no se pudo cargar el catálogo real, usando mock:', err));
   }, []);
 
-  const respond = (text: string, extra?: { products?: Product[]; options?: ChatOption[] }) => {
+  const respond = (text: string, extra?: { products?: Product[]; options?: ChatOption[]; resultsSizeLabel?: string }) => {
     setMessages((prev) => [...prev, { sender: 'TENISIN', text, ...extra }]);
   };
   const say = (text: string) => setMessages((prev) => [...prev, { sender: 'USER', text }]);
@@ -168,7 +202,7 @@ export function TenisinWidget() {
     )).filter(Boolean).sort();
 
     if (sizeLabels.length <= 1) {
-      showResults(products, `${brand} ${products[0].title}`);
+      showResults(products, `${brand} ${products[0].title}`, sizeLabels[0]);
       return;
     }
 
@@ -189,16 +223,52 @@ export function TenisinWidget() {
         notifyMeFlow(`${brand} talla ${sizeLabel}`);
         return;
       }
-      showResults(filtered, `${brand} talla ${sizeLabel}`);
+      showResults(filtered, `${brand} talla ${sizeLabel}`, sizeLabel);
     }, 500);
   };
 
-  const showResults = (products: Product[], rawQuery: string) => {
+  const showResults = (products: Product[], rawQuery: string, sizeLabel?: string) => {
     setMascotState('happy');
     const top = products.slice(0, 3);
     logDemandRequest({ productId: top[0].id, productTitle: top[0].title, rawQuery, wasMatched: true });
-    respond(`👟 ¡Encontré ${top.length === 1 ? 'un par' : `${top.length} opciones`}! Toca la tarjeta para ver detalle y agregar al carrito.`, { products: top });
+    respond(`👟 ¡Encontré ${top.length === 1 ? 'un par' : `${top.length} opciones`}! Toca la tarjeta para ver detalle o apártalo con un %.`, { products: top, resultsSizeLabel: sizeLabel });
     setTimeout(() => setMascotState('idle'), 4000);
+  };
+
+  // Arranca el flujo de apartado para un producto puntual (botón "📌 Apartar"
+  // en la tarjeta). Pregunta el % de anticipo con botones rápidos.
+  const startLayawayFlow = (product: Product, sizeLabel?: string) => {
+    haptics.tap();
+    const price = getProductPrice(product);
+    say(`📌 Quiero apartar: ${product.title}`);
+    respond(`¡Va! Voy a apartarte tu ${product.title}. ¿Con qué porcentaje te gustaría apartar tu par? 👟`, {
+      options: [
+        { label: '20%', onClick: () => handleLayawayPercentClick(product, sizeLabel, price, 20) },
+        { label: '30%', onClick: () => handleLayawayPercentClick(product, sizeLabel, price, 30) },
+        { label: '50%', onClick: () => handleLayawayPercentClick(product, sizeLabel, price, 50) },
+        { label: 'OTRO MONTO', onClick: () => handleLayawayCustomClick(product, sizeLabel, price) },
+      ],
+    });
+  };
+
+  const askForLayawayPhone = (product: Product, sizeLabel: string | undefined, percentage: number, depositAmount: number) => {
+    setLayawayDraft({ product, sizeLabel, percentage, depositAmount });
+    setLayawayStep('phone');
+    respond(`Perfecto, tu anticipo del ${percentage}% es de $${depositAmount.toLocaleString()} MXN. Déjame tu WhatsApp (10 dígitos) para coordinar el apartado 📲`);
+  };
+
+  const handleLayawayPercentClick = (product: Product, sizeLabel: string | undefined, price: number, percentage: number) => {
+    haptics.tap();
+    say(`${percentage}%`);
+    askForLayawayPhone(product, sizeLabel, percentage, Math.round((price * percentage) / 100));
+  };
+
+  const handleLayawayCustomClick = (product: Product, sizeLabel: string | undefined, price: number) => {
+    haptics.tap();
+    say('OTRO MONTO');
+    setLayawayDraft({ product, sizeLabel, percentage: 0, depositAmount: 0 });
+    setLayawayStep('custom_amount');
+    respond(`Ok, escribe el % o el monto en pesos que quieres apartar (ej. "40%" o "$3000") de un total de $${price.toLocaleString()} MXN.`);
   };
 
   const runFreeformSearch = async (query: string) => {
@@ -229,6 +299,56 @@ export function TenisinWidget() {
     const userText = inputMessage.trim();
     setMessages((prev) => [...prev, { sender: 'USER', text: userText }]);
     setInputMessage('');
+
+    // Flujo de apartado en curso: tiene prioridad sobre cualquier otro paso
+    // porque el cliente ya eligió un producto puntual para reservar.
+    if (layawayStep === 'custom_amount' && layawayDraft) {
+      const price = getProductPrice(layawayDraft.product);
+      const parsed = parseCustomDeposit(userText, price);
+      if (!parsed) {
+        respond('No te entendí ese monto 🤔 Escribe algo como "40%" o "$3000".');
+        return;
+      }
+      askForLayawayPhone(layawayDraft.product, layawayDraft.sizeLabel, parsed.percentage, parsed.depositAmount);
+      return;
+    }
+
+    if (layawayStep === 'phone' && layawayDraft) {
+      const phoneMatch = userText.match(PHONE_REGEX);
+      if (!phoneMatch) {
+        respond('Ese número no me cuadra 📵 Mándame tu WhatsApp a 10 dígitos, por favor.');
+        return;
+      }
+      setLayawayDraft({ ...layawayDraft, phone: phoneMatch[0] });
+      setLayawayStep('note');
+      respond('¿Algún comentario para tu apartado? (color, fecha en que pasas a pagar, etc.) Escribe "no" si no tienes ninguno.');
+      return;
+    }
+
+    if (layawayStep === 'note' && layawayDraft) {
+      const note = /^no$/i.test(userText) ? '' : userText;
+      const phone = layawayDraft.phone || '';
+      const { product, sizeLabel, percentage, depositAmount } = layawayDraft;
+      logLayawayRequest({
+        productId: product.id,
+        productTitle: product.title,
+        productImage: product.images[0] || '',
+        requestedSize: sizeLabel,
+        totalPrice: getProductPrice(product),
+        percentage,
+        depositAmount,
+        hypeScore: product.hypeMeter?.score,
+        customerPhone: phone,
+        note,
+      });
+      setLayawayDraft(null);
+      setLayawayStep(null);
+      setMascotState('happy');
+      haptics.success();
+      respond(`Confirmado. Apartaste tu ${product.title} con un ${percentage}% ($${depositAmount.toLocaleString()} MXN). Nuestro equipo te escribe por WhatsApp para confirmar y coordinar el resto del pago.`);
+      setTimeout(() => setMascotState('idle'), 3000);
+      return;
+    }
 
     // Paso 1 del flujo "OTRO": el texto libre es el nombre del artículo buscado
     if (awaitingOtherQuery) {
@@ -280,11 +400,11 @@ export function TenisinWidget() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed inset-x-0 bottom-0 z-50 w-full h-[75vh] rounded-t-3xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[30rem] sm:rounded-2xl bg-[#0A0A0C]/95 backdrop-blur-md border border-zinc-800 shadow-2xl overflow-hidden text-[#F4F4F0] flex flex-col"
+              className="fixed inset-x-0 bottom-0 z-50 w-full h-[75vh] rounded-t-3xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[30rem] sm:rounded-2xl bg-background/95 backdrop-blur-md border border-border shadow-2xl overflow-hidden text-foreground flex flex-col"
             >
 
             {/* Header de TENISIN */}
-            <div className="p-4 bg-gradient-to-r from-red-900/60 to-black border-b border-zinc-800 flex items-center justify-between">
+            <div className="p-4 bg-gradient-to-r from-red-900/60 to-black border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden tenisin-glow">
                   <img
@@ -325,8 +445,8 @@ export function TenisinWidget() {
                   <div
                     className={`max-w-[85%] p-3 rounded-xl ${
                       m.sender === 'USER'
-                        ? 'bg-[#E60026] text-white rounded-tr-none font-medium'
-                        : 'bg-[#121215] border border-zinc-800 text-zinc-200 rounded-tl-none'
+                        ? 'bg-[#FF1E42] text-white rounded-tr-none font-medium'
+                        : 'bg-card border border-border text-zinc-200 rounded-tl-none'
                     }`}
                   >
                     {m.text}
@@ -339,7 +459,7 @@ export function TenisinWidget() {
                         <button
                           key={i}
                           onClick={opt.onClick}
-                          className="px-3 py-2 min-h-[36px] bg-[#121215] border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-lg text-[11px] font-bold text-zinc-200 transition-colors"
+                          className="px-3 py-2 min-h-[36px] bg-card border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-lg text-[11px] font-bold text-zinc-200 transition-colors"
                         >
                           {opt.label}
                         </button>
@@ -351,20 +471,27 @@ export function TenisinWidget() {
                   {m.products && (
                     <div className="mt-2 w-[85%] space-y-2">
                       {m.products.map((p) => (
-                        <motion.a
-                          key={p.id}
-                          href={`/product/${p.handle}`}
-                          whileHover={{ x: 3, borderColor: 'rgba(230,0,38,0.6)' }}
-                          className="flex items-center gap-2 p-2 bg-[#121215] border border-zinc-800 rounded-lg transition-colors"
-                        >
-                          <div className="relative w-10 h-10 rounded bg-black overflow-hidden shrink-0">
-                            <Image src={p.images[0]} alt={p.title} fill sizes="40px" className="object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] font-bold uppercase truncate">{p.title}</p>
-                            <p className="text-[10px] text-[#E60026] font-mono">${p.variants[0]?.price.toLocaleString()} MXN</p>
-                          </div>
-                        </motion.a>
+                        <div key={p.id} className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg">
+                          <motion.a
+                            href={`/product/${p.handle}`}
+                            whileHover={{ x: 3 }}
+                            className="flex items-center gap-2 flex-1 min-w-0"
+                          >
+                            <div className="relative w-10 h-10 rounded bg-black overflow-hidden shrink-0">
+                              <Image src={p.images[0]} alt={p.title} fill sizes="40px" className="object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-bold uppercase truncate">{p.title}</p>
+                              <p className="text-[10px] text-[#FF1E42] font-mono">${p.variants[0]?.price.toLocaleString()} MXN</p>
+                            </div>
+                          </motion.a>
+                          <button
+                            onClick={() => startLayawayFlow(p, m.resultsSizeLabel)}
+                            className="shrink-0 px-2 py-2 min-h-[36px] bg-black border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-md text-[10px] font-bold text-zinc-300 transition-colors"
+                          >
+                            📌 Apartar
+                          </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -376,7 +503,7 @@ export function TenisinWidget() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center gap-1 p-3 w-fit bg-[#121215] border border-zinc-800 rounded-xl rounded-tl-none"
+                  className="flex items-center gap-1 p-3 w-fit bg-card border border-border rounded-xl rounded-tl-none"
                 >
                   {[0, 1, 2].map((i) => (
                     <motion.span
@@ -391,19 +518,26 @@ export function TenisinWidget() {
             </div>
 
             {/* Formulario de envío */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-zinc-800 bg-[#121215] flex gap-2">
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card flex gap-2">
               <input
                 type="text"
-                placeholder={pendingLeadId ? 'Tu WhatsApp a 10 dígitos...' : awaitingOtherQuery ? 'Nombre del par o prenda...' : 'O escríbele directo a TENISIN...'}
+                placeholder={
+                  layawayStep === 'custom_amount' ? 'Ej. 40% o $3000...'
+                  : layawayStep === 'phone' ? 'Tu WhatsApp a 10 dígitos...'
+                  : layawayStep === 'note' ? 'Comentario (o "no")...'
+                  : pendingLeadId ? 'Tu WhatsApp a 10 dígitos...'
+                  : awaitingOtherQuery ? 'Nombre del par o prenda...'
+                  : 'O escríbele directo a TENISIN...'
+                }
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                className="flex-1 p-2.5 min-h-[44px] bg-black border border-zinc-800 rounded-lg text-xs text-white outline-none focus:border-red-600 font-mono"
+                className="flex-1 p-2.5 min-h-[44px] bg-black border border-border rounded-lg text-xs text-white outline-none focus:border-red-600 font-mono"
               />
               <motion.button
                 whileHover={{ scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
                 type="submit"
-                className="px-4 py-2 min-h-[44px] bg-[#E60026] hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-colors"
+                className="px-4 py-2 min-h-[44px] bg-[#FF1E42] hover:bg-red-700 text-white font-bold text-xs uppercase rounded-lg transition-colors"
               >
                 ENVIAR
               </motion.button>
@@ -420,7 +554,7 @@ export function TenisinWidget() {
           onClick={() => { haptics.tap(); setIsOpen(!isOpen); }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="group relative flex items-center gap-3 p-2 pr-4 min-h-[48px] bg-gradient-to-r from-[#0A0A0C] to-zinc-900 text-white rounded-full shadow-2xl border border-zinc-800 hover:border-red-600/60 transition-colors"
+          className="group relative flex items-center gap-3 p-2 pr-4 min-h-[48px] bg-gradient-to-r from-[#050507] to-zinc-900 text-white rounded-full shadow-2xl border border-border hover:border-red-600/60 transition-colors"
         >
           <div className="relative w-12 h-12 flex items-center justify-center animate-float tenisin-glow">
             <img
@@ -442,7 +576,7 @@ export function TenisinWidget() {
             </span>
           </div>
 
-          <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-[#E60026] rounded-full border-2 border-black animate-ping" />
+          <span className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-[#FF1E42] rounded-full border-2 border-black animate-ping" />
         </motion.button>
       </div>
     </>

@@ -43,11 +43,11 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-[#0A0A0C] text-[#F4F4F0] px-4 py-12">
-      <div className="w-full max-w-sm bg-[#121215] border border-zinc-800 rounded-2xl p-8 space-y-6">
+    <div className="min-h-[80vh] flex items-center justify-center bg-background text-foreground px-4 py-12">
+      <div className="w-full max-w-sm bg-card border border-border rounded-2xl p-8 space-y-6">
         <div className="text-center space-y-1">
-          <span className="text-xs font-mono text-[#E60026] uppercase tracking-widest">// CLUB LAMK</span>
-          <h1 className="text-2xl font-black uppercase tracking-tight">Crea tu cuenta</h1>
+          <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// CLUB LAMK</span>
+          <h1 className="font-display text-2xl font-black uppercase tracking-tight">Crea tu cuenta</h1>
           <p className="text-xs text-zinc-500 mt-2">Suma XP desde tu primera compra y desbloquea la Bóveda del Coleccionista.</p>
         </div>
 
@@ -60,7 +60,7 @@ export default function RegisterPage() {
                 required
                 value={form.firstName}
                 onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-sm text-white outline-none focus:border-[#E60026]"
+                className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
               />
             </div>
             <div>
@@ -70,7 +70,7 @@ export default function RegisterPage() {
                 required
                 value={form.lastName}
                 onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-sm text-white outline-none focus:border-[#E60026]"
+                className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
               />
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function RegisterPage() {
               required
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-sm text-white outline-none focus:border-[#E60026]"
+              className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
             />
           </div>
           <div>
@@ -91,7 +91,7 @@ export default function RegisterPage() {
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
               maxLength={10}
-              className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-sm text-white outline-none focus:border-[#E60026]"
+              className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
             />
           </div>
           <div>
@@ -102,7 +102,7 @@ export default function RegisterPage() {
               minLength={5}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full p-3 bg-black border border-zinc-800 rounded-lg text-sm text-white outline-none focus:border-[#E60026]"
+              className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
             />
           </div>
 
@@ -113,7 +113,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 bg-[#E60026] hover:bg-red-700 disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-lg transition mt-2"
+            className="w-full py-3 bg-[#FF1E42] hover:bg-red-700 disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest rounded-lg transition mt-2"
           >
             {isLoading ? 'CREANDO CUENTA...' : 'CREAR CUENTA'}
           </button>
@@ -121,7 +121,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-xs text-zinc-500">
           ¿Ya tienes cuenta?{' '}
-          <a href="/auth/login" className="text-[#E60026] font-bold hover:underline">
+          <a href="/auth/login" className="text-[#FF1E42] font-bold hover:underline">
             Inicia sesión
           </a>
         </p>

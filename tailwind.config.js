@@ -1,3 +1,5 @@
+const defaultTheme = require('tailwindcss/defaultTheme');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -9,10 +11,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        asphalt: '#0A0A0C',
-        bone: '#EDE7DA',
-        alertRed: '#E60026',
-        goldAccent: '#E8B84B',
+        // Paleta "Obsidian & Raw Bone" (rebrand 2026-08-27 v2). Nombres
+        // actualizados otra vez — grep por asphalt/galleryBone/crimson/
+        // hypeGold si algo viejo no compila.
+        obsidian: '#050507',
+        rawBone: '#F5F1E8',
+        laserCrimson: '#FF1E42',
+        mutedGold: '#C5A059',
         // Tokens de tema (next-themes) — ver src/styles/globals.css para los valores reales por modo
         background: 'var(--background)',
         foreground: 'var(--foreground)',
@@ -21,7 +26,7 @@ module.exports = {
         primary: { DEFAULT: 'var(--primary)', foreground: '#FFFFFF' },
         secondary: { DEFAULT: 'var(--secondary)', foreground: 'var(--foreground)' },
         muted: { DEFAULT: 'var(--muted)', foreground: 'var(--foreground)' },
-        accent: { DEFAULT: 'var(--accent)', foreground: '#0A0A0C' },
+        accent: { DEFAULT: 'var(--accent)', foreground: '#050507' },
         destructive: { DEFAULT: 'var(--destructive)', foreground: '#FFFFFF' },
         border: 'var(--border)',
         input: 'var(--input)',
@@ -30,6 +35,11 @@ module.exports = {
       },
       borderRadius: {
         DEFAULT: 'var(--radius)',
+      },
+      fontFamily: {
+        sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
+        display: ['var(--font-display)', ...defaultTheme.fontFamily.sans],
+        mono: ['var(--font-mono)', ...defaultTheme.fontFamily.mono],
       },
     },
   },

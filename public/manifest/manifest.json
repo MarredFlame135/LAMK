@@ -16,8 +16,8 @@
     }
   ],
   "start_url": "/",
-  "background_color": "#0A0A0C",
-  "theme_color": "#0A0A0C",
+  "background_color": "#050507",
+  "theme_color": "#050507",
   "display": "standalone",
   "orientation": "portrait",
   "description": "Plataforma e-commerce streetwear estilo hypebeast con drops exclusivos y entregas garantizadas en México."

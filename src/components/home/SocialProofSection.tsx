@@ -1,9 +1,15 @@
 // src/components/home/SocialProofSection.tsx
 //
-// Galería "Momentos LAMK" con fotos reales del catálogo (NO son posts de
-// Instagram reales todavía — no hay credenciales de Meta Graph API
-// configuradas; queda listo para conectarse en cuanto existan) + testimonios
-// de ejemplo claramente marcados como tal (ver testimonial.tsx: isExample).
+// Galería "Momentos LAMK" con fotos reales del catálogo + reseñas 100% reales
+// de clientes con compra verificada (reviews-store.ts). Ya NO se rellena con
+// testimonios ficticios — el cliente pidió quitar el EXAMPLE_TESTIMONIALS que
+// se mezclaba con las reseñas reales; si aún no hay reseñas reales, la
+// sección simplemente no se muestra en vez de simular actividad que no existe.
+//
+// El feed en vivo de Instagram (@look_atmy_kicks) requiere credenciales de
+// Meta Graph API que este proyecto no tiene configuradas todavía (ver
+// META_APP_ID/META_APP_SECRET en .env.example) — mientras tanto se muestra
+// un CTA honesto al perfil real en vez de fingir un feed sincronizado.
 
 import React from 'react';
 import { ExpandableGallery, GalleryItem } from '@/components/ui/gallery-animation';
@@ -11,32 +17,7 @@ import { TestimonialCard, TestimonialData } from '@/components/ui/testimonial';
 import { Product } from '@/types/product';
 import { getReviews } from '@/lib/reviews-store';
 
-const EXAMPLE_TESTIMONIALS: TestimonialData[] = [
-  {
-    id: 't1',
-    name: 'Carlos Mendoza',
-    handle: '@carlitos_kicks',
-    quote: 'Pedí unos Jordan agotados en toda la ciudad y TENISIN me avisó apenas hubo restock. Llegaron en 2 días.',
-    rating: 5,
-    isExample: true,
-  },
-  {
-    id: 't2',
-    name: 'Valentina Ruiz',
-    handle: '@hype_valentina',
-    quote: 'La Bóveda del Coleccionista es adictiva — ya voy por el rango Legend y las tarjetas cromadas se ven increíbles.',
-    rating: 5,
-    isExample: true,
-  },
-  {
-    id: 't3',
-    name: 'Dante Medina',
-    handle: '@dante.mx',
-    quote: 'El Fit Advisor me salvó de pedir mal la talla en un par importado. 100% recomendado.',
-    rating: 5,
-    isExample: true,
-  },
-];
+const INSTAGRAM_PROFILE_URL = 'https://www.instagram.com/look_atmy_kicks/';
 
 interface SocialProofSectionProps {
   products: Product[];
@@ -50,9 +31,8 @@ export function SocialProofSection({ products }: SocialProofSectionProps) {
     href: `/product/${p.handle}`,
   }));
 
-  // Reseñas reales de clientes con compra verificada primero; solo se
-  // completa con ejemplos si aún no hay suficientes reales.
-  const realReviews: TestimonialData[] = getReviews().map((r) => ({
+  // Solo reseñas reales de clientes con compra verificada — sin relleno ficticio.
+  const testimonials: TestimonialData[] = getReviews().map((r) => ({
     id: r.id,
     name: r.customerName,
     quote: r.text,
@@ -60,38 +40,46 @@ export function SocialProofSection({ products }: SocialProofSectionProps) {
     photoUrl: r.photoUrl,
     verifiedPurchase: true,
   }));
-  const testimonials = [...realReviews, ...EXAMPLE_TESTIMONIALS].slice(0, Math.max(3, realReviews.length));
 
   return (
-    <section className="py-16 bg-[#0A0A0C]">
+    <section className="py-16 bg-background">
       <div className="max-w-7xl mx-auto px-4 space-y-16">
 
-        {/* Galería / futuro feed de Instagram */}
+        {/* Galería + CTA honesto a Instagram real (sin API de Meta conectada aún) */}
         {galleryItems.length > 0 && (
           <div>
-            <div className="flex items-end justify-between mb-6">
+            <div className="flex flex-wrap items-end justify-between gap-3 mb-6">
               <div>
-                <span className="text-xs font-mono text-[#E60026] uppercase tracking-widest">// MOMENTOS LAMK</span>
-                <h2 className="text-2xl font-black uppercase tracking-tight mt-1">GALERÍA DE DROPS</h2>
+                <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// MOMENTOS LAMK</span>
+                <h2 className="font-display text-2xl font-black uppercase tracking-tight mt-1">GALERÍA DE DROPS</h2>
               </div>
-              <span className="text-[10px] font-mono text-zinc-600 uppercase hidden sm:block">Próximamente sincronizado con Instagram</span>
+              <a
+                href={INSTAGRAM_PROFILE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] font-mono text-zinc-500 hover:text-[#FF1E42] uppercase tracking-widest transition"
+              >
+                Síguenos en Instagram ↗
+              </a>
             </div>
             <ExpandableGallery items={galleryItems} />
           </div>
         )}
 
-        {/* Testimonios */}
-        <div>
-          <div className="text-center mb-6">
-            <span className="text-xs font-mono text-amber-400 uppercase tracking-widest">// SOCIAL PROOF</span>
-            <h2 className="text-2xl font-black uppercase tracking-tight mt-1">LO QUE DICEN NUESTROS COLECCIONISTAS</h2>
+        {/* Testimonios: solo se muestra si hay reseñas reales de verdad */}
+        {testimonials.length > 0 && (
+          <div>
+            <div className="text-center mb-6">
+              <span className="text-xs font-mono text-amber-400 uppercase tracking-widest">// SOCIAL PROOF</span>
+              <h2 className="font-display text-2xl font-black uppercase tracking-tight mt-1">LO QUE DICEN NUESTROS COLECCIONISTAS</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {testimonials.map((t) => (
+                <TestimonialCard key={t.id} data={t} />
+              ))}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {testimonials.map((t) => (
-              <TestimonialCard key={t.id} data={t} />
-            ))}
-          </div>
-        </div>
+        )}
 
       </div>
     </section>

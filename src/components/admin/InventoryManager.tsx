@@ -116,7 +116,7 @@ export function InventoryManager() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Subir Nuevo Artículo */}
-        <div className="p-5 bg-[#121215] border border-zinc-800 rounded-lg space-y-3">
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-3">
           <h4 className="text-xs font-bold uppercase text-zinc-300">Subir Nuevo Artículo</h4>
           <form onSubmit={handleSaveDraft} className="space-y-3 text-xs">
             <label className="flex flex-col items-center justify-center gap-2 h-32 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-red-600/60 transition overflow-hidden relative">
@@ -164,7 +164,7 @@ export function InventoryManager() {
         </div>
 
         {/* Gestión / Dar de Baja */}
-        <div className="p-5 bg-[#121215] border border-zinc-800 rounded-lg space-y-3">
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-3">
           <h4 className="text-xs font-bold uppercase text-zinc-300">Gestión de Catálogo ({products.length} artículos)</h4>
           <div className="max-h-96 overflow-y-auto space-y-2">
             {products.map((p) => {

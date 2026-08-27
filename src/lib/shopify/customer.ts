@@ -14,8 +14,9 @@ import {
   GET_CUSTOMER_QUERY,
 } from './queries';
 import { UserProfile, CollectionItem, OrderSummary } from '@/types/user';
-import { calculateGamificationTier } from '@/utils/gamification';
+import { calculateGamificationTier, calculateHypeXp } from '@/utils/gamification';
 import { normalizeMexicanPhoneE164 } from '@/lib/validators';
+import { getCatalogLive } from '@/lib/catalog-source';
 
 export interface CustomerAccessToken {
   accessToken: string;
@@ -95,7 +96,9 @@ export async function logoutCustomer(accessToken: string): Promise<void> {
 }
 
 // Trae el perfil real del cliente y lo mapea al UserProfile de la Bóveda del
-// Coleccionista: xp = total gastado (1 MXN = 1 XP, ver types/user.ts), tier
+// Coleccionista: xp = suma de cada línea de pedido ponderada por el Hype
+// Score que tenía ESE producto (ver calculateHypeXp en utils/gamification.ts
+// — comprar algo con hype 98% rinde casi el doble que algo sin demanda), tier
 // calculado con la curva geométrica real, y `collection` derivada de sus
 // pedidos reales (el número de serie es su posición en SU propia colección,
 // no un tiraje limitado inventado).
@@ -124,7 +127,24 @@ export async function getCustomerProfile(accessToken: string): Promise<UserProfi
     rarity: idx === 0 ? 'LEGENDARY' : idx < 3 ? 'RARE' : 'COMMON',
   }));
 
-  const xp = Math.round(totalSpent);
+  // Hype Score vigente de cada producto (no el que tenía al momento de la
+  // compra — no lo guardamos histórico — pero sirve de buena aproximación y
+  // sigue premiando los drops que YA demostraron ser calientes). Productos
+  // descontinuados o que ya no están en catálogo caen a factor 1.0 (sin bono).
+  let hypeById = new Map<string, number>();
+  try {
+    const { products } = await getCatalogLive();
+    hypeById = new Map(products.map((p) => [p.id, p.hypeMeter.score]));
+  } catch (err) {
+    console.error('No se pudo cargar el catálogo para ponderar XP por Hype, usando factor 1.0:', err);
+  }
+
+  const xp = lineItems.reduce((acc: number, li: any) => {
+    const price = parseFloat(li.node.originalTotalPrice?.amount || '0');
+    const productId = li.node.variant?.product?.id;
+    const hypeScore = productId ? (hypeById.get(productId) ?? 0) : 0;
+    return acc + calculateHypeXp(price, hypeScore);
+  }, 0);
   const tier = calculateGamificationTier(xp).currentTier;
 
   const recentOrders: OrderSummary[] = orderEdges.slice(0, 15).map((e: any) => ({

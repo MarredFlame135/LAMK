@@ -3,7 +3,7 @@
 // Dashboard analítico del admin, construido siguiendo el skill de dataviz:
 // forma antes que color, color asignado por el trabajo que hace (secuencial
 // para magnitud, categórico para identidad), paleta validada contra nuestra
-// superficie real (#121215) con scripts/validate_palette.js, marcas finas
+// superficie real (#0E0E13) con scripts/validate_palette.js, marcas finas
 // con extremos redondeados, grilla recesiva, tooltip por barra.
 //
 // Fuentes de datos, todas reales (nada inventado):
@@ -21,7 +21,7 @@ import { useLeads } from '@/hooks/useLeads';
 import { CATEGORY_LABELS } from '@/lib/catalog';
 import { Product } from '@/types/product';
 
-// Paleta categórica validada (dataviz skill, dark mode, superficie #121215) —
+// Paleta categórica validada (dataviz skill, dark mode, superficie #0E0E13) —
 // ver scripts/validate_palette.js. Orden fijo, nunca se reasigna por ranking.
 const CATEGORY_COLORS: Record<string, string> = {
   SNEAKERS: '#3987e5',
@@ -30,7 +30,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   COLLECTIBLES: '#c98500',
   JEWELRY: '#d55181',
 };
-const SEQUENTIAL_RED = '#E60026'; // hue único de marca para magnitud (ventas, vistas)
+const SEQUENTIAL_RED = '#FF1E42'; // hue único de marca para magnitud (ventas, vistas)
 
 interface TopViewedItem {
   id: string;
@@ -64,7 +64,7 @@ function monthLabel(key: string): string {
 // --- Stat tile ---
 function StatTile({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
   return (
-    <div className="p-4 bg-[#121215] border border-zinc-800 rounded-lg space-y-1">
+    <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-1">
       <div className="flex items-center gap-2 text-zinc-400">
         <Icon className="h-3.5 w-3.5" />
         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
@@ -251,23 +251,23 @@ export function AnalyticsPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-5 bg-[#121215] border border-zinc-800 rounded-lg">
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg">
           <h4 className="text-xs font-bold uppercase text-zinc-300 mb-4">Ventas Físicas por Mes</h4>
           <MonthlyRevenueChart sales={sales} />
         </div>
 
-        <div className="p-5 bg-[#121215] border border-zinc-800 rounded-lg">
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg">
           <h4 className="text-xs font-bold uppercase text-zinc-300 mb-4">Top Pares Más Deseados (vistas reales 24h)</h4>
           <TopViewedChart items={topViewed} />
         </div>
 
-        <div className="p-5 bg-[#121215] border border-zinc-800 rounded-lg">
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg">
           <h4 className="text-xs font-bold uppercase text-zinc-300 mb-4">Demanda Acumulada de Agotados por Categoría</h4>
           <DemandByCategoryChart counts={demandByCategory} />
         </div>
 
         {/* Estado vacío honesto: no hay orders reales de Shopify todavía */}
-        <div className="p-5 bg-[#121215] border border-dashed border-zinc-800 rounded-lg flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
+        <div className="p-5 bg-[#0E0E13] border border-dashed border-zinc-800 rounded-lg flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
           <Lock className="h-6 w-6 text-zinc-600" />
           <h4 className="text-xs font-bold uppercase text-zinc-400">Top / Bottom Sellers de Shopify</h4>
           <p className="text-[11px] text-zinc-500 max-w-xs">

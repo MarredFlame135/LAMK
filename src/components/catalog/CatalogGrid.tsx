@@ -1,130 +1,132 @@
 // src/components/catalog/CatalogGrid.tsx
 //
 // Parte cliente del catálogo (filtros interactivos + micro-interacciones).
-// Recibe los productos ya resueltos (Shopify real o mock) desde el Server
-// Component en src/app/(routes)/catalog/page.tsx.
+// Recibe TODOS los productos ya resueltos (Shopify real o mock, sin límite
+// artificial — ver shopify/index.ts::getProducts) desde el Server Component
+// en src/app/(routes)/catalog/page.tsx, y los renderiza progresivamente con
+// scroll infinito para no bloquear el hilo principal pintando cientos de
+// tarjetas de una sola vez.
 
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { HypeMeter } from '@/components/hype-meter/HypeMeter';
 import { useCart } from '@/hooks/useCart';
 import { CATEGORY_LABELS } from '@/lib/catalog';
-import { Product } from '@/types/product';
+import { Product, ProductVariant } from '@/types/product';
+import { useApp } from '@/context/AppContext';
+import { DiscoveryTabs } from './DiscoveryTabs';
+import { ProductCard } from './ProductCard';
+import { DiscoveryTab, filterByDiscoveryTab } from '@/lib/discovery';
+import { fadeUp } from '@/lib/motion';
 
-const CATEGORIES: Array<'TODOS' | Product['category']> = ['TODOS', 'SNEAKERS', 'APPAREL', 'ACCESSORIES', 'COLLECTIBLES', 'JEWELRY'];
+const CATEGORIES: Array<'TODAS' | Product['category']> = ['TODAS', 'SNEAKERS', 'APPAREL', 'ACCESSORIES', 'COLLECTIBLES', 'JEWELRY'];
+const PAGE_SIZE = 24;
 
 interface CatalogGridProps {
   products: Product[];
 }
 
 export function CatalogGrid({ products }: CatalogGridProps) {
-  const [selectedCategory, setSelectedCategory] = useState<'TODOS' | Product['category']>('TODOS');
+  const [discoveryTab, setDiscoveryTab] = useState<DiscoveryTab>('ALL');
+  const [category, setCategory] = useState<'TODAS' | Product['category']>('TODAS');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { addItem } = useCart();
+  const { t } = useApp();
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Solo mostrar los filtros de categorías que realmente existen en el catálogo cargado
-  const availableCategories = CATEGORIES.filter((c) => c === 'TODOS' || products.some((p) => p.category === c));
+  const availableCategories = CATEGORIES.filter((c) => c === 'TODAS' || products.some((p) => p.category === c));
 
-  const filtered = selectedCategory === 'TODOS'
-    ? products
-    : products.filter((p) => p.category === selectedCategory);
+  const filtered = useMemo(() => {
+    let result = filterByDiscoveryTab(products, discoveryTab);
+    if (category !== 'TODAS') result = result.filter((p) => p.category === category);
+    return result;
+  }, [products, discoveryTab, category]);
+
+  // Reinicia la paginación cuando cambian los filtros — evita mostrar 0
+  // tarjetas si el usuario ya había scrolleado más allá del nuevo total.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [discoveryTab, category]);
+
+  // Scroll infinito: un sentinel al fondo del grid dispara la siguiente
+  // página cuando entra en viewport — sin librería extra, IntersectionObserver nativo.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((v) => Math.min(v + PAGE_SIZE, filtered.length));
+        }
+      },
+      { rootMargin: '600px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [filtered.length]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  const handleAddToCart = (product: Product, variant: ProductVariant) => {
+    addItem(product.title, product.id, product.images[0], variant);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-[#0A0A0C] text-[#F4F4F0] min-h-screen space-y-8">
+    <div className="max-w-7xl mx-auto p-6 bg-background text-foreground min-h-screen space-y-6">
 
       {/* Header Catálogo */}
-      <div className="border-b border-zinc-800 pb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span className="text-xs font-mono text-[#E60026] uppercase">// DROPS & INVENTARIO REAL</span>
-          <h1 className="text-3xl font-black uppercase tracking-tight mt-1">CATÁLOGO EXCLUSIVO</h1>
+      <motion.div variants={fadeUp} initial="hidden" animate="show" className="border-b border-border pb-6 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <span className="text-xs font-mono text-[#FF1E42] uppercase">{t.catalogPage.eyebrow}</span>
+            <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">{t.catalogPage.title}</h1>
+            <p className="text-[11px] font-mono text-zinc-500 mt-1">
+              {filtered.length} pieza{filtered.length !== 1 ? 's' : ''} en inventario
+            </p>
+          </div>
+
+          {/* Filtro secundario por categoría — compacto, las pestañas de descubrimiento son el filtro principal */}
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as typeof category)}
+            className="bg-muted border border-border rounded-lg px-3 py-2 text-xs font-mono uppercase text-foreground"
+          >
+            {availableCategories.map((c) => (
+              <option key={c} value={c}>{c === 'TODAS' ? 'TODAS LAS CATEGORÍAS' : CATEGORY_LABELS[c]}</option>
+            ))}
+          </select>
         </div>
 
-        {/* Filtro por Categorías */}
-        <div className="flex flex-wrap gap-2 text-xs font-bold font-mono">
-          {availableCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg border transition ${
-                selectedCategory === cat
-                  ? 'bg-[#E60026] border-[#E60026] text-white'
-                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
-              }`}
-            >
-              {cat === 'TODOS' ? 'TODOS' : CATEGORY_LABELS[cat]}
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* Pestañas de descubrimiento */}
+        <DiscoveryTabs active={discoveryTab} onChange={setDiscoveryTab} />
+      </motion.div>
 
       {filtered.length === 0 ? (
-        <div className="p-16 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-500 text-sm">
-          No hay productos en esta categoría por ahora.
+        <div className="p-16 border border-dashed border-border rounded-lg text-center text-zinc-500 text-sm">
+          {t.catalogPage.empty}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((product, idx) => {
-            const defaultVariant = product.variants.find((v) => v.isAvailable) || product.variants[0];
-            const sizeText = defaultVariant?.sizeLabel
-              ? defaultVariant.sizeLabel
-              : defaultVariant
-              ? `${defaultVariant.size.mx} MX`
-              : '—';
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visible.map((product, idx) => (
+              <ProductCard key={product.id} product={product} index={idx} onAddToCart={handleAddToCart} />
+            ))}
+          </div>
 
-            return (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: idx * 0.04 }}
-                whileHover={{ y: -6, borderColor: 'rgba(230,0,38,0.5)', boxShadow: '0 20px 40px -14px rgba(230,0,38,0.25)' }}
-                className="bg-[#121215] border border-zinc-800 rounded-2xl p-4 flex flex-col justify-between group"
+          {/* Sentinel de scroll infinito + fallback de botón para quien prefiera clic explícito */}
+          {hasMore && (
+            <div ref={sentinelRef} className="flex justify-center pt-4">
+              <button
+                onClick={() => setVisibleCount((v) => Math.min(v + PAGE_SIZE, filtered.length))}
+                className="px-6 py-2.5 bg-muted hover:bg-border text-xs font-bold font-mono uppercase rounded-lg text-foreground transition"
               >
-                <a href={`/product/${product.handle}`} className="block">
-                  <div className="relative aspect-square bg-black rounded-xl overflow-hidden mb-4">
-                    <Image
-                      src={product.images[0]}
-                      alt={product.title}
-                      fill
-                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover group-hover:scale-105 transition duration-500"
-                      loading={idx < 3 ? 'eager' : 'lazy'}
-                    />
-                    {product.isSoldOut && (
-                      <span className="absolute top-3 right-3 bg-zinc-800 text-white text-[10px] font-bold px-2 py-0.5 rounded font-mono">
-                        AGOTADO
-                      </span>
-                    )}
-                    <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded font-mono">
-                      🔥 {product.hypeMeter.score}% HYPE
-                    </span>
-                  </div>
-
-                  <span className="text-[10px] font-mono text-zinc-400 uppercase">{product.brand}</span>
-                  <h3 className="text-sm font-bold uppercase mt-0.5 line-clamp-1">{product.title}</h3>
-                  <p className="text-xs font-mono text-zinc-500 mt-1">Talla: {sizeText}</p>
-                </a>
-
-                <HypeMeter data={product.hypeMeter} />
-
-                <div className="mt-2 pt-3 border-t border-zinc-800/80 flex items-center justify-between">
-                  <span className="text-base font-black text-[#E60026]">
-                    ${(defaultVariant?.price ?? 0).toLocaleString()} MXN
-                  </span>
-                  <button
-                    onClick={() => defaultVariant && defaultVariant.isAvailable && addItem(product.title, product.id, product.images[0], defaultVariant)}
-                    disabled={!defaultVariant || !defaultVariant.isAvailable}
-                    className="px-4 py-2 bg-[#E60026] hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white text-xs font-bold uppercase rounded-lg transition"
-                  >
-                    {defaultVariant?.isAvailable ? '+ CARRITO' : 'AGOTADO'}
-                  </button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                Cargar más ({filtered.length - visibleCount} restantes)
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
