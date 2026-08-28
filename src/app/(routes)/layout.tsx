@@ -14,6 +14,8 @@ import { PwaRegister } from '@/components/ui/PwaRegister';
 import { Navbar } from '@/components/ui/Navbar';
 import { CustomCursor } from '@/components/ui/CustomCursor';
 import { PrivacyConsentBanner } from '@/components/ui/PrivacyConsentBanner';
+import { CartTrigger } from '@/components/ui/CartTrigger';
+import { MobileMenu } from '@/components/ui/MobileMenu';
 
 export const viewport: Viewport = {
   themeColor: '#050507',
@@ -81,8 +83,15 @@ export default function RootLayout({
                     </span>
                   </a>
 
-                  {/* Navegación */}
-                  <Navbar />
+                  {/* Navegación — Navbar es desktop-only (md:flex), MobileMenu
+                      es su equivalente para <768px. CartTrigger vive en
+                      ambos: antes el carrito solo se abría solo al agregar
+                      un producto, no había forma de reabrirlo manualmente. */}
+                  <div className="flex items-center gap-1">
+                    <Navbar />
+                    <CartTrigger />
+                    <MobileMenu />
+                  </div>
 
                 </div>
               </header>

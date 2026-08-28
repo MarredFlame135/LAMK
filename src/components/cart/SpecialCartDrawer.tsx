@@ -259,11 +259,17 @@ export function SpecialCartDrawer() {
               </motion.div>
             ) : (
             <motion.div key="checkout-flow" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            {/* Fix (reportado 2026-08-27): esto era texto gris diminuto —
+                nadie lo veía, así que la única forma de "regresar" que
+                encontraban era la flecha del navegador (que además saca al
+                usuario del flujo del carrito). Ahora es un botón real, con
+                el mismo peso visual que cualquier otro control del drawer. */}
             <button
               onClick={() => setStep('review')}
-              className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest flex items-center gap-1"
+              className="flex items-center gap-2 py-2 px-3 -ml-3 text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900/60 hover:bg-zinc-800 border border-zinc-700 rounded-lg transition-colors"
             >
-              ← Volver al carrito
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+              Volver al carrito
             </button>
 
             {/* "Double Check" — cross-sell antes del checkout (RF Smart Cart) */}
