@@ -10,7 +10,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { SAAS_CONFIG } from '@/lib/saas-config';
@@ -20,8 +20,31 @@ import { Floating, FloatingElement } from '@/components/ui/parallax-floating';
 import { fadeUp, EASE_LUXURY } from '@/lib/motion';
 import { useApp } from '@/context/AppContext';
 
+// Ciclo de poses al hover — usa las 4 imágenes reales que ya existen para el
+// widget de chat (mascotPoses), solo que aquí es decorativo: al pasar el
+// cursor, TENISIN va cambiando de pose cada ~450ms en vez de quedarse fijo.
+const HOVER_POSE_CYCLE: Array<keyof typeof SAAS_CONFIG.mascotPoses> = ['idle', 'thinking', 'happy', 'notFound'];
+
+function useHoverPoseCycle() {
+  const [pose, setPose] = useState<keyof typeof SAAS_CONFIG.mascotPoses>('idle');
+  const [isHovering, setIsHovering] = useState(false);
+  const indexRef = useRef(0);
+
+  useEffect(() => {
+    if (!isHovering) { setPose('idle'); indexRef.current = 0; return; }
+    const id = setInterval(() => {
+      indexRef.current = (indexRef.current + 1) % HOVER_POSE_CYCLE.length;
+      setPose(HOVER_POSE_CYCLE[indexRef.current]);
+    }, 450);
+    return () => clearInterval(id);
+  }, [isHovering]);
+
+  return { pose, onMouseEnter: () => setIsHovering(true), onMouseLeave: () => setIsHovering(false) };
+}
+
 export function HeroSection() {
   const { t } = useApp();
+  const hoverPose = useHoverPoseCycle();
   return (
     <section className="relative py-20 px-4 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center overflow-hidden">
       {/* Fondo fotográfico real (Higgsfield, soul_2) + textura "Obsidian Quarry"
@@ -52,7 +75,7 @@ export function HeroSection() {
         initial="hidden"
         animate="show"
         transition={{ staggerChildren: 0.12 }}
-        className="lg:col-span-7 space-y-6 relative"
+        className="lg:col-span-8 space-y-6 relative"
       >
         <motion.div variants={fadeUp} className="flex items-center gap-3">
           <span className="px-3 py-1 bg-red-950/60 border border-red-600/40 rounded-full text-[10px] font-mono text-red-500 font-bold uppercase tracking-[0.15em]">
@@ -86,40 +109,40 @@ export function HeroSection() {
         </motion.div>
       </motion.div>
 
-      {/* Tarjeta Visual de TENISIN — cristal + parallax con el mouse + iluminación holográfica en hover */}
-      <Floating className="lg:col-span-5 h-full min-h-[22rem]">
+      {/* Tarjeta de TENISIN — antes ocupaba media hero (col-span-5, min-h-22rem);
+          ahora es una insignia discreta que solo llama la atención al hover
+          (más pequeña, sin el bloque de texto grande). Al pasar el cursor,
+          la pose va cambiando entre las 4 imágenes reales del mascot. */}
+      <Floating className="lg:col-span-4 flex lg:justify-end">
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2, ease: EASE_LUXURY }}
-          whileHover={{ y: -4, boxShadow: '0 30px 60px -20px rgba(255,30,66,0.35)' }}
-          className="absolute inset-0 bg-gradient-to-b from-[#0E0E13]/90 to-black/90 backdrop-blur-md border border-zinc-800 p-8 rounded-3xl overflow-hidden text-center space-y-4 shadow-2xl flex flex-col items-center justify-center"
+          whileHover={{ y: -3, scale: 1.03, boxShadow: '0 20px 40px -16px rgba(255,30,66,0.4)' }}
+          onMouseEnter={hoverPose.onMouseEnter}
+          onMouseLeave={hoverPose.onMouseLeave}
+          className="relative flex items-center gap-3 bg-gradient-to-b from-[#0E0E13]/90 to-black/90 backdrop-blur-md border border-zinc-800 pl-3 pr-4 py-3 rounded-2xl shadow-xl cursor-pointer max-w-[15rem]"
         >
-          <div className="w-32 h-32 mx-auto relative animate-float tenisin-glow">
+          <div className="w-14 h-14 shrink-0 relative animate-float tenisin-glow">
             <img
-              src={SAAS_CONFIG.mascotPoses.idle}
+              src={SAAS_CONFIG.mascotPoses[hoverPose.pose]}
               alt={SAAS_CONFIG.mascotName}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain transition-opacity duration-150"
             />
           </div>
-
-          <div>
-            <span className="text-xs font-mono text-amber-400 uppercase font-bold">
-              CONOCE A {SAAS_CONFIG.mascotName} 👟
+          <div className="min-w-0">
+            <span className="block text-[10px] font-mono text-amber-400 uppercase font-bold tracking-wide">
+              {SAAS_CONFIG.mascotName} · IA en vivo
             </span>
-            <h3 className="text-lg font-black uppercase mt-1">TU ASISTENTE IA DE CAZA DE KICKS</h3>
-            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
-              "{SAAS_CONFIG.mascotGreeting}"
+            <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2">
+              Tu asistente de caza de kicks
             </p>
           </div>
         </motion.div>
 
         {/* Insignias flotantes decorativas, siguen el mouse en paralaje */}
-        <FloatingElement depth={2.5} className="top-4 right-6">
-          <span className="px-3 py-1.5 bg-[#FF1E42] text-white text-[10px] font-black font-mono uppercase tracking-wide rounded-full shadow-lg">Index 98.0</span>
-        </FloatingElement>
-        <FloatingElement depth={1.5} className="bottom-6 left-6">
-          <span className="px-3 py-1.5 bg-amber-500 text-black text-[10px] font-black uppercase rounded-full shadow-lg">+30 XP</span>
+        <FloatingElement depth={2.5} className="top-0 right-0">
+          <span className="px-2.5 py-1 bg-[#FF1E42] text-white text-[9px] font-black font-mono uppercase tracking-wide rounded-full shadow-lg">Index 98.0</span>
         </FloatingElement>
       </Floating>
     </section>

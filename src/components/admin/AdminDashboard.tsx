@@ -11,6 +11,7 @@ import { LayawayPanel } from './LayawayPanel';
 import { AnalyticsPanel } from './AnalyticsPanel';
 import { InventoryManager } from './InventoryManager';
 import { ClientsPanel } from './ClientsPanel';
+import { AdminAccessPanel } from './AdminAccessPanel';
 import { fadeUp, staggerContainer } from '@/lib/motion';
 
 // Ronda "subir el nivel visual" 2026-08-27: antes este panel tenía colores
@@ -64,6 +65,8 @@ export function AdminDashboard() {
       </motion.div>
 
       {/* Dashboard Analítico Dinámico: ventas físicas, más deseados, demanda de agotados */}
+      <motion.div variants={fadeUp}><AdminAccessPanel /></motion.div>
+
       <motion.div variants={fadeUp}><AnalyticsPanel /></motion.div>
 
       {/* Peticiones capturadas por TENISIN (búsquedas atendidas y no atendidas) */}

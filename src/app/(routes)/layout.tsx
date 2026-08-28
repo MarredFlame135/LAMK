@@ -107,7 +107,7 @@ export default function RootLayout({
                 <div className="relative flex justify-center">
                   <AuthenticitySeal compact />
                 </div>
-                <p className="relative">© {new Date().getFullYear()} {SAAS_CONFIG.brandName}. PWA POWERED BY HYDROGEN & NEXT.JS.</p>
+                <p className="relative">© {new Date().getFullYear()} {SAAS_CONFIG.brandName}. Diseñado por BDM Soluciones Digitales.</p>
               </footer>
             </ThemeVariantProvider>
             </CartProvider>
