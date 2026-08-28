@@ -20,6 +20,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, ShippingAddress, VerificationStatus } from '@/types/cart';
 import { ProductVariant } from '@/types/product';
+import { track } from '@/lib/analytics';
 
 const FREE_SHIPPING_THRESHOLD = 3000; // $3,000 MXN para envío gratis
 const LOCAL_STORAGE_KEY = 'lamk_cart_state_v1';
@@ -100,6 +101,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ];
     });
     setIsOpen(true);
+    // Fix (hallazgo #2 de la auditoría de Fase 5): un solo punto de entrada
+    // cubre todo el sitio (ficha de producto, carruseles de home, catálogo)
+    // sin tener que instrumentar cada call-site por separado.
+    track('add_to_cart', { productId, variantId: variant.id, price: variant.price });
   };
 
   const removeItem = (cartItemId: string) => {

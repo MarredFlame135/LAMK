@@ -16,6 +16,9 @@ import React from 'react';
 import { Product, ProductVariant } from '@/types/product';
 import { useCart } from '@/hooks/useCart';
 import { ProductCard } from '@/components/catalog/ProductCard';
+import { CarouselItemTracker } from '@/components/analytics/CarouselItemTracker';
+
+const CAROUSEL_NAME = 'hype_carousel';
 
 const HOME_CURATED_LIMIT = 14;
 
@@ -50,9 +53,9 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
         {/* Carrusel Deslizable */}
         <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-zinc-800">
           {trendingProducts.map((product, idx) => (
-            <div key={product.id} className="flex-none w-72">
+            <CarouselItemTracker key={product.id} carouselName={CAROUSEL_NAME} position={idx} className="flex-none w-72">
               <ProductCard product={product} index={idx} onAddToCart={handleAddToCart} />
-            </div>
+            </CarouselItemTracker>
           ))}
         </div>
 

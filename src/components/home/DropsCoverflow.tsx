@@ -16,8 +16,10 @@
 import React from 'react';
 import { CoverflowCarousel, CoverflowItem } from '@/components/ui/coverflow-carousel';
 import { Product } from '@/types/product';
+import { track } from '@/lib/analytics';
 
 const MAX_ITEMS = 8;
+const CAROUSEL_NAME = 'drops_coverflow';
 
 function buildDiversifiedSelection(products: Product[]): Product[] {
   const available = products.filter((p) => !p.isSoldOut);
@@ -65,7 +67,16 @@ export function DropsCoverflow({ products }: DropsCoverflowProps) {
           <h2 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight mt-1">DROPS PRINCIPALES</h2>
           <p className="text-[11px] text-zinc-500 mt-1">Lo más alto en Hype de cada categoría — no solo sneakers.</p>
         </div>
-        <CoverflowCarousel items={items} />
+        {/* Fix (hallazgo #2 de la auditoría de Fase 5): impresión = la
+            tarjeta que llega a estar centrada/activa; clic = alguien la
+            tocó para ir a la ficha. Es justo el dato que la Fase 6 necesita
+            para saber si este carrusel —pedido explícito del cliente como
+            "el más llamativo"— de verdad convierte. */}
+        <CoverflowCarousel
+          items={items}
+          onActiveChange={(_item, position) => track('carousel_impression', { carouselName: CAROUSEL_NAME, position })}
+          onItemClick={(_item, position) => track('carousel_click', { carouselName: CAROUSEL_NAME, position })}
+        />
       </div>
     </section>
   );

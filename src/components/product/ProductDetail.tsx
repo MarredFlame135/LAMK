@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Product, ProductVariant } from '@/types/product';
@@ -18,6 +18,7 @@ import { CountUp } from '@/components/ui/count-up';
 import { AuthenticitySeal } from '@/components/ui/AuthenticitySeal';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { fadeUp, staggerContainer } from '@/lib/motion';
+import { track } from '@/lib/analytics';
 
 interface ProductDetailProps {
   product: Product;
@@ -25,6 +26,15 @@ interface ProductDetailProps {
 
 export function ProductDetail({ product }: ProductDetailProps) {
   const { addItem } = useCart();
+
+  // Fix (hallazgo #2 de la auditoría de Fase 5): primer paso real del
+  // embudo de compra (vista → carrito → checkout) — antes no existía
+  // ninguna señal de "alguien vio esta ficha".
+  useEffect(() => {
+    track('product_view', { productId: product.id, handle: product.handle, category: product.category });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
+
   const { t } = useApp();
   const [selectedImage, setSelectedImage] = useState(product.images[0] || '/placeholder-sneaker.svg');
   const [isZoomed, setIsZoomed] = useState(false);

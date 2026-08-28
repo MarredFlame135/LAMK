@@ -11,6 +11,7 @@ import { useApp } from '@/context/AppContext';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { CrossSellModule } from '@/components/cart/CrossSellModule';
 import { useAuth } from '@/context/AuthContext';
+import { track } from '@/lib/analytics';
 
 const EMPTY_ADDRESS_FORM = {
   fullName: '', phone: '', street: '', exteriorNumber: '', interiorNumber: '',
@@ -66,6 +67,11 @@ export function SpecialCartDrawer() {
         setCheckoutError(data.error || 'No se pudo iniciar el pago. Intenta de nuevo.');
         return;
       }
+      // Fix (hallazgo #2 de la auditoría de Fase 5): esto es lo más cerca de
+      // "compra" que el sitio puede saber hoy — el checkout real pasa a
+      // Shopify y el sitio nunca vuelve a enterarse si se completó (no hay
+      // webhook `orders/create` configurado, ver FASE-5-ANALITICA.md).
+      track('checkout_started', { itemCount: items.reduce((a, b) => a + b.quantity, 0), subtotal });
       window.location.href = data.checkoutUrl;
     } catch (err) {
       console.error('Error al ir a Shopify Checkout:', err);

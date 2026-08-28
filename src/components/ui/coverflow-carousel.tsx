@@ -33,12 +33,36 @@ export interface CoverflowItem {
 interface CoverflowCarouselProps {
   items: CoverflowItem[];
   className?: string;
+  // Fix (hallazgo #2 de la auditoría de Fase 5): callbacks opcionales de
+  // analítica — la tarjeta que queda al frente/centrada es la señal de
+  // "impresión" real de un coverflow (a diferencia de un scroll horizontal,
+  // aquí solo una tarjeta está realmente "vista" a la vez); el clic en la
+  // tarjeta activa es la única que de verdad navega (las laterales solo
+  // recentran, ver más abajo). Opcionales para no romper otros usos futuros
+  // de este componente que no necesiten trackear nada.
+  onActiveChange?: (item: CoverflowItem, position: number) => void;
+  onItemClick?: (item: CoverflowItem, position: number) => void;
 }
 
-export function CoverflowCarousel({ items, className }: CoverflowCarouselProps) {
+export function CoverflowCarousel({ items, className, onActiveChange, onItemClick }: CoverflowCarouselProps) {
   const [active, setActive] = useState(Math.min(1, items.length - 1));
   const [isPaused, setIsPaused] = useState(false);
   const reduceMotion = useReducedMotion();
+
+  // Refs para no forzar a quien use estos callbacks a memoizarlos, y para
+  // que el efecto de abajo no se re-dispare solo porque el padre volvió a
+  // renderizar con una función inline nueva.
+  const onActiveChangeRef = useRef(onActiveChange);
+  onActiveChangeRef.current = onActiveChange;
+  const onItemClickRef = useRef(onItemClick);
+  onItemClickRef.current = onItemClick;
+
+  const activeItemId = items[active]?.id;
+  useEffect(() => {
+    if (!activeItemId) return;
+    onActiveChangeRef.current?.(items[active], active);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeItemId]);
 
   const tiltX = useMotionValue(0);
   const tiltY = useMotionValue(0);
@@ -142,6 +166,8 @@ export function CoverflowCarousel({ items, className }: CoverflowCarouselProps) 
                     e.preventDefault();
                     setIsPaused(true);
                     goTo(idx);
+                  } else {
+                    onItemClickRef.current?.(item, idx);
                   }
                 }}
                 animate={{

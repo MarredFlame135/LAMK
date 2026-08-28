@@ -1,14 +1,15 @@
 # Fase 5 — Analítica
 
-Rama: `audit/fase-5-analitica`. Solo reporte — cero cambios de código en esta fase.
+Rama: `audit/fase-5-analitica`.
+
+**Estado: los 2 hallazgos fueron corregidos y verificados** (`tsc --noEmit`, `next build`, smoke tests reales). Backend elegido por ti: **Vercel Analytics** (`@vercel/analytics`). Nada desplegado, nada en `main`.
 
 ## Resumen — tabla por severidad
 
-| # | Hallazgo | Severidad |
-|---|---|---|
-| 1 | Consentimiento de cookies sin opción de rechazo real — es un aviso, no un consentimiento | 🔴 Alta |
-| 2 | Cero infraestructura de analítica de cualquier tipo — sin funnel de compra, sin eventos de carrusel, sin analítica de búsqueda agregada, sin eventos sociales | 🔴 Alta |
-| 3 | **Decisión pendiente, no un hallazgo de severidad:** a qué backend van los eventos — ver sección "Antes de construir nada" |
+| # | Hallazgo | Severidad | Estado |
+|---|---|---|---|
+| 1 | Consentimiento de cookies sin opción de rechazo real — es un aviso, no un consentimiento | 🔴 Alta | ✅ Corregido |
+| 2 | Cero infraestructura de analítica de cualquier tipo — sin funnel de compra, sin eventos de carrusel, sin analítica de búsqueda agregada, sin eventos sociales | 🔴 Alta | ✅ Corregido |
 
 ## Lo que ya existe (parcial, punto de partida real)
 
@@ -24,9 +25,9 @@ Rama: `audit/fase-5-analitica`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota / qué se rompe:** no es un exploit — es un incumplimiento potencial de la LFPDPPP (la misma ley que ya motivó este banner) en cuanto se empiece a trackear algo, y una experiencia deshonesta para quien visita el sitio (un botón que dice "aceptar" sin alternativa no es consentimiento, es notificación).
 
-**Parche propuesto:** separar dos cosas que hoy están mezcladas en un solo aviso:
-  1. El aviso de datos operativos (nombre/WhatsApp/dirección para procesar pedidos) — eso NO es opcional, es necesario para que el negocio funcione, se queda como notificación informativa (lo que ya es).
-  2. Un consentimiento de **analítica/tracking** aparte, con "Aceptar" y "Rechazar" con el mismo peso visual (mismo tamaño, mismo lugar — no un botón grande de aceptar y un link chiquito de rechazar), que se guarda como tres estados posibles (`accepted` / `rejected` / sin decidir todavía) y que la capa de eventos (hallazgo #2) respeta de verdad: si `rejected`, no se manda ni un solo evento.
+**Parche aplicado:** `PrivacyConsentBanner.tsx` ahora separa las dos cosas:
+  1. El aviso de datos operativos (nombre/WhatsApp/dirección) se queda como notificación informativa — no es opcional, es necesario para que el negocio funcione.
+  2. Un consentimiento de **analítica/tracking** aparte, con "Aceptar" y "Rechazar" del mismo tamaño y en el mismo lugar (no un botón grande de aceptar contra un link chiquito de rechazar) — se guarda en `lamk_analytics_consent_v1` (`accepted`/`rejected`/sin decidir) y `lib/analytics.ts` lo respeta de verdad: si no es `accepted`, `track()` no manda ni un solo evento — no hace falta acordarse de chequearlo en cada punto de llamada. Además, `<Analytics />` de Vercel ni siquiera se monta (`AnalyticsGate.tsx`, nuevo) hasta que hay un "Aceptar" real — el script no se carga, no solo se le pide que no mande datos.
 
 ## 2. Cero infraestructura de analítica — 🔴 Alta
 
@@ -38,35 +39,27 @@ Rama: `audit/fase-5-analitica`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota / qué se rompe:** no es un exploit — es decidir a ciegas. El cliente pidió un carrusel "que sea el más llamativo" en una ronda anterior de esta sesión; hoy no hay ninguna forma de confirmarle si el carrusel actual convierte o no, que es justo la pregunta que la Fase 6 necesita responder con datos, no con opinión.
 
-**Parche propuesto:** ver la sección siguiente — antes de escribir el código hace falta una decisión tuya.
+**Parche aplicado:** `@vercel/analytics` instalado (confirmaste Vercel Analytics), `src/lib/analytics.ts` (nuevo) — capa `track()` tipada (una unión de eventos permitidos, no un objeto libre — la forma de cada evento es la barrera de compilación contra colar un campo con PII sin querer) que respeta el consentimiento del hallazgo #1 en un solo lugar.
 
-## Antes de construir nada: a dónde van los eventos
-
-Esto no es un hallazgo con severidad, es una decisión de producto que no me corresponde tomar solo (mismo criterio que usé en la Fase 2 con el tema de menores, y en la Fase 1 con Vercel KV/Upstash para el rate limiting).
-
-**Lo que sí puedo diseñar y dejar listo sin esa decisión:** la capa de eventos en sí (nombres de evento, qué datos lleva cada uno, la regla de "cero PII", y los puntos exactos del código donde se dispara cada uno) más el fix del consentimiento (hallazgo #1) — todo eso es independiente de a dónde terminen viajando los eventos.
-
-**Lo que sí depende de la decisión:** el "sink" — el lugar real donde esos eventos aterrizan para poder verlos como dashboard/reportes.
-
-Propongo **Vercel Analytics** (`@vercel/analytics`, específicamente su función `track()` para eventos personalizados) como default recomendado, por tres razones concretas: (1) el proyecto ya está hospedado en Vercel — no es sumar una relación con un proveedor nuevo, es activar algo del mismo lugar donde ya vive el sitio; (2) sus eventos personalizados no usan cookies por diseño, lo cual simplifica directamente el fix del hallazgo #1 (menos que gatear); (3) es la dependencia más liviana posible para esto — no agrega el peso ni la curva de configuración de GA4/PostHog/Segment. La alternativa sería usar el mismo patrón de "store en JSON local" que ya usa `leads-store.ts`/`sales-store.ts`, pero ya está documentado en `CLAUDE.md` como un riesgo de persistencia real en Vercel — usarlo para analítica (volumen mucho más alto que leads/reseñas) empeoraría ese riesgo, no lo resolvería.
-
-No instalé nada — necesito tu confirmación antes de agregar cualquier paquete nuevo.
-
-## Diseño de eventos propuesto (para acordar junto con lo anterior)
+## Diseño de eventos — implementado
 
 Regla que aplica a todos: **ningún evento lleva email, nombre, teléfono ni dirección** — solo IDs de producto/variante (ya públicos, son handles de Shopify), posiciones, y un identificador anónimo de sesión (UUID generado en el navegador, sin relación con la cuenta de cliente, solo para poder agrupar "eventos del mismo visitante" sin saber quién es).
 
-| Evento | Cuándo dispara | Datos (sin PII) |
+| Evento | Dónde se dispara (real) | Datos (sin PII) |
 |---|---|---|
-| `product_view` | Se monta la ficha de producto | `productId`, `handle`, `category` |
-| `add_to_cart` | `CartContext.addItem()` | `productId`, `variantId`, `price` |
-| `checkout_started` | Se llama `/api/cart/checkout` con éxito | `itemCount`, `subtotal` |
-| `purchase` | Idealmente confirmado por un webhook de Shopify (no existe todavía — ver nota) | `orderTotal` (sin desglose de qué compró alguien específico si eso pudiera cruzarse con PII) |
-| `carousel_impression` | Un carrusel de home entra al viewport | `carouselName`, `slideCount` |
-| `carousel_click` | Clic en una tarjeta del carrusel | `carouselName`, `position` (0-indexed — esto es lo que responde "¿la gente pasa de la primera tarjeta?") |
-| `search_query` | Cualquier búsqueda (hoy: TenisinWidget) | `rawQuery`, `hadResults` (booleano) — mismo dato que ya captura `logDemandRequest`, solo que también como evento de analítica agregable |
-| `qr_generated` / `qr_scanned` / `follow_created` / `vault_item_added` | Cuando existan las funciones sociales (Fase 2) | según el modelo de privacidad ya acordado — nunca valor de colección ni ubicación, ver `FASE-2-PRIVACIDAD.md` |
+| `product_view` | `ProductDetail.tsx`, `useEffect` al montar | `productId`, `handle`, `category` |
+| `add_to_cart` | `CartContext.addItem()` — un solo punto cubre ficha de producto, ambos carruseles de home y catálogo | `productId`, `variantId`, `price` |
+| `checkout_started` | `SpecialCartDrawer.tsx`, tras `/api/cart/checkout` exitoso, antes de redirigir a Shopify | `itemCount`, `subtotal` |
+| `carousel_impression` | `HypeCarousel` (vía `CarouselItemTracker.tsx`, IntersectionObserver al 50%) y `DropsCoverflow` (vía `onActiveChange` de `CoverflowCarousel` — la tarjeta que llega a estar centrada) | `carouselName`, `position` |
+| `carousel_click` | Mismos dos componentes — clic real (no el clic de "recentrar" del coverflow en tarjetas no-activas) | `carouselName`, `position` (0-indexed) |
+| `search_query` | `logDemandRequest()` en `hooks/useLeads.ts` — un solo punto cubre las 4 llamadas dentro de `TenisinWidget.tsx` | `rawQuery`, `hadResults` |
+| `qr_generated` / `qr_scanned` / `follow_created` / `vault_item_added` | Pendiente — estas funciones no existen todavía (Fase 2 es diseño, no código) | Se instrumentan cuando se construyan, según el modelo de privacidad ya acordado — nunca valor de colección ni ubicación, ver `FASE-2-PRIVACIDAD.md` |
 
-**Nota sobre `purchase`:** hoy el checkout redirige a Shopify y el sitio nunca vuelve a saber si la compra se completó (no hay página de confirmación propia ni webhook de Shopify configurado). Registrar `checkout_started` es honesto con lo que el sitio puede saber hoy; `purchase` de verdad requeriría un webhook `orders/create` de Shopify — lo dejo señalado, no lo construyo en esta fase porque es una pieza nueva de infraestructura (webhook con validación de firma, ver el mismo criterio que usó la Fase 1 para pagos) que merece su propia conversación, no colarse dentro de "agregar analítica".
+**Nota sobre `purchase`:** no se instrumentó — el checkout redirige a Shopify y el sitio nunca vuelve a saber si la compra se completó (no hay página de confirmación propia ni webhook `orders/create` configurado). `checkout_started` es honesto con lo que el sitio puede saber hoy; un webhook de Shopify con validación de firma es una pieza de infraestructura nueva que merece su propia conversación, igual que se trató el tema de pagos en la Fase 1 — no se coló dentro de "agregar analítica".
 
-Quedo a la espera de: (1) tu decisión sobre Vercel Analytics vs. otra alternativa vs. "solo deja la capa lista, sin sink todavía", y (2) tu aprobación del diseño de eventos de arriba, antes de escribir código.
+## Archivos tocados
+
+**Nuevos:** `src/lib/analytics.ts`, `src/components/analytics/AnalyticsGate.tsx`, `src/components/analytics/CarouselItemTracker.tsx`, `package.json`/`package-lock.json` (`@vercel/analytics`).
+**Modificados:** `src/components/ui/PrivacyConsentBanner.tsx` (consentimiento real), `src/app/(routes)/layout.tsx` (`<AnalyticsGate />`), `src/context/CartContext.tsx` (`add_to_cart`), `src/components/cart/SpecialCartDrawer.tsx` (`checkout_started`), `src/components/product/ProductDetail.tsx` (`product_view`), `src/hooks/useLeads.ts` (`search_query`), `src/components/home/HypeCarousel.tsx` y `src/components/home/DropsCoverflow.tsx` + `src/components/ui/coverflow-carousel.tsx` (`carousel_impression`/`carousel_click`).
+
+Nada tocó `main` ni se desplegó — todo vive en `audit/fase-5-analitica`, verificado con `tsc --noEmit`, `next build` y smoke tests reales. Lista para Fase 6 (Diseño) cuando digas.

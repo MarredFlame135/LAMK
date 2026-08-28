@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { DemandRequest } from '@/types/admin';
+import { track } from '@/lib/analytics';
 
 async function fetchLeads(): Promise<DemandRequest[]> {
   const res = await fetch('/api/admin/leads');
@@ -33,6 +34,10 @@ export async function logDemandRequest(input: {
     body: JSON.stringify(input),
   });
   const data = await res.json();
+  // Fix (hallazgo #2 de la auditoría de Fase 5): un solo punto de entrada
+  // cubre las 4 llamadas a logDemandRequest en TenisinWidget.tsx — todas
+  // representan la misma señal ("alguien buscó algo, ¿lo encontramos?").
+  track('search_query', { rawQuery: input.rawQuery, hadResults: input.wasMatched });
   return data.lead;
 }
 

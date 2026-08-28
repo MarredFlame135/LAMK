@@ -14,6 +14,7 @@ import { PwaRegister } from '@/components/ui/PwaRegister';
 import { Navbar } from '@/components/ui/Navbar';
 import { CustomCursor } from '@/components/ui/CustomCursor';
 import { PrivacyConsentBanner } from '@/components/ui/PrivacyConsentBanner';
+import { AnalyticsGate } from '@/components/analytics/AnalyticsGate';
 import { CartTrigger } from '@/components/ui/CartTrigger';
 import { MobileMenu } from '@/components/ui/MobileMenu';
 import { getSiteUrl } from '@/lib/site-url';
@@ -143,6 +144,7 @@ export default function RootLayout({
 
               {/* Aviso de privacidad (LFPDPPP) — una vez por navegador */}
               <PrivacyConsentBanner />
+              <AnalyticsGate />
 
               {/* Footer — misma textura "Obsidian Quarry" (Higgsfield) que el Hero,
                   aquí casi imperceptible, solo para que la sección oscura no
