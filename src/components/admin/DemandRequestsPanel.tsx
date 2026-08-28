@@ -15,10 +15,10 @@ export function DemandRequestsPanel() {
   const pendingCount = leads.filter((l) => !l.wasMatched && !l.notified).length;
 
   return (
-    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
+    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
       <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-          <span>👟</span> PETICIONES DE CLIENTES (TENISIN)
+        <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
+          PETICIONES DE CLIENTES (TENISIN)
         </h3>
         {pendingCount > 0 && (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-950 text-red-400 border border-red-900">
@@ -79,7 +79,7 @@ export function DemandRequestsPanel() {
                         onClick={() => markNotified(lead.id)}
                         className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded uppercase tracking-wider transition inline-block"
                       >
-                        {lead.notified ? 'RE-CONTACTAR' : 'CONTACTAR WA 📲'}
+                        {lead.notified ? 'RE-CONTACTAR' : 'CONTACTAR WA'}
                       </a>
                     )}
                     <button

@@ -44,10 +44,10 @@ export function LayawayPanel() {
   const pendingCount = layaways.filter((l) => l.status === 'PENDING').length;
 
   return (
-    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
+    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
       <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-          <span>📌</span> APARTADOS (TENISIN)
+        <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
+          APARTADOS (TENISIN)
         </h3>
         {pendingCount > 0 && (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-950 text-red-400 border border-red-900">
@@ -87,7 +87,7 @@ export function LayawayPanel() {
                       <div className="min-w-0">
                         <p className="font-semibold text-zinc-200 truncate">{l.productTitle}</p>
                         <p className="text-[10px] text-zinc-500 font-mono">
-                          Talla {l.requestedSize} · 🔥 {l.hypeScore}%
+                          Talla {l.requestedSize} · HEAT {l.hypeScore}%
                         </p>
                       </div>
                     </div>
@@ -113,7 +113,7 @@ export function LayawayPanel() {
                       onClick={() => l.status === 'PENDING' && setStatus(l.id, 'CONTACTED')}
                       className="block px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded uppercase tracking-wider transition"
                     >
-                      Escribir WhatsApp 📲
+                      Escribir WhatsApp
                     </a>
                     <div className="flex justify-end gap-1">
                       {l.status !== 'CONFIRMED' && (

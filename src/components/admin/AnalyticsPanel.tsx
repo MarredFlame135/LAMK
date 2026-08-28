@@ -64,7 +64,7 @@ function monthLabel(key: string): string {
 // --- Stat tile ---
 function StatTile({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
   return (
-    <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-1">
+    <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-1">
       <div className="flex items-center gap-2 text-zinc-400">
         <Icon className="h-3.5 w-3.5" />
         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
@@ -238,7 +238,7 @@ export function AnalyticsPanel() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200">📊 DASHBOARD DE OPERACIÓN E INTELIGENCIA</h3>
+        <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100">DASHBOARD DE OPERACIÓN E INTELIGENCIA</h3>
         <span className="text-[9px] font-mono text-zinc-600 uppercase">Datos reales — sin cifras simuladas</span>
       </div>
 
@@ -251,23 +251,23 @@ export function AnalyticsPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg">
-          <h4 className="text-xs font-bold uppercase text-zinc-300 mb-4">Ventas Físicas por Mes</h4>
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200 mb-4">Ventas Físicas por Mes</h4>
           <MonthlyRevenueChart sales={sales} />
         </div>
 
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg">
-          <h4 className="text-xs font-bold uppercase text-zinc-300 mb-4">Top Pares Más Deseados (vistas reales 24h)</h4>
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200 mb-4">Top Pares Más Deseados (vistas reales 24h)</h4>
           <TopViewedChart items={topViewed} />
         </div>
 
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg">
-          <h4 className="text-xs font-bold uppercase text-zinc-300 mb-4">Demanda Acumulada de Agotados por Categoría</h4>
+        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200 mb-4">Demanda Acumulada de Agotados por Categoría</h4>
           <DemandByCategoryChart counts={demandByCategory} />
         </div>
 
         {/* Estado vacío honesto: no hay orders reales de Shopify todavía */}
-        <div className="p-5 bg-[#0E0E13] border border-dashed border-zinc-800 rounded-lg flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
+        <div className="p-5 bg-[#0E0E13] border border-dashed border-zinc-800 rounded-xl flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
           <Lock className="h-6 w-6 text-zinc-600" />
           <h4 className="text-xs font-bold uppercase text-zinc-400">Top / Bottom Sellers de Shopify</h4>
           <p className="text-[11px] text-zinc-500 max-w-xs">

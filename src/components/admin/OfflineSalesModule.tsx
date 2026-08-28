@@ -112,15 +112,15 @@ export function OfflineSalesModule() {
 
       {/* Tarjeta Métricas Rápidas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg">
+        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
           <span className="text-xs text-zinc-400 font-mono">SALDO TOTAL PENDIENTE DE COBRO</span>
           <p className="text-2xl font-bold text-[#FF1E42] mt-1">${totalDebt.toLocaleString()} MXN</p>
         </div>
-        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg">
+        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
           <span className="text-xs text-zinc-400 font-mono">VENTAS FÍSICAS REGISTRADAS</span>
           <p className="text-2xl font-bold text-white mt-1">{sales.length}</p>
         </div>
-        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-lg">
+        <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
           <span className="text-xs text-zinc-400 font-mono">ESTADO DE COBRANZA</span>
           <p className="text-2xl font-bold text-emerald-400 mt-1">OPTIMO</p>
         </div>
@@ -129,8 +129,8 @@ export function OfflineSalesModule() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Formulario para Registrar Nueva Venta Físicas */}
-        <div className="lg:col-span-1 p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 border-b border-zinc-800 pb-2">
+        <div className="lg:col-span-1 p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
+          <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 border-b border-zinc-800 pb-2">
             REGISTRAR VENTA EN TIENDA / DROP
           </h3>
           <form onSubmit={handleCreateSale} className="space-y-3 text-xs">
@@ -215,8 +215,8 @@ export function OfflineSalesModule() {
         </div>
 
         {/* Tabla / Lista de Registro de Deudas */}
-        <div className="lg:col-span-2 p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 border-b border-zinc-800 pb-2">
+        <div className="lg:col-span-2 p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
+          <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 border-b border-zinc-800 pb-2">
             LIBRO DE SALDOS PENDIENTES & CLIENTES
           </h3>
 
@@ -256,7 +256,7 @@ export function OfflineSalesModule() {
                           onClick={() => handleSendWhatsAppReminder(sale)}
                           className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded uppercase tracking-wider transition"
                         >
-                          COBRAR WA 📲
+                          COBRAR WA
                         </button>
                       )}
                     </td>

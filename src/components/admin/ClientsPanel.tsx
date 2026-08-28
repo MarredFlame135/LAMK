@@ -74,10 +74,10 @@ export function ClientsPanel() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-lg space-y-4">
+    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
       <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-200 flex items-center gap-2">
-          <span>👥</span> CLIENTES & ADELANTO DE PAGOS / APARTADOS
+        <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
+          CLIENTES & ADELANTO DE PAGOS / APARTADOS
         </h3>
         <span className="text-[10px] font-mono text-zinc-500">{customers.length} cliente(s)</span>
       </div>
@@ -167,7 +167,7 @@ export function ClientsPanel() {
                                 rel="noreferrer"
                                 className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded uppercase tracking-wider transition"
                               >
-                                Enviar recordatorio / recibo WhatsApp 📲
+                                Enviar recordatorio / recibo WhatsApp
                               </a>
                             </div>
 

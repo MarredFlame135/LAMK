@@ -1,34 +1,108 @@
 // src/components/vault/CollectorVault.tsx
+//
+// Ronda "anima Vault" (2026-08-27): antes era una lista estática — cero
+// reveals, cero micro-interacción salvo el tilt de HolographicCard (que ya
+// existía). Se suma: entrada en cascada consistente con el resto del sitio
+// (fadeUp/staggerContainer, mismos tokens de lib/motion.ts), y un botón real
+// de "Flexionar / Compartir" por pieza usando el Web Share API nativo — la
+// pieza social que se había quedado pendiente de una ronda anterior.
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserProfile } from '@/types/user';
+import { UserProfile, CollectionItem } from '@/types/user';
 import { calculateGamificationTier, TIER_THRESHOLDS } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
 import { HolographicCard } from '@/components/ui/holographic-card';
 import { CountUp } from '@/components/ui/count-up';
+import { Magnetic } from '@/components/ui/Magnetic';
 import { ReviewForm } from './ReviewForm';
 import { haptics } from '@/lib/haptics';
+import { fadeUp, staggerContainer } from '@/lib/motion';
 
 const LAST_TIER_KEY = 'lamk_last_seen_tier_v1';
 
 interface CollectorVaultProps {
   user: UserProfile;
-  username?: string;       // Slug público (ej. "sneaker_god_mx") del perfil que se está viendo
-  isOwnProfile?: boolean;  // false cuando se ve el perfil público de otro coleccionista
+  username?: string;
+  isOwnProfile?: boolean;
+}
+
+// Comparte la pieza real (imagen + texto) vía Web Share API nativo; si el
+// navegador no lo soporta (la mayoría de desktop), cae a copiar el texto al
+// portapapeles — nunca falla en silencio.
+async function shareCollectionItem(item: CollectionItem, onFallback: () => void) {
+  const text = `I just copped ${item.sneakerTitle} at LAMK — Serial ${item.serialNumber}.`;
+  const url = typeof window !== 'undefined' ? window.location.origin : undefined;
+
+  if (typeof navigator === 'undefined' || !navigator.share) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(url ? `${text} ${url}` : text);
+      onFallback();
+    }
+    return;
+  }
+
+  try {
+    const res = await fetch(item.imageUrl);
+    const blob = await res.blob();
+    const file = new File([blob], 'lamk-vault.jpg', { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ title: 'Look At My Kicks', text, files: [file] });
+      return;
+    }
+  } catch {
+    // la imagen puede fallar por CORS del CDN — se cae al share de solo texto
+  }
+
+  try {
+    await navigator.share({ title: 'Look At My Kicks', text, url });
+  } catch {
+    // usuario canceló el share nativo — no es un error real, no hacer nada
+  }
+}
+
+function CollectionCard({ item, index }: { item: CollectionItem; index: number }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <motion.div variants={fadeUp} custom={index}>
+      <HolographicCard className="group relative p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-xl overflow-hidden hover:border-amber-500/50 transition-colors">
+        <div className="aspect-square bg-black rounded-lg mb-2 overflow-hidden">
+          <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
+        </div>
+        <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
+        <span className="text-[9px] font-mono text-amber-400 block mt-0.5">{item.serialNumber}</span>
+
+        <Magnetic className="absolute top-2 right-2" strength={0.25}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              haptics.tap();
+              shareCollectionItem(item, () => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
+            }}
+            className="flex items-center justify-center h-7 w-7 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-zinc-300 hover:text-white hover:border-amber-500/50 transition opacity-0 group-hover:opacity-100"
+            aria-label="Flexionar / compartir esta pieza"
+            title="Flexionar / Compartir"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5"/></svg>
+          </button>
+        </Magnetic>
+        {copied && (
+          <span className="absolute top-2 right-11 text-[9px] font-mono bg-black/80 text-emerald-400 px-1.5 py-0.5 rounded whitespace-nowrap">
+            Copiado ✓
+          </span>
+        )}
+      </HolographicCard>
+    </motion.div>
+  );
 }
 
 export function CollectorVault({ user, username, isOwnProfile = true }: CollectorVaultProps) {
-  // Curva de progresión geométrica (+30% de dificultad por nivel) — la misma
-  // que usa el resto del sistema, en vez de un umbral local desincronizado.
   const tierInfo = calculateGamificationTier(user.xp);
   const { t } = useApp();
 
-  // Haptic de "subir de nivel": compara el tier que la última vez vio este
-  // navegador contra el actual. Solo en la propia bóveda — no tiene sentido
-  // en un perfil público de otro coleccionista.
   useEffect(() => {
     if (!isOwnProfile) return;
     try {
@@ -41,21 +115,26 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
   }, [isOwnProfile, user.tier]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-background text-foreground space-y-8">
+    <motion.div
+      variants={staggerContainer(0.08)}
+      initial="hidden"
+      animate="show"
+      className="max-w-7xl mx-auto p-6 bg-background text-foreground space-y-8"
+    >
 
       {/* Header de la Bóveda */}
-      <div className="border-b border-border pb-4">
+      <motion.div variants={fadeUp} className="border-b border-border pb-4">
         <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// THE COLLECTOR VAULT</span>
         <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">
           {isOwnProfile ? t.vault.title : `PERFIL DE ${user.firstName.toUpperCase()} ${user.lastName.toUpperCase()}`}
         </h1>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Panel Izquierdo: Tarjeta de Perfil + Experiencia XP + Tarjetas Cromadas */}
-        <div className="lg:col-span-7 bg-card border border-border rounded-xl p-6 space-y-6">
-          
+        <motion.div variants={fadeUp} className="lg:col-span-7 bg-card border border-border rounded-xl p-6 space-y-6">
+
           {/* Header del Perfil */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-amber-500 via-red-600 to-amber-300 p-0.5 animate-pulse">
@@ -84,7 +163,7 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${tierInfo.progressPercentage}%` }}
-                transition={{ duration: 1.1, ease: 'easeOut' }}
+                transition={{ duration: 1.1, ease: 'easeOut', delay: 0.3 }}
                 className="bg-gradient-to-r from-red-600 via-amber-500 to-amber-300 h-full"
               />
             </div>
@@ -102,24 +181,20 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
             </h3>
 
             {user.collection.length === 0 ? (
-              <div className="p-8 border border-dashed border-border rounded-lg text-center text-zinc-500 text-xs">
-                Aún no tienes pares en tu bóveda. Completa tu primer pedido para desbloquear tu tarjeta digital.
+              <div className="p-8 border border-dashed border-border rounded-lg text-center space-y-3">
+                <p className="text-zinc-500 text-xs">Aún no tienes pares en tu bóveda. Completa tu primer pedido para desbloquear tu tarjeta digital.</p>
+                <Magnetic className="inline-block" strength={0.2}>
+                  <a href="/catalog" className="inline-block px-5 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white text-[11px] font-bold uppercase tracking-widest rounded-lg transition">
+                    Ver catálogo →
+                  </a>
+                </Magnetic>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {user.collection.map((item) => (
-                  <HolographicCard
-                    key={item.id}
-                    className="p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-lg overflow-hidden group hover:border-amber-500/50 transition-colors"
-                  >
-                    <div className="aspect-square bg-black rounded mb-2 overflow-hidden">
-                      <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
-                    </div>
-                    <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
-                    <span className="text-[9px] font-mono text-amber-400 block mt-0.5">{item.serialNumber}</span>
-                  </HolographicCard>
+              <motion.div variants={staggerContainer(0.06)} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {user.collection.map((item, i) => (
+                  <CollectionCard key={item.id} item={item} index={i} />
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
 
@@ -145,7 +220,7 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
                     </thead>
                     <tbody className="divide-y divide-zinc-800/60">
                       {user.recentOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-zinc-900/40">
+                        <tr key={order.id} className="hover:bg-zinc-900/40 transition-colors">
                           <td className="py-2 px-3 font-bold text-zinc-200">{order.name}</td>
                           <td className="py-2 px-3 text-zinc-400 font-mono">
                             {order.date ? new Date(order.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
@@ -165,18 +240,15 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
           {/* Reseña verificada — solo si tiene compra real */}
           {isOwnProfile && user.ordersCount > 0 && <ReviewForm />}
 
-        </div>
+        </motion.div>
 
-        {/* Panel Derecho: Niveles. El "Ranking Global Top 5" que había aquí
-            era 100% inventado (mock-users.ts) — mostraba a "dante-medina"
-            en el puesto #3 con 12,400 XP sin que existiera ninguna compra
-            real detrás. Se quitó por completo en vez de dejarlo (2026-08-27,
-            reporte del cliente); un ranking real necesita un directorio de
-            clientes que este proyecto todavía no tiene — ver nota en
-            mock-users.ts. */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Panel Derecho: Niveles. El "Ranking Global Top 5" que había aquí era
+            100% inventado (mock-users.ts) — se quitó por completo, ver commit
+            2026-08-27 / nota en mock-users.ts. */}
+        <motion.div variants={fadeUp} className="lg:col-span-5 space-y-6">
 
-          {/* Explicación de los Niveles (Tiers) */}
+          {/* Explicación de los Niveles (Tiers) — la fila del tier actual se
+              resalta (estado codificado en forma, no solo en texto) */}
           <div className="bg-card border border-border rounded-xl p-5 space-y-3">
             <h4 className="text-xs font-mono text-amber-400 uppercase font-bold tracking-wider">
               BENEFICIOS POR TIER
@@ -187,21 +259,35 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
                 { tier: 'HYPEBEAST', range: `${TIER_THRESHOLDS.HYPEBEAST.toLocaleString()} – ${TIER_THRESHOLDS.COLLECTOR.toLocaleString()} XP`, color: 'text-emerald-400', dot: 'bg-emerald-500', perk: 'Alertas prioritarias de Restock por WhatsApp.' },
                 { tier: 'COLLECTOR', range: `${TIER_THRESHOLDS.COLLECTOR.toLocaleString()} – ${TIER_THRESHOLDS.LEGEND.toLocaleString()} XP`, color: 'text-amber-400', dot: 'bg-amber-500', perk: 'Acceso anticipado a Drops (30 min antes).' },
                 { tier: 'LEGEND', range: `${TIER_THRESHOLDS.LEGEND.toLocaleString()}+ XP`, color: 'text-red-500', dot: 'bg-[#FF1E42]', perk: 'Piezas exclusivas, apartado extendido y eventos VIP.' },
-              ].map((row) => (
-                <div key={row.tier} className="flex items-start gap-2.5 p-2 rounded-lg bg-black/30 border border-border/60">
-                  <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${row.dot}`} />
-                  <div>
-                    <strong className={`${row.color} block`}>{row.tier} ({row.range})</strong>
-                    {row.perk}
-                  </div>
-                </div>
-              ))}
+              ].map((row, i) => {
+                const isCurrent = row.tier === user.tier;
+                return (
+                  <motion.div
+                    key={row.tier}
+                    variants={fadeUp}
+                    initial="hidden"
+                    animate="show"
+                    transition={{ delay: 0.15 + i * 0.06 }}
+                    className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-colors ${
+                      isCurrent ? 'bg-amber-950/20 border-amber-500/40' : 'bg-black/30 border-border/60'
+                    }`}
+                  >
+                    <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${row.dot}`} />
+                    <div className="flex-1">
+                      <strong className={`${row.color} block`}>
+                        {row.tier} ({row.range}) {isCurrent && <span className="text-[9px] text-amber-400 font-mono">· TÚ</span>}
+                      </strong>
+                      {row.perk}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
-        </div>
+        </motion.div>
 
       </div>
-    </div>
+    </motion.div>
   );
 }
