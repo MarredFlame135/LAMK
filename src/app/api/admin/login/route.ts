@@ -4,10 +4,23 @@ import { NextResponse } from 'next/server';
 import { signAdminSession } from '@/lib/session';
 import { isAllowlistedAdminEmail } from '@/lib/admin-access';
 import { loginCustomer } from '@/lib/shopify/customer';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
+
+    // Fix (hallazgo #2 de la auditoría de Fase 1): este es el login al
+    // panel de admin completo (ventas, leads, clientes) — antes aceptaba
+    // intentos ilimitados desde cualquier IP, sin bloqueo ni fricción.
+    const limitKey = `admin-login:${getClientIp(request)}:${String(email || '').trim().toLowerCase()}`;
+    const { allowed, retryAfterMs } = checkRateLimit(limitKey, 5, 10 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `Demasiados intentos. Intenta de nuevo en ${Math.ceil(retryAfterMs / 60000)} minuto(s).` },
+        { status: 429 }
+      );
+    }
 
     const adminEmail = process.env.ADMIN_EMAIL;
     const adminPassword = process.env.ADMIN_PASSWORD;

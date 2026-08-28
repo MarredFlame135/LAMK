@@ -42,7 +42,7 @@ interface CartContextType {
   updateQuantity: (cartItemId: string, newQty: number) => void;
   clearCart: () => void;
   triggerWhatsAppVerification: (phone: string) => Promise<void>;
-  verifyOtpCode: (enteredCode: string) => boolean;
+  verifyOtpCode: (enteredCode: string) => Promise<boolean>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -53,7 +53,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('NOT_REQUIRED');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
-  const [otpCode, setOtpCode] = useState<string | null>(null);
+  const [otpTicket, setOtpTicket] = useState<string | null>(null);
+  const [otpPhone, setOtpPhone] = useState<string | null>(null);
   const [otpDevHint, setOtpDevHint] = useState<string | null>(null);
 
   // 1. Cargar carrito guardado en el navegador (Persistencia Offline)
@@ -120,9 +121,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
   };
 
+  // Fix (hallazgo #4 de la auditoría de Fase 1): el código YA NO se genera
+  // ni se compara aquí — el navegador nunca conoce el código en claro,
+  // solo un "ticket" opaco que el servidor firma. Antes `otpCode` vivía en
+  // este mismo estado de React y `verifyOtpCode` lo comparaba localmente,
+  // así que cualquiera con React DevTools podía leerlo y saltarse la
+  // verificación que sí bloqueaba el paso a Shopify Checkout. Ver
+  // src/lib/otp.ts para el detalle completo.
   const triggerWhatsAppVerification = async (phone: string) => {
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    setOtpCode(code);
+    setOtpPhone(phone);
+    setOtpTicket(null);
     setOtpDevHint(null);
     setVerificationStatus('PENDING_OTP');
 
@@ -130,15 +138,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const res = await fetch('/api/otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code }),
+        body: JSON.stringify({ phone }),
       });
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
+      if (!res.ok || !data.success || !data.ticket) {
         console.error('Error al enviar OTP:', data);
         setVerificationStatus('FAILED');
         return;
       }
+      setOtpTicket(data.ticket);
       if (data.devCode) {
         setOtpDevHint(data.devCode);
       }
@@ -148,15 +157,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyOtpCode = (enteredCode: string): boolean => {
-    if (otpCode && enteredCode === otpCode) {
-      setVerificationStatus('VERIFIED');
-      setOtpCode(null);
-      setOtpDevHint(null);
-      return true;
+  const verifyOtpCode = async (enteredCode: string): Promise<boolean> => {
+    if (!otpTicket || !otpPhone) {
+      setVerificationStatus('FAILED');
+      return false;
     }
-    setVerificationStatus('FAILED');
-    return false;
+    try {
+      const res = await fetch('/api/otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: otpPhone, ticket: otpTicket, code: enteredCode }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.verified) {
+        setVerificationStatus('VERIFIED');
+        setOtpTicket(null);
+        setOtpDevHint(null);
+        return true;
+      }
+      setVerificationStatus('FAILED');
+      return false;
+    } catch (e) {
+      console.error('Error de red al verificar OTP:', e);
+      setVerificationStatus('FAILED');
+      return false;
+    }
   };
 
   return (

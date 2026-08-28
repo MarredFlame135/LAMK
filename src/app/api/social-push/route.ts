@@ -1,9 +1,20 @@
 // src/app/api/social-push/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminSession } from '@/lib/session';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Fix (hallazgo #3 de la auditoría de Fase 1): sin esto, cualquiera sin
+    // sesión podía disparar una publicación con texto arbitrario a nombre
+    // de la marca en Instagram/Facebook en cuanto se conecte la API real
+    // de Meta (hoy es un stub sin impacto — solo arma el texto y responde
+    // éxito, no llama a ninguna API externa todavía).
+    const session = await verifyAdminSession(request.cookies.get('lamk_admin_session')?.value);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado. Inicia sesión como administrador.' }, { status: 401 });
+    }
+
     const { productTitle, imageUrl, price, productLink } = await request.json();
 
     if (!productTitle || !imageUrl) {

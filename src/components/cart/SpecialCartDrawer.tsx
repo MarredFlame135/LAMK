@@ -47,6 +47,7 @@ export function SpecialCartDrawer() {
   const [addressError, setAddressError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [otpVerifying, setOtpVerifying] = useState(false);
 
   // Checkout real: arma el carrito en Shopify y manda al cliente a su
   // Checkout oficial (tarjeta/OXXO/lo que tengas configurado en la tienda)
@@ -388,18 +389,22 @@ export function SpecialCartDrawer() {
                 )}
                 <Magnetic className="block w-full" strength={0.2}>
                   <button
-                    onClick={() => {
-                      if (verifyOtpCode(otpInput)) {
+                    onClick={async () => {
+                      setCheckoutError(null);
+                      setOtpVerifying(true);
+                      const ok = await verifyOtpCode(otpInput);
+                      setOtpVerifying(false);
+                      if (ok) {
                         setShowOtpModal(false);
                         handleGoToShopifyCheckout();
                       } else {
                         setCheckoutError('Código incorrecto. Intenta de nuevo.');
                       }
                     }}
-                    disabled={checkoutLoading}
+                    disabled={checkoutLoading || otpVerifying}
                     className="w-full py-2 bg-[#FF1E42] hover:bg-red-700 disabled:opacity-60 font-bold text-xs uppercase rounded"
                   >
-                    {checkoutLoading ? 'ABRIENDO PAGO SEGURO...' : 'CONFIRMAR Y PAGAR →'}
+                    {otpVerifying ? 'VERIFICANDO...' : checkoutLoading ? 'ABRIENDO PAGO SEGURO...' : 'CONFIRMAR Y PAGAR →'}
                   </button>
                 </Magnetic>
                 <button

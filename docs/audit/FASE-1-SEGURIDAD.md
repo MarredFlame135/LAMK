@@ -1,16 +1,22 @@
 # Fase 1 — Auditoría de Seguridad (mentalidad atacante)
 
-Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta fase. Formato por hallazgo: qué encontraste · dónde · por qué importa · cómo se explota o qué se rompe · parche propuesto · severidad.
+Rama: `audit/fase-1-seguridad`. Formato por hallazgo: qué encontraste · dónde · por qué importa · cómo se explota o qué se rompe · parche propuesto · severidad.
+
+**Estado: los 5 hallazgos fueron corregidos y verificados** (`tsc --noEmit`, `next build`, y smoke tests reales contra `npm run dev`: login con rate limit disparando 429 en el 6º intento, `social-push`/`image-pipeline` devolviendo 401 sin sesión, flujo de OTP completo con ticket firmado aceptando el código correcto y rechazando uno incorrecto, headers de seguridad presentes en la respuesta real). Nada de esto se desplegó ni se subió a `main` — vive en esta rama, a la espera de que Dante decida cuándo desplegar.
+
+## Corrección importante al hallazgo #4 (encontrada al implementar el fix)
+
+Al construir el parche descubrí que mi reporte original subestimaba el impacto: dije que la verificación OTP era "código muerto" porque `SpecialCartDrawer.tsx` solo destructuraba `verificationStatus` sin usarlo. Al leer el archivo completo (no solo esa línea) confirmé que **sí bloqueaba el checkout de verdad** — `verifyOtpCode(otpInput)` debía devolver `true` antes de llamar a `handleGoToShopifyCheckout()`. Es decir, el bypass client-side sí era explotable contra un control real, no decorativo. Corrijo el registro aquí en vez de dejarlo como estaba — es exactamente el tipo de cosa que "no inventes hallazgos" también exige corregir cuando se descubre después.
 
 ## Tabla resumen (por severidad)
 
-| # | Hallazgo | Severidad |
-|---|---|---|
-| 1 | Secreto de sesión de admin con fallback público conocido | 🔴 Alta |
-| 2 | Sin rate limiting en login de cliente ni de admin | 🔴 Alta |
-| 3 | `/api/image-pipeline` y `/api/social-push` sin autenticación | 🔴 Alta (latente) |
-| 4 | Verificación OTP por WhatsApp 100% client-side / auto-revelada | 🟡 Media |
-| 5 | Sin headers de seguridad (CSP/HSTS/X-Content-Type-Options/Referrer-Policy) | 🟡 Media |
+| # | Hallazgo | Severidad | Estado |
+|---|---|---|---|
+| 1 | Secreto de sesión de admin con fallback público conocido | 🔴 Alta | ✅ Corregido |
+| 2 | Sin rate limiting en login de cliente ni de admin | 🔴 Alta | ✅ Corregido |
+| 3 | `/api/image-pipeline` y `/api/social-push` sin autenticación | 🔴 Alta (latente) | ✅ Corregido |
+| 4 | Verificación OTP por WhatsApp 100% client-side / auto-revelada | 🟡 Media (sí bloqueaba el checkout real, ver corrección arriba) | ✅ Corregido |
+| 5 | Sin headers de seguridad (CSP/HSTS/X-Content-Type-Options/Referrer-Policy) | 🟡 Media | ✅ Corregido |
 
 ---
 
@@ -24,7 +30,7 @@ Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota:** con ese secreto conocido, cualquiera puede construir a mano un token `payload_base64url.firma_base64url` para `{ email: "cualquiera@ejemplo.com", issuedAt: Date.now() }`, calcular el HMAC-SHA256 con el secreto público, y pegarlo como cookie `lamk_admin_session` — entra al panel de admin completo (ventas, leads, clientes, apartados, inventario) sin credenciales.
 
-**Parche propuesto:** en vez de advertir y seguir (`console.warn` + fallback), hacer que `getSecret()` lance un error que tumbe el arranque/la request si `ADMIN_SESSION_SECRET` no está definida — fail-closed, no fail-open. (No lo apliqué; es un cambio de una función, pero toca el flujo de auth así que lo dejo para tu aprobación explícita.)
+**Parche aplicado:** `getSecret()` en `src/lib/session.ts` ahora es fail-closed en producción — si `ADMIN_SESSION_SECRET` no está definida y `NODE_ENV === 'production'`, la request truena con un error explícito en vez de aceptar sesiones falsificables. En desarrollo se mantiene el fallback con advertencia (para no bloquear `npm run dev` en un clon nuevo sin `.env.local`).
 
 ---
 
@@ -38,7 +44,7 @@ Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota:** credential stuffing / fuerza bruta directa contra cualquiera de los dos endpoints — sin fricción, sin alerta, sin bloqueo. Con una lista de contraseñas filtradas conocidas, un bot puede probar miles de combinaciones por minuto contra `ADMIN_EMAIL` (que además, al ser único y probablemente predecible por dominio, reduce el problema a solo adivinar la contraseña).
 
-**Parche propuesto:** rate limiting por IP + por email en ambos endpoints (ventana deslizante, ej. 5 intentos / 10 min, con backoff). En Vercel esto normalmente se resuelve con un middleware de rate limiting basado en KV/Upstash — requiere elegir un proveedor (marketplace de Vercel), así que lo dejo para decidir juntos antes de implementarlo, no lo até a esta fase de reporte.
+**Parche aplicado:** `src/lib/rate-limit.ts` (nuevo) — límite de 5 intentos / 10 min por IP+email en ambos endpoints. Es en memoria por instancia (sin agregar Redis/Upstash ni ninguna dependencia nueva, por la regla de "no dependencias pesadas sin justificar") — cierra el hueco real de "intentos infinitos sin ningún costo" de hoy, pero **no es un rate limit distribuido**: en Vercel cada instancia serverless tiene su propia memoria, así que el contador se reinicia en cada cold start y no se comparte entre instancias bajo tráfico alto concurrente. Documentado en el propio archivo. Si más adelante quieren un límite robusto de verdad, el siguiente paso natural es Vercel KV / Upstash Redis vía el marketplace de Vercel — decisión de infraestructura que dejo para acordar contigo, no la tomé unilateralmente.
 
 ---
 
@@ -54,7 +60,7 @@ Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota:** `curl -X POST https://lamk.vercel.app/api/social-push -d '{"productTitle":"...", "imageUrl":"..."}'` sin ninguna cookie — responde 200 hoy mismo (aunque no hace nada real todavía).
 
-**Parche propuesto:** mover ambas rutas bajo `/api/admin/*` (quedan protegidas gratis por el middleware existente) o agregar la misma verificación de `verifyAdminSession` al inicio de cada handler. Trivial de aplicar, pero lo dejo pendiente de tu aprobación porque implica mover archivos/rutas.
+**Parche aplicado:** agregué la misma verificación `verifyAdminSession` al inicio de cada handler (en vez de mover las rutas bajo `/api/admin/*`, para no romper las URLs que ya llaman `InventoryManager.tsx`/`OfflineSalesModule.tsx` sin necesidad). Verificado con `curl` real: ambas rutas responden 401 sin cookie de sesión.
 
 ---
 
@@ -68,10 +74,10 @@ Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota (si se llegara a usar como gate):** inspeccionar el estado de React (React DevTools) o leer la respuesta de red de `/api/otp` da el código directamente — no hace falta ni tener acceso al teléfono.
 
-**Parche propuesto:** dos cambios independientes, a decidir contigo:
-  1. El código debe generarse y almacenarse **en el servidor** (o firmado igual que la sesión de admin), nunca confiar en un valor que vive solo en el navegador.
-  2. Quitar el campo `devCode` de la respuesta en cualquier entorno que no sea desarrollo explícito (`NODE_ENV !== 'production'`), o mejor, no depender de "si no hay credenciales, revela el código" como comportamiento por defecto en producción.
-  3. Rate limiting en `/api/otp` (mismo problema que #2): sin límite, es un relay abierto para mandar WhatsApps con el número de negocio de LAMK a cualquier teléfono, en cuanto haya credenciales reales.
+**Parche aplicado:**
+  1. `src/lib/otp.ts` (nuevo) — el código de 4 dígitos ahora se genera **en el servidor**, nunca en el navegador. Lo que viaja al cliente es un "ticket" opaco: HMAC-firmado, con el HASH del código (no el código) + el teléfono + expiración de 5 minutos — mismo patrón "firmado, sin estado" que ya usa `session.ts` para la sesión de admin, así que no hace falta una base de datos ni un store compartido entre instancias serverless. Nuevo endpoint `src/app/api/otp/verify/route.ts` hace la comparación real del lado del servidor.
+  2. **`devCode` se queda** en la respuesta cuando no hay credenciales de WhatsApp configuradas — decisión deliberada, no un descuido: hoy en producción `WHATSAPP_API_TOKEN`/`WHATSAPP_PHONE_NUMBER_ID` NO están configuradas (confirmado en Fase 0), así que quitar `devCode` habría dejado a cualquier cliente real sin ninguna forma de completar el checkout — el código nunca llegaría a ningún lado. Lo que sí se cerró es el bypass real: antes, aunque se revelara o no el código, la comparación ocurría en el cliente y era falsificable sin necesitar leer nada; ahora la comparación es 100% server-side y el ticket no se puede forjar sin el secreto del servidor. Cuando configuren credenciales reales de WhatsApp, `devCode` deja de aparecer automáticamente (la condición ya es `if (!token || !phoneId)`).
+  3. Rate limiting agregado tanto en `/api/otp` (3 solicitudes / 10 min por IP+teléfono) como en `/api/otp/verify` (8 intentos / 10 min, para no permitir fuerza bruta contra los 10,000 códigos posibles de un mismo ticket).
 
 ---
 
@@ -85,7 +91,7 @@ Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta
 
 **Cómo se explota:** no aplica un exploit concreto hoy — es ausencia de mitigación, no una vulnerabilidad activa.
 
-**Parche propuesto:** agregar un `headers()` en `next.config.js` con CSP (permitiendo `cdn.shopify.com`/`images.unsplash.com` que ya son los orígenes de imagen usados), HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`. Cambio autocontenido y de bajo riesgo — candidato a aplicarse temprano si apruebas esta fase.
+**Parche aplicado:** `headers()` en `next.config.js` con CSP (permitiendo `cdn.shopify.com`/`images.unsplash.com`/`lookatmykicksmx.com`, los orígenes de imagen reales del proyecto), HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, y `X-Frame-Options: DENY` como respaldo de `frame-ancestors 'none'` para navegadores viejos. `script-src`/`style-src` necesitan `'unsafe-inline'` porque Next.js App Router inyecta scripts inline para hidratar RSC y varios componentes ya usan `style={{ backgroundImage: ... }}` para las texturas de Higgsfield — una CSP con nonces sería más estricta pero requiere generar el nonce en `middleware.ts`; queda como siguiente paso, documentado en el propio archivo. Verificado con `curl` real: los 5 headers llegan en la respuesta.
 
 ---
 
@@ -100,4 +106,9 @@ Rama: `audit/fase-1-seguridad`. Solo reporte — cero cambios de código en esta
 - **Secretos:** `.env*` está en `.gitignore`; ninguna variable `NEXT_PUBLIC_*` expone un token privado (el Storefront token público es intencionalmente público, así funciona esa API; el Admin API token se queda server-only).
 - **Webhooks:** no existe ningún endpoint de webhook todavía en el proyecto — no hay nada que auditar aquí hasta que se construya uno (relevante si en el futuro se conecta un webhook de Shopify para pedidos).
 
-No apliqué ningún fix — quedo a la espera de tu aprobación para decidir cuáles de estos 5 se corrigen y en qué orden antes de pasar a Fase 2.
+## Archivos tocados
+
+**Nuevos:** `src/lib/rate-limit.ts`, `src/lib/otp.ts`, `src/app/api/otp/verify/route.ts`, este documento.
+**Modificados:** `src/lib/session.ts` (fail-closed), `src/app/api/otp/route.ts` (código server-side), `src/context/CartContext.tsx` (ticket en vez de código en claro, `verifyOtpCode` ahora async), `src/components/cart/SpecialCartDrawer.tsx` (await del nuevo `verifyOtpCode`), `src/app/api/admin/login/route.ts` y `src/app/api/auth/login/route.ts` (rate limiting), `src/app/api/image-pipeline/route.ts` y `src/app/api/social-push/route.ts` (verificación de sesión), `next.config.js` (headers de seguridad).
+
+Nada tocó `main` ni se desplegó — todo vive en `audit/fase-1-seguridad`, verificado con `tsc --noEmit`, `next build` y smoke tests reales. Lista para que decidas cuándo desplegar, o para pasar a Fase 2 (Privacidad de funciones sociales — diseño puro, sin código) mientras tanto.

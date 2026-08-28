@@ -1,9 +1,22 @@
 // src/app/api/image-pipeline/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyAdminSession } from '@/lib/session';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    // Fix (hallazgo #3 de la auditoría de Fase 1): esta ruta vive fuera de
+    // /api/admin/*, así que el middleware no la protegía, y el handler no
+    // verificaba sesión por su cuenta — pero solo se usa desde el panel de
+    // admin (InventoryManager.tsx) para subir un producto nuevo. Hoy es un
+    // stub sin impacto real, pero el día que se conecte a un proveedor de
+    // pago real (Photoroom/Remove.bg) esto sería una API abierta para
+    // gastar esa cuota sin sesión.
+    const session = await verifyAdminSession(request.cookies.get('lamk_admin_session')?.value);
+    if (!session) {
+      return NextResponse.json({ error: 'No autorizado. Inicia sesión como administrador.' }, { status: 401 });
+    }
+
     const { imageUrl, backgroundTheme = 'DARK_ASPHALT' } = await request.json();
 
     if (!imageUrl) {

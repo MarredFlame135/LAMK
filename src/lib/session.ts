@@ -26,16 +26,26 @@ function base64UrlToBytes(b64url: string): Uint8Array {
 
 function getSecret(): string {
   const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret) {
-    // No tiramos el proceso para no romper `next build` en entornos sin la
-    // variable configurada, pero avisamos fuerte: sin esto la sesión de
-    // admin es adivinable.
-    console.warn(
-      '[SEGURIDAD] ADMIN_SESSION_SECRET no está configurado en .env.local. Usando un secreto de desarrollo inseguro — configúralo antes de producción.'
+  if (secret) return secret;
+
+  // Fix (hallazgo #1 de la auditoría de Fase 1): antes, si faltaba la
+  // variable, el servidor seguía funcionando con un secreto de desarrollo
+  // hardcodeado aquí mismo — visible en el repo. En producción eso es fail
+  // -open: cualquiera que leyera el código podía firmar su propia cookie
+  // `lamk_admin_session` válida para cualquier correo, sin credenciales.
+  // Ahora es fail-closed: en producción, sin el secreto, la request truena
+  // en vez de aceptar sesiones falsificables. En desarrollo se mantiene el
+  // fallback (con advertencia) para no bloquear `npm run dev` en un clon
+  // nuevo del repo sin `.env.local` configurado todavía.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[SEGURIDAD] ADMIN_SESSION_SECRET no está configurada en producción. No se puede firmar/verificar la sesión de admin de forma segura — configúrala en Vercel antes de aceptar tráfico.'
     );
-    return 'lamk-dev-only-insecure-secret-change-me';
   }
-  return secret;
+  console.warn(
+    '[SEGURIDAD] ADMIN_SESSION_SECRET no está configurado en .env.local. Usando un secreto de desarrollo inseguro — configúralo antes de producción.'
+  );
+  return 'lamk-dev-only-insecure-secret-change-me';
 }
 
 async function hmac(data: string): Promise<string> {
