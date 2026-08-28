@@ -37,6 +37,7 @@ export function SpecialCartDrawer() {
   } = useCart();
   const { t } = useApp();
 
+  const [step, setStep] = useState<'review' | 'checkout'>('review');
   const [otpInput, setOtpInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -58,6 +59,12 @@ export function SpecialCartDrawer() {
     setShippingAddress(address);
     setPhoneInput(addressForm.phone);
   };
+
+  // Vuelve a la vista de carrito cada vez que se cierra el drawer — evita
+  // que la próxima apertura arranque a medio checkout por sorpresa.
+  React.useEffect(() => {
+    if (!isOpen) setStep('review');
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -201,6 +208,33 @@ export function SpecialCartDrawer() {
                 </span>
               </div>
             </div>
+
+            {/* Fix UX (ronda "élite"): el "Double Check" y la dirección/OTP
+                le robaban espacio a la vista inicial del carrito — el
+                usuario ni veía bien sus tenis. Ahora la vista de entrada es
+                solo carrito + total + un CTA grande; el cross-sell y el
+                resto del checkout aparecen SOLO después de "Confirmar
+                Orden", como una transición dentro del mismo drawer (nunca
+                cambia de página). */}
+            {step === 'review' ? (
+              <motion.div key="review-cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <Magnetic className="block w-full" strength={0.2}>
+                  <button
+                    onClick={() => setStep('checkout')}
+                    className="w-full py-4 bg-[#FF1E42] hover:bg-red-700 text-white font-black text-sm uppercase tracking-widest rounded-xl transition shadow-lg shadow-red-900/30"
+                  >
+                    Confirmar Orden →
+                  </button>
+                </Magnetic>
+              </motion.div>
+            ) : (
+            <motion.div key="checkout-flow" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+            <button
+              onClick={() => setStep('review')}
+              className="text-[10px] text-zinc-500 hover:text-white uppercase tracking-widest flex items-center gap-1"
+            >
+              ← Volver al carrito
+            </button>
 
             {/* "Double Check" — cross-sell antes del checkout (RF Smart Cart) */}
             <CrossSellModule items={items} />
@@ -366,6 +400,8 @@ export function SpecialCartDrawer() {
             <p className="text-[10px] text-center text-zinc-500 uppercase tracking-widest">
               {t.cart.encryptedFooter}
             </p>
+            </motion.div>
+            )}
           </div>
         )}
 

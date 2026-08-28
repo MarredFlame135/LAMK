@@ -2,14 +2,23 @@
 //
 // Carrusel 3D estilo "Coverflow" (Apple) — la tarjeta activa al frente y
 // centrada, las de al lado giradas/escaladas en perspectiva. Navegación por
-// clic, flechas de teclado y los botones de control. Usado para los Drops
-// principales en la home.
+// clic, flechas de teclado y los botones de control. Usado para "Curaduría
+// LAMK" (DropsCoverflow) en la home.
+//
+// Fix (ronda "élite UI/UX"): dos problemas reales encontrados al revisar
+// este componente —
+//   1) Importaba de 'motion/react' (el paquete standalone "Motion") en vez
+//      de 'framer-motion', que es lo que usa el resto del sitio — dos
+//      librerías de animación cargadas en paralelo, riesgo de bundle
+//      duplicado. Se unifica a 'framer-motion'.
+//   2) El listener de teclado estaba en `window` sin condición: las flechas
+//      izquierda/derecha movían este carrusel aunque el foco estuviera en
+//      CUALQUIER input del sitio (buscador del catálogo, campos del
+//      carrito, etc.) — ahora se ignora si hay un campo de texto enfocado.
 
-'use client';
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion, PanInfo } from 'motion/react';
+import { motion, useMotionValue, useSpring, PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,12 +40,33 @@ interface CoverflowCarouselProps {
 export function CoverflowCarousel({ items, className }: CoverflowCarouselProps) {
   const [active, setActive] = useState(Math.min(1, items.length - 1));
 
+  // Tilt 3D suave en la tarjeta activa, siguiendo el cursor — el detalle que
+  // hace que esto se sienta "galería de arte interactiva" y no un slider
+  // genérico. Solo aplica a la tarjeta activa (las demás ya tienen su
+  // propio rotateY de perspectiva).
+  const tiltX = useMotionValue(0);
+  const tiltY = useMotionValue(0);
+  const springTiltX = useSpring(tiltX, { stiffness: 200, damping: 20 });
+  const springTiltY = useSpring(tiltY, { stiffness: 200, damping: 20 });
+
+  const handleTiltMove = (e: React.MouseEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    tiltY.set(px * 14);
+    tiltX.set(py * -14);
+  };
+  const handleTiltLeave = () => { tiltX.set(0); tiltY.set(0); };
+
   const goTo = useCallback((idx: number) => {
     setActive(((idx % items.length) + items.length) % items.length);
   }, [items.length]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement;
+      const isTyping = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).isContentEditable);
+      if (isTyping) return; // no secuestrar flechas mientras se escribe en otro campo del sitio
       if (e.key === 'ArrowLeft') goTo(active - 1);
       if (e.key === 'ArrowRight') goTo(active + 1);
     };
@@ -87,12 +117,18 @@ export function CoverflowCarousel({ items, className }: CoverflowCarouselProps) 
                 }}
                 animate={{
                   scale: isActive ? 1 : 0.75,
-                  rotateY: offset * -35,
+                  rotateY: isActive ? undefined : offset * -35,
                   opacity: abs > 2 ? 0 : 1 - abs * 0.25,
                 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+                onMouseMove={isActive ? handleTiltMove : undefined}
+                onMouseLeave={isActive ? handleTiltLeave : undefined}
                 className="relative w-56 sm:w-64 aspect-[3/4] rounded-2xl overflow-hidden border border-border bg-card shadow-2xl cursor-pointer"
-                style={{ transformStyle: 'preserve-3d' }}
+                style={{
+                  transformStyle: 'preserve-3d',
+                  rotateX: isActive ? springTiltX : undefined,
+                  rotateY: isActive ? springTiltY : undefined,
+                }}
               >
                 <Image src={item.image} alt={item.title} fill sizes="256px" className="object-cover" draggable={false} />
                 <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black via-black/60 to-transparent">
