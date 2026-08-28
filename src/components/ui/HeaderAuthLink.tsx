@@ -28,7 +28,7 @@ export function HeaderAuthLink() {
       <a href="/vault" className="text-amber-400 hover:text-amber-300 transition">
         {t.nav.hello} {user.firstName.toUpperCase()}
       </a>
-      <button onClick={logout} className="text-zinc-500 hover:text-red-400 transition normal-case font-normal">
+      <button onClick={logout} className="text-zinc-400 hover:text-red-400 transition normal-case font-normal">
         {t.nav.logout}
       </button>
     </div>

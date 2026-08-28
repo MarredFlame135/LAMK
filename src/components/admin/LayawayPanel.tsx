@@ -15,7 +15,7 @@ const STATUS_STYLES: Record<LayawayStatus, string> = {
   PENDING: 'bg-amber-950 text-amber-400 border-amber-900',
   CONTACTED: 'bg-sky-950 text-sky-400 border-sky-900',
   CONFIRMED: 'bg-emerald-950 text-emerald-400 border-emerald-900',
-  CANCELLED: 'bg-zinc-800 text-zinc-500 border-zinc-700',
+  CANCELLED: 'bg-zinc-800 text-zinc-400 border-zinc-700',
 };
 
 const STATUS_LABELS: Record<LayawayStatus, string> = {
@@ -57,7 +57,7 @@ export function LayawayPanel() {
       </div>
 
       {layaways.length === 0 ? (
-        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-500 text-xs">
+        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-400 text-xs">
           Aún no hay apartados. En cuanto un cliente aparte un par con TENISIN, la solicitud
           (producto, % y anticipo) aparecerá aquí con su WhatsApp listo para contactar.
         </div>
@@ -86,7 +86,7 @@ export function LayawayPanel() {
                       )}
                       <div className="min-w-0">
                         <p className="font-semibold text-zinc-200 truncate">{l.productTitle}</p>
-                        <p className="text-[10px] text-zinc-500 font-mono">
+                        <p className="text-[10px] text-zinc-400 font-mono">
                           Talla {l.requestedSize} · HEAT {l.hypeScore}%
                         </p>
                       </div>
@@ -94,7 +94,7 @@ export function LayawayPanel() {
                   </td>
                   <td className="py-3 font-mono">
                     <p className="text-emerald-400 font-bold">${l.depositAmount.toLocaleString()} MXN</p>
-                    <p className="text-[10px] text-zinc-500">{l.percentage}% de ${l.totalPrice.toLocaleString()}</p>
+                    <p className="text-[10px] text-zinc-400">{l.percentage}% de ${l.totalPrice.toLocaleString()}</p>
                   </td>
                   <td className="py-3 font-mono text-zinc-300">{l.customerPhone}</td>
                   <td className="py-3">

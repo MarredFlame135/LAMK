@@ -167,7 +167,7 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
                 className="bg-gradient-to-r from-red-600 via-amber-500 to-amber-300 h-full"
               />
             </div>
-            <p className="text-[10px] text-zinc-500 font-mono text-right">
+            <p className="text-[10px] text-zinc-400 font-mono text-right">
               {tierInfo.nextTier === 'HALL_OF_FAME'
                 ? '¡Rango máximo alcanzado! Eres HALL OF FAME.'
                 : `Te faltan ${tierInfo.xpRemaining.toLocaleString()} XP para subir a ${tierInfo.nextTier}.`}
@@ -182,7 +182,7 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
 
             {user.collection.length === 0 ? (
               <div className="p-8 border border-dashed border-border rounded-lg text-center space-y-3">
-                <p className="text-zinc-500 text-xs">Aún no tienes pares en tu bóveda. Completa tu primer pedido para desbloquear tu tarjeta digital.</p>
+                <p className="text-zinc-400 text-xs">Aún no tienes pares en tu bóveda. Completa tu primer pedido para desbloquear tu tarjeta digital.</p>
                 <Magnetic className="inline-block" strength={0.2}>
                   <a href="/catalog" className="inline-block px-5 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white text-[11px] font-bold uppercase tracking-widest rounded-lg transition">
                     Ver catálogo →
@@ -205,13 +205,13 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
                 // HISTORIAL DE PEDIDOS
               </h3>
               {!user.recentOrders || user.recentOrders.length === 0 ? (
-                <div className="p-6 border border-dashed border-border rounded-lg text-center text-zinc-500 text-xs">
+                <div className="p-6 border border-dashed border-border rounded-lg text-center text-zinc-400 text-xs">
                   Todavía no tienes pedidos registrados en Shopify.
                 </div>
               ) : (
                 <div className="overflow-x-auto border border-border/80 rounded-lg">
                   <table className="w-full text-left text-xs">
-                    <thead className="text-zinc-500 font-mono border-b border-border bg-black/40">
+                    <thead className="text-zinc-400 font-mono border-b border-border bg-black/40">
                       <tr>
                         <th className="py-2 px-3">PEDIDO</th>
                         <th className="py-2 px-3">FECHA</th>

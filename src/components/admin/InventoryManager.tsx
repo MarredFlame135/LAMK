@@ -104,7 +104,11 @@ export function InventoryManager() {
     }
   };
 
+  // Fix (hallazgo #5 de la auditoría de Fase 6): antes borraba apenas se
+  // hacía clic, sin ninguna confirmación — el único botón destructivo del
+  // panel de admin sin ese resguardo.
   const handleDeleteDraft = async (id: string) => {
+    if (!window.confirm('¿Quitar este borrador? No se puede deshacer.')) return;
     await fetch('/api/admin/product-drafts', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
     loadDrafts();
   };
@@ -123,7 +127,7 @@ export function InventoryManager() {
               {imageFile ? (
                 <Image src={imageFile.processedUrl} alt="preview" fill sizes="200px" className="object-cover" />
               ) : (
-                <span className="text-zinc-500">{isProcessingImage ? 'Procesando con IA...' : '📸 Toca para subir foto'}</span>
+                <span className="text-zinc-400">{isProcessingImage ? 'Procesando con IA...' : '📸 Toca para subir foto'}</span>
               )}
               <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
             </label>
@@ -149,14 +153,14 @@ export function InventoryManager() {
 
           {drafts.length > 0 && (
             <div className="pt-3 border-t border-zinc-800 space-y-2">
-              <p className="text-[10px] font-mono text-zinc-500 uppercase">Borradores pendientes de publicar ({drafts.length})</p>
+              <p className="text-[10px] font-mono text-zinc-400 uppercase">Borradores pendientes de publicar ({drafts.length})</p>
               {drafts.map((d) => (
                 <div key={d.id} className="flex items-center gap-2 p-2 bg-black/40 border border-zinc-800 rounded">
                   <div className="relative w-8 h-8 rounded bg-black overflow-hidden shrink-0">
                     <Image src={d.imageUrl} alt={d.title} fill sizes="32px" className="object-cover" />
                   </div>
                   <span className="flex-1 truncate text-zinc-300">{d.title}</span>
-                  <button onClick={() => handleDeleteDraft(d.id)} className="text-zinc-500 hover:text-red-400 text-[10px] uppercase font-bold">Quitar</button>
+                  <button onClick={() => handleDeleteDraft(d.id)} className="text-zinc-400 hover:text-red-400 text-[10px] uppercase font-bold">Quitar</button>
                 </div>
               ))}
             </div>
@@ -178,7 +182,7 @@ export function InventoryManager() {
                   <button
                     onClick={() => toggleHidden(p.id, !isHidden)}
                     className={`px-3 py-1.5 min-h-[32px] rounded-full text-[10px] font-bold uppercase transition ${
-                      isHidden ? 'bg-zinc-800 text-zinc-500' : 'bg-emerald-950 text-emerald-400'
+                      isHidden ? 'bg-zinc-800 text-zinc-400' : 'bg-emerald-950 text-emerald-400'
                     }`}
                   >
                     {isHidden ? 'DESACTIVADO' : 'ACTIVO'}

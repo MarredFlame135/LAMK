@@ -57,7 +57,7 @@ export function SocialProofSection({ products }: SocialProofSectionProps) {
                 href={INSTAGRAM_PROFILE_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[10px] font-mono text-zinc-500 hover:text-[#FF1E42] uppercase tracking-widest transition"
+                className="text-[10px] font-mono text-zinc-400 hover:text-[#FF1E42] uppercase tracking-widest transition"
               >
                 Síguenos en Instagram ↗
               </a>

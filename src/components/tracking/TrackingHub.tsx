@@ -74,7 +74,7 @@ export function TrackingHub() {
               )}
             </div>
           ) : (
-            <div className="text-xs font-mono uppercase tracking-widest text-zinc-500">
+            <div className="text-xs font-mono uppercase tracking-widest text-zinc-400">
               No reconocimos el formato — elige la paquetería manualmente
             </div>
           )}
@@ -99,7 +99,7 @@ export function TrackingHub() {
             <button
               onClick={handleGo}
               disabled={!trackingUrl}
-              className="px-8 py-4 bg-[#FF1E42] hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition"
+              className="px-8 py-4 bg-[#FF1E42] hover:bg-red-700 disabled:bg-zinc-800 disabled:text-zinc-400 text-white font-black text-xs uppercase tracking-widest rounded-xl transition"
             >
               Rastrear envío →
             </button>

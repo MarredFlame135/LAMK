@@ -65,7 +65,7 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs text-zinc-400">Contraseña</label>
-              <a href="/auth/reset-password" className="text-[10px] text-zinc-500 hover:text-[#FF1E42] transition">
+              <a href="/auth/reset-password" className="text-[10px] text-zinc-400 hover:text-[#FF1E42] transition">
                 ¿Olvidaste tu contraseña?
               </a>
             </div>
@@ -92,7 +92,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-zinc-500">
+        <p className="text-center text-xs text-zinc-400">
           ¿Aún no tienes cuenta?{' '}
           <a href="/auth/register" className="text-[#FF1E42] font-bold hover:underline">
             Regístrate

@@ -15,7 +15,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, useMotionValue, useSpring, useReducedMotion, PanInfo } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SWIPE_THRESHOLD_PX = 60;
@@ -47,6 +47,14 @@ interface CoverflowCarouselProps {
 export function CoverflowCarousel({ items, className, onActiveChange, onItemClick }: CoverflowCarouselProps) {
   const [active, setActive] = useState(Math.min(1, items.length - 1));
   const [isPaused, setIsPaused] = useState(false);
+  // Fix (hallazgo #3 de la auditoría de Fase 6): antes el avance automático
+  // solo se pausaba con hover/foco/drag — sin control visible, alguien sin
+  // mouse sobre la tarjeta (o que simplemente prefiera que no se mueva sola,
+  // sin haber cambiado su preferencia de sistema) no tenía forma de
+  // detenerlo. `userPaused` es independiente de `isPaused` (que sigue
+  // manejando la pausa automática por interacción) — un botón explícito,
+  // sin depender de mantener el mouse encima.
+  const [userPaused, setUserPaused] = useState(false);
   const reduceMotion = useReducedMotion();
 
   // Refs para no forzar a quien use estos callbacks a memoizarlos, y para
@@ -86,10 +94,10 @@ export function CoverflowCarousel({ items, className, onActiveChange, onItemClic
   // con cualquier señal de que alguien está mirando/interactuando: hover,
   // foco por teclado, o drag en curso. Nunca arranca con reduced-motion.
   useEffect(() => {
-    if (reduceMotion || isPaused || items.length <= 1) return;
+    if (reduceMotion || isPaused || userPaused || items.length <= 1) return;
     const id = setInterval(() => goTo(active + 1), AUTO_ADVANCE_MS);
     return () => clearInterval(id);
-  }, [active, isPaused, reduceMotion, items.length, goTo]);
+  }, [active, isPaused, userPaused, reduceMotion, items.length, goTo]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -245,6 +253,20 @@ export function CoverflowCarousel({ items, className, onActiveChange, onItemClic
         >
           <ChevronRight className="h-4 w-4" />
         </button>
+
+        {/* Fix (hallazgo #3 de la auditoría de Fase 6): control explícito,
+            no depende de mantener el mouse encima. Sin autoplay que pausar
+            (reduced-motion o una sola tarjeta), no tiene sentido mostrarlo. */}
+        {!reduceMotion && items.length > 1 && (
+          <button
+            onClick={() => setUserPaused((p) => !p)}
+            aria-label={userPaused ? 'Reanudar avance automático' : 'Pausar avance automático'}
+            aria-pressed={userPaused}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-zinc-900 border border-border text-zinc-300 hover:border-red-600/60 hover:text-white transition"
+          >
+            {userPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+          </button>
+        )}
       </div>
     </div>
   );

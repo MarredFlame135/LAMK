@@ -53,7 +53,7 @@ export default function OnboardingPage() {
 
         {/* Progreso */}
         <div className="space-y-2">
-          <div className="flex justify-between text-[10px] font-mono text-zinc-500 uppercase">
+          <div className="flex justify-between text-[10px] font-mono text-zinc-400 uppercase">
             {steps.map((s, i) => (
               <span key={s} className={i <= step ? 'text-[#FF1E42] font-bold' : ''}>{s}</span>
             ))}
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
           {step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
               <h2 className="font-display text-xl font-black uppercase">¿Qué marcas te laten?</h2>
-              <p className="text-xs text-zinc-500">Elige todas las que quieras.</p>
+              <p className="text-xs text-zinc-400">Elige todas las que quieras.</p>
               <div className="flex flex-wrap gap-2">
                 {BRANDS.map((b) => (
                   <button
@@ -126,7 +126,7 @@ export default function OnboardingPage() {
           {step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
               <h2 className="font-display text-xl font-black uppercase">¿Cuál es tu estilo?</h2>
-              <p className="text-xs text-zinc-500">Esto nos ayuda a que TENISIN te recomiende mejor.</p>
+              <p className="text-xs text-zinc-400">Esto nos ayuda a que TENISIN te recomiende mejor.</p>
               <div className="flex flex-wrap gap-2">
                 {STYLES.map((s) => (
                   <button

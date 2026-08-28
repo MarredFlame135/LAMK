@@ -28,7 +28,7 @@ export default function PrivacyPolicyPage() {
         <div className="border-b border-border pb-6">
           <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// Legal</span>
           <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">Aviso de Privacidad</h1>
-          <p className="text-xs text-zinc-500 mt-2">Última actualización: {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+          <p className="text-xs text-zinc-400 mt-2">Última actualización: {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
         </div>
 
         <Section title="Responsable de tus datos">

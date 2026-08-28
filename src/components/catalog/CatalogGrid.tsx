@@ -82,7 +82,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
           <div>
             <span className="text-xs font-mono text-[#FF1E42] uppercase">{t.catalogPage.eyebrow}</span>
             <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">{t.catalogPage.title}</h1>
-            <p className="text-[11px] font-mono text-zinc-500 mt-1">
+            <p className="text-[11px] font-mono text-zinc-400 mt-1">
               {filtered.length} pieza{filtered.length !== 1 ? 's' : ''} en inventario
             </p>
           </div>
@@ -104,7 +104,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
       </motion.div>
 
       {filtered.length === 0 ? (
-        <div className="p-16 border border-dashed border-border rounded-lg text-center text-zinc-500 text-sm">
+        <div className="p-16 border border-dashed border-border rounded-lg text-center text-zinc-400 text-sm">
           {t.catalogPage.empty}
         </div>
       ) : (

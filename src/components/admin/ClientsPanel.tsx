@@ -79,7 +79,7 @@ export function ClientsPanel() {
         <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
           CLIENTES & ADELANTO DE PAGOS / APARTADOS
         </h3>
-        <span className="text-[10px] font-mono text-zinc-500">{customers.length} cliente(s)</span>
+        <span className="text-[10px] font-mono text-zinc-400">{customers.length} cliente(s)</span>
       </div>
 
       {!adminApiConfigured && (
@@ -94,9 +94,9 @@ export function ClientsPanel() {
       )}
 
       {isLoading ? (
-        <div className="p-8 text-center text-zinc-500 text-xs">Cargando clientes...</div>
+        <div className="p-8 text-center text-zinc-400 text-xs">Cargando clientes...</div>
       ) : customers.length === 0 ? (
-        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-500 text-xs">
+        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-400 text-xs">
           Aún no hay clientes ni contactos capturados.
         </div>
       ) : (
@@ -120,7 +120,7 @@ export function ClientsPanel() {
                     <tr className="hover:bg-zinc-900/40 align-top">
                       <td className="py-3 max-w-[200px]">
                         <p className="font-semibold text-zinc-200 truncate">{c.name}</p>
-                        {c.email && <p className="text-[10px] text-zinc-500 truncate">{c.email}</p>}
+                        {c.email && <p className="text-[10px] text-zinc-400 truncate">{c.email}</p>}
                         {c.source === 'LEAD_ONLY' && (
                           <span className="text-[9px] text-zinc-600 font-mono uppercase">Sin cuenta Shopify</span>
                         )}
@@ -130,7 +130,7 @@ export function ClientsPanel() {
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${TIER_STYLES[c.tier]}`}>
                           {c.tier}
                         </span>
-                        <p className="text-[10px] text-zinc-500 font-mono mt-1">{c.xp.toLocaleString()} XP</p>
+                        <p className="text-[10px] text-zinc-400 font-mono mt-1">{c.xp.toLocaleString()} XP</p>
                       </td>
                       <td className="py-3">
                         {activeLayaways.length === 0 ? (
@@ -159,7 +159,7 @@ export function ClientsPanel() {
                           <div className="flex flex-col gap-2 border border-zinc-800 rounded-lg p-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <p className="text-zinc-200 font-semibold">
-                                {l.productTitle} <span className="text-zinc-500 font-normal">· talla {l.requestedSize}</span>
+                                {l.productTitle} <span className="text-zinc-400 font-normal">· talla {l.requestedSize}</span>
                               </p>
                               <a
                                 href={`https://wa.me/52${c.phone}?text=${encodeURIComponent(whatsAppReceiptMessage(c.name, l))}`}
@@ -171,7 +171,7 @@ export function ClientsPanel() {
                               </a>
                             </div>
 
-                            <p className="text-[10px] font-mono text-zinc-500">
+                            <p className="text-[10px] font-mono text-zinc-400">
                               Total ${l.totalPrice.toLocaleString()} MXN · Anticipo pactado ${l.depositAmount.toLocaleString()} MXN ({l.percentage}%)
                               {' · Abonado hasta ahora: '}
                               <strong className="text-emerald-400">

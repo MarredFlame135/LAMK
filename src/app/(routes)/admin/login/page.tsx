@@ -103,7 +103,7 @@ function AdminLoginForm() {
 export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background text-foreground px-4">
-      <Suspense fallback={<div className="text-zinc-500 text-xs">Cargando...</div>}>
+      <Suspense fallback={<div className="text-zinc-400 text-xs">Cargando...</div>}>
         <AdminLoginForm />
       </Suspense>
     </div>

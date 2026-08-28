@@ -125,7 +125,7 @@ export function SpecialCartDrawer() {
           <div className="flex items-center gap-2.5">
             <span className="h-2 w-2 rounded-full bg-[#FF1E42] animate-pulse" />
             <h2 className="font-display text-lg font-black tracking-tight uppercase">
-              {t.cart.title} <span className="text-zinc-500 font-normal">({items.reduce((a, b) => a + b.quantity, 0)})</span>
+              {t.cart.title} <span className="text-zinc-400 font-normal">({items.reduce((a, b) => a + b.quantity, 0)})</span>
             </h2>
           </div>
           <button
@@ -156,7 +156,7 @@ export function SpecialCartDrawer() {
         {/* Lista de Productos en Carrito */}
         <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5">
           {items.length === 0 ? (
-            <div className="text-center py-16 text-zinc-500">
+            <div className="text-center py-16 text-zinc-400">
               <p className="text-lg font-medium">{t.cart.empty}</p>
               <p className="text-xs mt-1">{t.cart.emptyHint}</p>
             </div>
@@ -174,7 +174,7 @@ export function SpecialCartDrawer() {
                 <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                   <div>
                     <h4 className="font-display text-sm font-bold uppercase tracking-tight line-clamp-1">{item.productTitle}</h4>
-                    <p className="text-[11px] text-zinc-500 mt-1">
+                    <p className="text-[11px] text-zinc-400 mt-1">
                       Talla: {item.variant.sizeLabel || `${item.variant.size.mx} MX (${item.variant.size.usMen} US)`}
                     </p>
                   </div>
@@ -183,7 +183,7 @@ export function SpecialCartDrawer() {
                     {/* Precio grande — jerarquía tipográfica real */}
                     <span className="font-display text-xl font-black text-[#FF1E42] tabular-nums">
                       ${(item.variant.price * item.quantity).toLocaleString()}
-                      <span className="text-[10px] font-normal text-zinc-500 ml-1">MXN</span>
+                      <span className="text-[10px] font-normal text-zinc-400 ml-1">MXN</span>
                     </span>
 
                     {/* Stepper de cantidad — pill elegante en vez de caja cuadrada */}
@@ -227,11 +227,11 @@ export function SpecialCartDrawer() {
         {items.length > 0 && (
           <div className="px-6 sm:px-8 py-6 border-t border-border bg-card space-y-5">
             <div className="space-y-2">
-              <div className="flex justify-between text-xs text-zinc-500">
+              <div className="flex justify-between text-xs text-zinc-400">
                 <span>{t.cart.subtotal}</span>
                 <span className="text-zinc-300 tabular-nums">${subtotal.toLocaleString()} MXN</span>
               </div>
-              <div className="flex justify-between text-xs text-zinc-500">
+              <div className="flex justify-between text-xs text-zinc-400">
                 <span>{t.cart.shipping}</span>
                 <span className="text-zinc-300 tabular-nums">
                   {shippingCost === 0 ? <strong className="text-emerald-400">{t.cart.free}</strong> : `$${shippingCost} MXN`}
@@ -241,7 +241,7 @@ export function SpecialCartDrawer() {
               <div className="flex items-baseline justify-between pt-3 border-t border-border">
                 <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">{t.cart.total}</span>
                 <span className="font-display text-3xl font-black text-[#FF1E42] tabular-nums">
-                  ${total.toLocaleString()}<span className="text-xs font-normal text-zinc-500 ml-1">MXN</span>
+                  ${total.toLocaleString()}<span className="text-xs font-normal text-zinc-400 ml-1">MXN</span>
                 </span>
               </div>
             </div>
@@ -415,7 +415,7 @@ export function SpecialCartDrawer() {
                 </Magnetic>
                 <button
                   onClick={() => setShowOtpModal(false)}
-                  className="w-full py-1.5 text-zinc-500 hover:text-zinc-300 text-[10px] uppercase tracking-wider"
+                  className="w-full py-1.5 text-zinc-400 hover:text-zinc-300 text-[10px] uppercase tracking-wider"
                 >
                   Cambiar número
                 </button>
@@ -450,7 +450,7 @@ export function SpecialCartDrawer() {
               </>
             )}
 
-            <p className="text-[10px] text-center text-zinc-500 uppercase tracking-widest">
+            <p className="text-[10px] text-center text-zinc-400 uppercase tracking-widest">
               {t.cart.encryptedFooter}
             </p>
             </motion.div>

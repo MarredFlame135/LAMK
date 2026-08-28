@@ -40,7 +40,7 @@ export function VolumetricShowcase({ products }: VolumetricShowcaseProps) {
           {featured.map(({ product, standType, label }) => (
             <div key={product.id} className="space-y-2">
               <VolumetricStudio product={product} standType={standType} />
-              <p className="text-center text-[10px] font-mono uppercase tracking-widest text-zinc-500">{label}</p>
+              <p className="text-center text-[10px] font-mono uppercase tracking-widest text-zinc-400">{label}</p>
             </div>
           ))}
         </div>

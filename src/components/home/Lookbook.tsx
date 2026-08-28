@@ -107,7 +107,7 @@ export function Lookbook() {
             Así se lleva<br />en la calle.
           </h2>
         </motion.div>
-        <p className="text-xs text-zinc-500 max-w-xs">
+        <p className="text-xs text-zinc-400 max-w-xs">
           Dos temporadas, una comunidad — Night Runs y Concrete Heat.
         </p>
       </motion.div>

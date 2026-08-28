@@ -48,7 +48,7 @@ export default function RegisterPage() {
         <div className="text-center space-y-1">
           <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// CLUB LAMK</span>
           <h1 className="font-display text-2xl font-black uppercase tracking-tight">Crea tu cuenta</h1>
-          <p className="text-xs text-zinc-500 mt-2">Suma XP desde tu primera compra y desbloquea la Bóveda del Coleccionista.</p>
+          <p className="text-xs text-zinc-400 mt-2">Suma XP desde tu primera compra y desbloquea la Bóveda del Coleccionista.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -119,7 +119,7 @@ export default function RegisterPage() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-zinc-500">
+        <p className="text-center text-xs text-zinc-400">
           ¿Ya tienes cuenta?{' '}
           <a href="/auth/login" className="text-[#FF1E42] font-bold hover:underline">
             Inicia sesión

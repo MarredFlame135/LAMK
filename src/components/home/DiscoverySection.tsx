@@ -47,7 +47,7 @@ export function DiscoverySection({ products }: DiscoverySectionProps) {
             <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// DESCUBRE</span>
             <h2 className="font-display text-2xl font-black uppercase tracking-tight mt-1">EXPLORA POR CATEGORÍA</h2>
           </div>
-          <a href="/catalog" className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 hover:text-[#FF1E42] transition">
+          <a href="/catalog" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-[#FF1E42] transition">
             Ver catálogo completo →
           </a>
         </div>
@@ -55,7 +55,7 @@ export function DiscoverySection({ products }: DiscoverySectionProps) {
         <DiscoveryTabs active={tab} onChange={setTab} />
 
         {items.length === 0 ? (
-          <div className="p-10 border border-dashed border-border rounded-lg text-center text-zinc-500 text-xs">
+          <div className="p-10 border border-dashed border-border rounded-lg text-center text-zinc-400 text-xs">
             No hay piezas en esta categoría todavía.
           </div>
         ) : (

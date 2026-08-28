@@ -24,7 +24,7 @@ function SealMark({ size }: { size: number }) {
 export function AuthenticitySeal({ compact = false }: AuthenticitySealProps) {
   if (compact) {
     return (
-      <div className="flex items-center gap-2.5 text-zinc-500">
+      <div className="flex items-center gap-2.5 text-zinc-400">
         <SealMark size={22} />
         <p className="text-[9px] font-mono uppercase tracking-[0.2em] leading-relaxed">
           100% Authenticated Physical Asset · Verified by LAMK MX Verification Protocol
@@ -40,7 +40,7 @@ export function AuthenticitySeal({ compact = false }: AuthenticitySealProps) {
         <p className="text-xs font-bold font-mono uppercase tracking-[0.15em] text-foreground">
           100% Authenticated Physical Asset
         </p>
-        <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-500 mt-1">
+        <p className="text-[10px] font-mono uppercase tracking-[0.15em] text-zinc-400 mt-1">
           Verified by Look At My Kicks MX Verification Protocol
         </p>
       </div>

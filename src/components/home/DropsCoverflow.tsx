@@ -65,7 +65,7 @@ export function DropsCoverflow({ products }: DropsCoverflowProps) {
         <div className="text-center mb-2">
           <span className="text-xs font-mono text-amber-400 uppercase tracking-widest">// CURADURÍA LAMK</span>
           <h2 className="font-display text-2xl sm:text-3xl font-black uppercase tracking-tight mt-1">DROPS PRINCIPALES</h2>
-          <p className="text-[11px] text-zinc-500 mt-1">Lo más alto en Hype de cada categoría — no solo sneakers.</p>
+          <p className="text-[11px] text-zinc-400 mt-1">Lo más alto en Hype de cada categoría — no solo sneakers.</p>
         </div>
         {/* Fix (hallazgo #2 de la auditoría de Fase 5): impresión = la
             tarjeta que llega a estar centrada/activa; clic = alguien la

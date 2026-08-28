@@ -28,7 +28,7 @@ export function DemandRequestsPanel() {
       </div>
 
       {leads.length === 0 ? (
-        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-500 text-xs">
+        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-400 text-xs">
           Aún no hay búsquedas registradas. En cuanto un cliente use el chat de TENISIN, sus peticiones
           (encontradas o no) aparecerán aquí en tiempo real.
         </div>
@@ -50,7 +50,7 @@ export function DemandRequestsPanel() {
                   <td className="py-3 max-w-[200px]">
                     <p className="font-semibold text-zinc-200 truncate">"{lead.rawQuery || lead.productTitle}"</p>
                     {lead.wasMatched && (
-                      <p className="text-[10px] text-zinc-500 truncate">→ {lead.productTitle}</p>
+                      <p className="text-[10px] text-zinc-400 truncate">→ {lead.productTitle}</p>
                     )}
                   </td>
                   <td className="py-3">
@@ -67,7 +67,7 @@ export function DemandRequestsPanel() {
                   <td className="py-3 font-mono text-zinc-300">
                     {lead.customerPhone || <span className="text-zinc-600">— no dejó —</span>}
                   </td>
-                  <td className="py-3 text-zinc-500 font-mono">
+                  <td className="py-3 text-zinc-400 font-mono">
                     {new Date(lead.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="py-3 text-right space-x-2">

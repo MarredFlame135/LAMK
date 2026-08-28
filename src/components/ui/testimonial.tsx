@@ -66,7 +66,7 @@ export function TestimonialCard({ data, className }: { data: TestimonialData; cl
           {data.verifiedPurchase ? (
             <span className="text-[10px] text-emerald-400 font-mono">Compra Verificada</span>
           ) : (
-            data.handle && <span className="text-[10px] text-zinc-500 font-mono">{data.handle}</span>
+            data.handle && <span className="text-[10px] text-zinc-400 font-mono">{data.handle}</span>
           )}
         </div>
       </div>

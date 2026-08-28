@@ -137,7 +137,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 <CountUp value={selectedVariant?.price ?? 0} prefix="$" suffix=" MXN" />
               </span>
               {selectedVariant?.compareAtPrice && (
-                <span className="text-sm text-zinc-500 line-through">
+                <span className="text-sm text-zinc-400 line-through">
                   ${selectedVariant.compareAtPrice.toLocaleString()} MXN
                 </span>
               )}
@@ -174,7 +174,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                       ) : (
                         <>
                           <span>{variant.size.mx} MX</span>
-                          <span className="text-[9px] text-zinc-500 font-normal">({variant.size.usMen} US)</span>
+                          <span className="text-[9px] text-zinc-400 font-normal">({variant.size.usMen} US)</span>
                         </>
                       )}
                     </button>
@@ -193,7 +193,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     { label: 'CM', value: selectedVariant.size.cm },
                   ].map((s) => (
                     <div key={s.label} className="p-1.5 rounded bg-muted border border-border/60">
-                      <p className="text-[9px] font-mono text-zinc-500 uppercase">{s.label}</p>
+                      <p className="text-[9px] font-mono text-zinc-400 uppercase">{s.label}</p>
                       <p className="text-xs font-bold font-mono">{s.value}</p>
                     </div>
                   ))}
@@ -210,7 +210,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <div className="mt-6 p-4 bg-card border border-border/60 rounded-lg space-y-2">
               <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-300">{t.product.storytelling}</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">{product.storytelling.storySummary}</p>
-              <div className="text-[11px] text-zinc-500 pt-1 border-t border-border/40">
+              <div className="text-[11px] text-zinc-400 pt-1 border-t border-border/40">
                 Colorway: <span className="text-zinc-300">{product.storytelling.colorway}</span>
               </div>
             </div>

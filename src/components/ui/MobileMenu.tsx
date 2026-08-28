@@ -38,19 +38,28 @@ export function MobileMenu() {
       <AnimatePresence>
         {isOpen && (
           <>
+            {/* Fix (pedido explícito, ronda "Fase 6"): el fondo del panel
+                (antes bg-background) quedaba casi indistinguible del velo
+                oscuro detrás — en modo oscuro ambos son prácticamente negro
+                puro, así que el panel no se leía como una superficie sólida
+                y el texto se sentía "flotando" sobre algo transparente.
+                `bg-card` es un tono deliberadamente distinto (no solo más
+                oscuro/claro) del fondo de la página en los dos temas, y el
+                velo sube a 90% de opacidad para separar mejor el panel de
+                lo que hay detrás. */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsOpen(false)}
-              className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm md:hidden"
             />
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
-              className="fixed inset-y-0 right-0 z-[61] w-[80vw] max-w-xs bg-background text-foreground border-l border-border shadow-2xl md:hidden flex flex-col"
+              className="fixed inset-y-0 right-0 z-[61] w-[80vw] max-w-xs bg-card text-foreground border-l border-border shadow-2xl md:hidden flex flex-col"
             >
               <div className="flex items-center justify-between p-5 border-b border-border">
                 <span className="font-display font-black text-sm uppercase tracking-tight">Menú</span>
@@ -58,12 +67,12 @@ export function MobileMenu() {
               </div>
 
               <nav className="flex-1 flex flex-col p-5 gap-1 text-sm font-bold uppercase tracking-widest">
-                <a href="/" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border/60 hover:text-[#FF1E42] transition">{t.nav.home}</a>
-                <a href="/catalog" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border/60 hover:text-[#FF1E42] transition">{t.nav.catalog}</a>
-                <a href="/vault" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border/60 hover:text-[#FF1E42] transition">{t.nav.vault}</a>
-                <a href="/tracking" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border/60 hover:text-[#FF1E42] transition">Rastreo</a>
+                <a href="/" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">{t.nav.home}</a>
+                <a href="/catalog" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">{t.nav.catalog}</a>
+                <a href="/vault" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">{t.nav.vault}</a>
+                <a href="/tracking" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">Rastreo</a>
                 {isAdmin && (
-                  <a href="/admin/login" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border/60 text-[#C5A059] hover:text-white transition">Admin</a>
+                  <a href="/admin/login" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border text-[#C5A059] hover:text-white transition">Admin</a>
                 )}
               </nav>
 
@@ -74,7 +83,7 @@ export function MobileMenu() {
                     <a href="/vault" onClick={() => setIsOpen(false)} className="text-amber-400 font-bold uppercase">
                       {t.nav.hello} {user.firstName.toUpperCase()}
                     </a>
-                    <button onClick={() => { logout(); setIsOpen(false); }} className="text-zinc-500 hover:text-red-400 uppercase font-bold">
+                    <button onClick={() => { logout(); setIsOpen(false); }} className="text-zinc-400 hover:text-red-400 uppercase font-bold">
                       {t.nav.logout}
                     </button>
                   </div>

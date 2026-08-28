@@ -70,7 +70,7 @@ export function CrossSellModule({ items }: CrossSellModuleProps) {
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FF1E42]/15 text-[#FF1E42] text-xs font-black shrink-0">✓</span>
         <div>
           <p className="text-xs font-black uppercase tracking-wide text-white">Double Check</p>
-          <p className="text-[10px] text-zinc-500">¿Es todo lo que buscas? Esto combina con lo que ya llevas.</p>
+          <p className="text-[10px] text-zinc-400">¿Es todo lo que buscas? Esto combina con lo que ya llevas.</p>
         </div>
       </motion.div>
 
@@ -89,7 +89,7 @@ export function CrossSellModule({ items }: CrossSellModuleProps) {
                 <img src={s.image} alt={s.title} className="w-16 h-16 object-cover bg-black rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-bold uppercase line-clamp-1 text-zinc-100">{s.title}</p>
-                  <p className="text-[10px] text-zinc-500 mt-0.5">Va bien con tu {s.matchedBrand}</p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">Va bien con tu {s.matchedBrand}</p>
                   <p className="font-display text-sm font-black text-[#C5A059] mt-1 tabular-nums">${s.price.toLocaleString()} MXN</p>
                 </div>
                 <motion.button

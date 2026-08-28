@@ -12,7 +12,6 @@ import { CartProvider } from '@/context/CartContext';
 import { ThemeVariantProvider } from '@/components/themes/ThemeVariantContext';
 import { PwaRegister } from '@/components/ui/PwaRegister';
 import { Navbar } from '@/components/ui/Navbar';
-import { CustomCursor } from '@/components/ui/CustomCursor';
 import { PrivacyConsentBanner } from '@/components/ui/PrivacyConsentBanner';
 import { AnalyticsGate } from '@/components/analytics/AnalyticsGate';
 import { CartTrigger } from '@/components/ui/CartTrigger';
@@ -107,7 +106,6 @@ export default function RootLayout({
             <CartProvider>
             <ThemeVariantProvider>
               <PwaRegister />
-              <CustomCursor />
 
               {/* Header Navbar Principal */}
               <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border">
@@ -151,7 +149,7 @@ export default function RootLayout({
                   se sienta plana frente al resto del sitio con fotografía real.
                   Se quitó el AuthenticitySeal compact (pedido del cliente,
                   2026-08-27) — sigue disponible en la ficha de producto. */}
-              <footer className="relative overflow-hidden border-t border-border bg-background py-8 text-zinc-500 text-xs text-center space-y-4">
+              <footer className="relative overflow-hidden border-t border-border bg-background py-8 text-zinc-400 text-xs text-center space-y-4">
                 <div
                   className="absolute inset-0 opacity-[0.06] dark:opacity-[0.1] mix-blend-overlay pointer-events-none"
                   style={{ backgroundImage: "url('/assets/hero/obsidian-texture.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}

@@ -1,19 +1,22 @@
 # Fase 6 — Diseño
 
-Rama: `audit/fase-6-diseno`. Solo reporte — cero cambios de código en esta fase.
+Rama: `audit/fase-6-diseno`.
+
+**Estado: los 5 hallazgos con severidad se corrigieron y se verificaron** (`tsc --noEmit`, `next build`, smoke tests reales). El punto #6 sigue sin poder verificarse — no tengo navegador real en este entorno, así que no lo marco como resuelto porque sería inventar una comprobación que no hice. Además, corregí un problema de contraste real que reportaste aparte (el menú móvil se sentía "transparente"). Nada desplegado, nada en `main`.
 
 Nota de método: los skills `design:design-critique`/`design:accessibility-review` que menciona el brief no están instalados bajo ese nombre en este entorno — la revisión de abajo es directa sobre el código real (mismo criterio que las fases anteriores), no una simulación de esos skills.
 
 ## Resumen — tabla por severidad
 
-| # | Hallazgo | Severidad |
-|---|---|---|
-| 1 | Cursor a medida en todo el sitio — exactamente el anti-patrón que el propio brief nombra ("se lee como portafolio de práctica, no como producto") | 🔴 Alta |
-| 2 | Contraste de texto secundario (`zinc-500` sobre fondo oscuro): 4.33:1, por debajo del 4.5:1 que exige AA para texto normal | 🟡 Media |
-| 3 | Carrusel "Curaduría LAMK": avance automático se pausa con hover/foco/drag, pero no hay un botón visible de pausa | 🟡 Media |
-| 4 | `HypeCarousel` usa scroll horizontal con JS/flex en vez de `scroll-snap` nativo | 🟢 Baja |
-| 5 | Un botón destructivo sin confirmación (borrar borrador de producto en Inventario) | 🟢 Baja |
-| 6 | Foco de teclado: no hay supresión global de outline (estructuralmente limpio), pero no pude verificarlo con un navegador/lector de pantalla real — lo marco como pendiente de prueba, no como aprobado | ⚪ Sin verificar |
+| # | Hallazgo | Severidad | Estado |
+|---|---|---|---|
+| 1 | Cursor a medida en todo el sitio — exactamente el anti-patrón que el propio brief nombra ("se lee como portafolio de práctica, no como producto") | 🔴 Alta | ✅ Corregido |
+| 2 | Contraste de texto secundario (`zinc-500` sobre fondo oscuro): 4.33:1, por debajo del 4.5:1 que exige AA para texto normal | 🟡 Media | ✅ Corregido |
+| 3 | Carrusel "Curaduría LAMK": avance automático se pausa con hover/foco/drag, pero no hay un botón visible de pausa | 🟡 Media | ✅ Corregido |
+| 4 | `HypeCarousel` usa scroll horizontal con JS/flex en vez de `scroll-snap` nativo | 🟢 Baja | ✅ Corregido |
+| 5 | Un botón destructivo sin confirmación (borrar borrador de producto en Inventario) | 🟢 Baja | ✅ Corregido |
+| 6 | Foco de teclado: no hay supresión global de outline (estructuralmente limpio), pero no pude verificarlo con un navegador/lector de pantalla real | ⚪ Sigue sin verificar |
+| — | **Reportado por ti aparte:** menú móvil se sentía "transparente", letras difíciles de percibir | 🟡 Media | ✅ Corregido |
 
 ## Las dos preguntas de producto sobre el carrusel — ya respondidas por el código
 
@@ -35,7 +38,7 @@ Nota de método: los skills `design:design-critique`/`design:accessibility-revie
 
 **Cómo se explota / qué se rompe:** no es un exploit — es exactamente la señal que el brief pidió evitar: cuando alguien lo nota, lee "plantilla genérica de portafolio", no "equipo serio construyó esto para vender tenis".
 
-**Parche propuesto:** quitar `<CustomCursor />` del layout raíz. El cursor nativo del sistema ya funciona — no hace falta reemplazarlo por algo que no aporta información. (No lo apliqué sin tu aprobación porque es una pieza que se construyó a propósito en una ronda anterior de esta sesión — "mejorar, no reescribir" también aplica a no borrar trabajo reciente sin decírtelo primero.)
+**Parche aplicado:** `<CustomCursor />` quitado del layout raíz (`src/app/(routes)/layout.tsx`). El archivo `CustomCursor.tsx` no se borró — se queda documentado como retirado, no destruido, por si se decide retomarlo.
 
 ---
 
@@ -49,7 +52,7 @@ Nota de método: los skills `design:design-critique`/`design:accessibility-revie
 
 **Cómo se explota / qué se rompe:** no es un exploit — es una barrera de accesibilidad real y medible, no una opinión de gusto.
 
-**Parche propuesto:** subir a `zinc-400` (#A1A1AA) para texto de tamaño normal/pequeño — calculé ese contraste también: **8.19:1**, cómodamente por encima de AA (y de AAA). `zinc-500` puede quedarse para texto grande o para bordes/iconos no textuales, donde 4.33:1 ya es suficiente. No hice el barrido completo de cada instancia en el proyecto — esto es un solo cálculo representativo del patrón más común; una pasada completa color por color es trabajo real de la fase de implementación, no algo que deba inventar aquí.
+**Parche aplicado:** barrido completo — las 83 instancias de `text-zinc-500` en 33 archivos pasaron a `text-zinc-400` (#A1A1AA, contraste calculado: **8.19:1**, cómodamente por encima de AA y AAA). No toqué `zinc-500` cuando se usa como color de fondo/borde/icono (esos casos solo necesitan 3:1, y 4.33:1 ya lo cumple) — el cambio fue específico a la clase de color de texto.
 
 ---
 
@@ -63,7 +66,7 @@ Nota de método: los skills `design:design-critique`/`design:accessibility-revie
 
 **Cómo se explota / qué se rompe:** no es un exploit — WCAG 2.2.2 (Pause, Stop, Hide) lo pide para contenido que se mueve automáticamente por más de 5 segundos.
 
-**Parche propuesto:** un botón pausa/play pequeño y discreto (ej. junto a los controles de flecha que ya existen) — cambio acotado, no rediseña el carrusel.
+**Parche aplicado:** botón pausa/play (`Pause`/`Play` de `lucide-react`) junto a los controles de flecha que ya existían, con `aria-pressed` — un estado `userPaused` independiente del `isPaused` automático (hover/foco/drag), así el botón no interfiere con la lógica existente. No se muestra si `prefers-reduced-motion` ya está activo o si solo hay una tarjeta (no hay nada que pausar en esos casos).
 
 ---
 
@@ -75,7 +78,7 @@ Nota de método: los skills `design:design-critique`/`design:accessibility-revie
 
 **Por qué importa:** el brief prefiere `scroll-snap` nativo sobre una librería/JS para este tipo de carrusel — mejor rendimiento (nada de JS calculando posiciones) y mejor sensación táctil en móvil (el navegador hace el snap, no hay que simularlo). Nota aparte: esto NO aplica al `DropsCoverflow` — ese usa un efecto 3D (rotación + perspectiva) que `scroll-snap` físicamente no puede reproducir, así que ahí el JS es inherente a la elección visual, no un descuido.
 
-**Parche propuesto:** agregar `snap-x snap-mandatory` al contenedor y `snap-start` a cada tarjeta — cambio de una línea de CSS, sin tocar la lógica.
+**Parche aplicado:** `snap-x snap-mandatory` en el contenedor y `snap-start` en cada tarjeta — sin tocar ninguna lógica, solo CSS.
 
 ---
 
@@ -87,7 +90,21 @@ Nota de método: los skills `design:design-critique`/`design:accessibility-revie
 
 **Por qué importa:** es el único botón destructivo sin confirmación que encontré en todo el panel de admin (revisé Leads, Apartados, Clientes, Ventas — ninguno tiene botones de borrado con este mismo problema, de hecho no encontré más triggers de `DELETE` en el resto del panel). El impacto es bajo porque solo borra un borrador no publicado (no una venta real ni un cliente), pero sigue siendo el patrón que el brief pide revisar.
 
-**Parche propuesto:** un `window.confirm()` simple basta aquí — no amerita un modal nuevo para un solo botón de bajo riesgo.
+**Parche aplicado:** `window.confirm('¿Quitar este borrador? No se puede deshacer.')` antes del `fetch` de borrado — simple, no ameritaba un modal nuevo para un solo botón de bajo riesgo.
+
+---
+
+---
+
+### Contraste del menú móvil — reportado por ti, fuera de la lista original — 🟡 Media
+
+**Qué encontraste (tú, al usar el sitio):** el panel del menú móvil "se sentía transparente", las letras no se percibían bien.
+
+**Qué encontré al revisar el código:** el panel usaba `bg-background` — técnicamente opaco (no hay ningún alfa en esa variable), pero en modo oscuro `--background` (#050507) y el velo detrás (`bg-black/80`) son prácticamente el mismo negro casi puro. El panel no se distinguía del fondo como una superficie sólida separada, así que aunque el contraste texto-contra-panel fuera correcto en el papel, la sensación visual era de "esto no tiene un fondo de verdad".
+
+**Dónde:** `src/components/ui/MobileMenu.tsx`.
+
+**Parche aplicado:** el panel pasa de `bg-background` a `bg-card` (`#0E0E13` en oscuro / `#FFFFFF` en claro) — un tono deliberadamente distinto del fondo de la página en ambos temas, no solo "más oscuro". El velo detrás sube de 80% a 90% de opacidad para reforzar la separación. Los divisores entre los links del menú (`border-border/60`, casi invisibles — el token `--border` ya es muy sutil por diseño, y el /60 los debilitaba más todavía) pasan a `border-border` completo.
 
 ---
 
@@ -113,8 +130,8 @@ Soy honesto sobre el límite de este entorno: no tengo un navegador con lector d
 
 Marco esto como pendiente, no como aprobado ni como reprobado — sería inventar un hallazgo pretender que sí lo probé.
 
-## Archivos que quedarían tocados si apruebas los fixes
+## Archivos tocados
 
-`src/app/(routes)/layout.tsx` (quitar `<CustomCursor />`), colores `zinc-500`→`zinc-400` en texto secundario (barrido, no un solo archivo), `src/components/ui/coverflow-carousel.tsx` (botón de pausa), `src/components/home/HypeCarousel.tsx` (`scroll-snap`), `src/components/admin/InventoryManager.tsx` (`confirm()` antes de borrar).
+`src/app/(routes)/layout.tsx` (quitar `<CustomCursor />`), `src/components/ui/CustomCursor.tsx` (comentario de retiro, archivo no borrado), 33 archivos con `text-zinc-500`→`text-zinc-400`, `src/components/ui/coverflow-carousel.tsx` (botón de pausa), `src/components/home/HypeCarousel.tsx` (`scroll-snap`), `src/components/admin/InventoryManager.tsx` (`confirm()` antes de borrar), `src/components/ui/MobileMenu.tsx` (contraste del panel).
 
-No apliqué ningún fix — quedo a la espera de tu aprobación para decidir cuáles de estos 5 (más el punto de accesibilidad sin verificar) se corrigen y en qué orden antes de pasar a Fase 7 (Cierre).
+Nada tocó `main` ni se desplegó — todo vive en `audit/fase-6-diseno`, verificado con `tsc --noEmit`, `next build` y smoke tests reales. Sigue pendiente, honestamente, el punto #6 (verificación real de foco/lector de pantalla con un navegador — no disponible en este entorno). Lista para Fase 7 (Cierre) cuando digas.

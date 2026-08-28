@@ -91,7 +91,7 @@ export function IGLiveMonitor({ products }: IGLiveMonitorProps) {
           </div>
 
           {/* CTA honesto — sin feed sincronizado real, sin inventar actividad */}
-          <div className="relative flex items-center justify-between px-4 py-3 border-t border-zinc-800 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-500">
+          <div className="relative flex items-center justify-between px-4 py-3 border-t border-zinc-800 font-mono text-[10px] uppercase tracking-[0.15em] text-zinc-400">
             <span>Señal: catálogo en vivo, no feed de Instagram sincronizado</span>
             <a href={INSTAGRAM_PROFILE_URL} target="_blank" rel="noreferrer" className="text-[#FF1E42] hover:text-white transition">
               Ver Instagram real ↗

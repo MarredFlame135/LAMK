@@ -76,7 +76,7 @@ export function ReviewForm() {
         className="w-full p-3 bg-black border border-border rounded-lg text-xs text-white outline-none focus:border-[#FF1E42]"
       />
 
-      <label className="flex items-center justify-center gap-2 h-20 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-red-600/60 transition text-[11px] text-zinc-500 overflow-hidden relative">
+      <label className="flex items-center justify-center gap-2 h-20 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-red-600/60 transition text-[11px] text-zinc-400 overflow-hidden relative">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt="preview" className="absolute inset-0 w-full h-full object-cover" />

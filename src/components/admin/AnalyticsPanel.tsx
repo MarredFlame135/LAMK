@@ -70,7 +70,7 @@ function StatTile({ icon: Icon, label, value, hint }: { icon: any; label: string
         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
       <p className="text-2xl font-black text-white">{value}</p>
-      {hint && <p className="text-[10px] text-zinc-500">{hint}</p>}
+      {hint && <p className="text-[10px] text-zinc-400">{hint}</p>}
     </div>
   );
 }
@@ -91,7 +91,7 @@ function MonthlyRevenueChart({ sales }: { sales: OfflineSale[] }) {
   const max = Math.max(1, ...byMonth.map(([, v]) => v));
 
   if (byMonth.length === 0) {
-    return <p className="text-xs text-zinc-500 py-8 text-center">Aún no hay ventas registradas para graficar.</p>;
+    return <p className="text-xs text-zinc-400 py-8 text-center">Aún no hay ventas registradas para graficar.</p>;
   }
 
   return (
@@ -118,7 +118,7 @@ function MonthlyRevenueChart({ sales }: { sales: OfflineSale[] }) {
       </div>
       <div className="flex gap-3 mt-1.5">
         {byMonth.map(([key]) => (
-          <span key={key} className="flex-1 text-center text-[9px] font-mono text-zinc-500 uppercase">
+          <span key={key} className="flex-1 text-center text-[9px] font-mono text-zinc-400 uppercase">
             {monthLabel(key)}
           </span>
         ))}
@@ -133,7 +133,7 @@ function TopViewedChart({ items }: { items: TopViewedItem[] }) {
   const max = Math.max(1, ...items.map((i) => i.views));
 
   if (items.length === 0) {
-    return <p className="text-xs text-zinc-500 py-8 text-center">Aún no hay vistas registradas — se llenan cuando alguien visita una ficha de producto.</p>;
+    return <p className="text-xs text-zinc-400 py-8 text-center">Aún no hay vistas registradas — se llenan cuando alguien visita una ficha de producto.</p>;
   }
 
   return (
@@ -173,7 +173,7 @@ function DemandByCategoryChart({ counts }: { counts: Record<string, number> }) {
   const max = Math.max(1, ...entries.map((e) => e.count));
 
   if (entries.length === 0) {
-    return <p className="text-xs text-zinc-500 py-8 text-center">Sin peticiones de restock todavía.</p>;
+    return <p className="text-xs text-zinc-400 py-8 text-center">Sin peticiones de restock todavía.</p>;
   }
 
   return (
@@ -270,7 +270,7 @@ export function AnalyticsPanel() {
         <div className="p-5 bg-[#0E0E13] border border-dashed border-zinc-800 rounded-xl flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
           <Lock className="h-6 w-6 text-zinc-600" />
           <h4 className="text-xs font-bold uppercase text-zinc-400">Top / Bottom Sellers de Shopify</h4>
-          <p className="text-[11px] text-zinc-500 max-w-xs">
+          <p className="text-[11px] text-zinc-400 max-w-xs">
             Tu token actual no tiene scopes de Admin API (read_orders/read_products). Actívalos en
             Shopify Admin → tu app → Configuración → Admin API, y pásame el nuevo token para
             activar este gráfico con ventas reales.

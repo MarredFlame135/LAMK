@@ -47,13 +47,16 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
             <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-[0.2em]">Terminal // Most Wanted</span>
             <h2 className="font-display text-2xl font-black uppercase tracking-tight mt-1">TRENDING & HYPE DROPS</h2>
           </div>
-          <span className="text-xs font-mono text-zinc-500 uppercase tracking-[0.15em]">Live Index</span>
+          <span className="text-xs font-mono text-zinc-400 uppercase tracking-[0.15em]">Live Index</span>
         </div>
 
-        {/* Carrusel Deslizable */}
-        <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-zinc-800">
+        {/* Carrusel Deslizable — Fix (hallazgo #4 de la auditoría de Fase
+            6): `snap-x snap-mandatory` + `snap-start` por tarjeta en vez de
+            depender de JS para el "enganche" — scroll nativo del navegador,
+            mejor sensación táctil en móvil, cero cálculo de posiciones. */}
+        <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-zinc-800">
           {trendingProducts.map((product, idx) => (
-            <CarouselItemTracker key={product.id} carouselName={CAROUSEL_NAME} position={idx} className="flex-none w-72">
+            <CarouselItemTracker key={product.id} carouselName={CAROUSEL_NAME} position={idx} className="flex-none w-72 snap-start">
               <ProductCard product={product} index={idx} onAddToCart={handleAddToCart} />
             </CarouselItemTracker>
           ))}

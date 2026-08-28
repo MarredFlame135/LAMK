@@ -1,5 +1,12 @@
 // src/components/ui/CustomCursor.tsx
 //
+// Fix (hallazgo #1 de la auditoría de Fase 6): retirado del layout raíz —
+// es exactamente el anti-patrón que el propio brief de la auditoría nombra
+// ("cursores personalizados... se leen como portafolio de práctica, no como
+// producto"). No comunica nada sobre la marca ni el catálogo, es cromo
+// decorativo puro. El archivo se queda (no se borra, "mejorar no
+// reescribir") por si se decide retomarlo — solo dejó de montarse.
+//
 // Cursor a medida (punto + anillo) para todo el sitio — parte de la ronda de
 // "subir el nivel visual" 2026-08-27. Se monta una sola vez en el layout raíz
 // y usa delegación de eventos (un solo listener en `document`) para saber si

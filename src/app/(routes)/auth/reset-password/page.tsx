@@ -61,7 +61,7 @@ export default function ResetPasswordPage() {
             >
               {isLoading ? 'ENVIANDO...' : 'ENVIAR ENLACE DE RECUPERACIÓN'}
             </button>
-            <p className="text-center text-xs text-zinc-500">
+            <p className="text-center text-xs text-zinc-400">
               <a href="/auth/login" className="hover:underline">← Volver a iniciar sesión</a>
             </p>
           </form>

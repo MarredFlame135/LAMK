@@ -88,7 +88,7 @@ export function ProductCard({ product, index = 0, onAddToCart }: ProductCardProp
       className="bg-card border border-border rounded-2xl p-4 flex flex-col justify-between group shadow-sm hover:shadow-2xl hover:shadow-black/25 transition-shadow"
     >
       {/* Cabecera técnica — placa de vitrina de museo */}
-      <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-[0.2em] text-zinc-500 mb-2 px-0.5">
+      <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-[0.2em] text-zinc-400 mb-2 px-0.5">
         <span>LAMK Vault // Verified</span>
         <span>Serial #{serial}</span>
       </div>
@@ -117,7 +117,7 @@ export function ProductCard({ product, index = 0, onAddToCart }: ProductCardProp
 
         {/* Indicador de escasez real */}
         {!product.isSoldOut && (
-          <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-[0.15em] mt-1.5 flex items-center gap-1.5">
+          <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-[0.15em] mt-1.5 flex items-center gap-1.5">
             {stockRemaining <= 1 ? (
               <span className="text-[#FF1E42] font-bold">Edition 01/01 · Deadstock</span>
             ) : (
@@ -129,7 +129,7 @@ export function ProductCard({ product, index = 0, onAddToCart }: ProductCardProp
 
         {/* Ticker de prueba social — solo vistas reales */}
         {product.hypeMeter.viewsLast24h > 0 && (
-          <p className="text-[9px] font-mono text-zinc-500 uppercase tracking-[0.15em] mt-1">
+          <p className="text-[9px] font-mono text-zinc-400 uppercase tracking-[0.15em] mt-1">
             Terminal Active · {product.hypeMeter.viewsLast24h} Viewing
           </p>
         )}
@@ -145,7 +145,7 @@ export function ProductCard({ product, index = 0, onAddToCart }: ProductCardProp
           animate={justAdded ? { scale: [1, 1.15, 1] } : { scale: 1 }}
           whileTap={{ scale: 0.9 }}
           transition={BOUNCE_TAP}
-          className="relative px-4 py-2 bg-[#FF1E42] hover:bg-[#e0182f] disabled:bg-zinc-800 disabled:text-zinc-500 disabled:cursor-not-allowed text-white text-[11px] font-bold uppercase tracking-wide rounded-lg transition-colors overflow-hidden"
+          className="relative px-4 py-2 bg-[#FF1E42] hover:bg-[#e0182f] disabled:bg-zinc-800 disabled:text-zinc-400 disabled:cursor-not-allowed text-white text-[11px] font-bold uppercase tracking-wide rounded-lg transition-colors overflow-hidden"
         >
           {defaultVariant?.isAvailable ? (justAdded ? 'ADDED TO VAULT' : t.catalogPage.addToCart) : t.catalogPage.soldOut}
           {/* Línea láser inferior */}
