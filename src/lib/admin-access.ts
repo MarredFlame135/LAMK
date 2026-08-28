@@ -24,3 +24,12 @@ export function getAllowlistedAdminEmails(): string[] {
 export function isAllowlistedAdminEmail(email: string): boolean {
   return getAllowlistedAdminEmails().includes(email.trim().toLowerCase());
 }
+
+// Combina admin raíz + allowlist — para responder "¿esta persona es admin?"
+// en un solo lugar (usado por /api/auth/me para mostrar el link de Admin
+// solo a quien de verdad tiene acceso, ver Navbar.tsx).
+export function isAdminEmail(email: string): boolean {
+  const normalized = email.trim().toLowerCase();
+  const rootAdmin = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  return normalized === rootAdmin || isAllowlistedAdminEmail(normalized);
+}
