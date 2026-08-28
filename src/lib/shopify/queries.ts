@@ -164,6 +164,26 @@ export const CUSTOMER_ACCESS_TOKEN_DELETE_MUTATION = `
   }
 `;
 
+// --- Checkout real (RF: reemplaza el alert() falso del carrito) ---
+// cartCreate es la mutación vigente de la Storefront API para armar un
+// carrito y obtener su checkoutUrl — la API de Checkout clásica
+// (checkoutCreate) está deprecada desde 2022-10 a favor de esta.
+
+export const CART_CREATE_MUTATION = `
+  mutation cartCreate($input: CartInput!) {
+    cartCreate(input: $input) {
+      cart {
+        id
+        checkoutUrl
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 export const GET_CUSTOMER_QUERY = `
   query getCustomer($customerAccessToken: String!) {
     customer(customerAccessToken: $customerAccessToken) {

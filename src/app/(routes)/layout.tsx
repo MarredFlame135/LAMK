@@ -12,8 +12,8 @@ import { CartProvider } from '@/context/CartContext';
 import { ThemeVariantProvider } from '@/components/themes/ThemeVariantContext';
 import { PwaRegister } from '@/components/ui/PwaRegister';
 import { Navbar } from '@/components/ui/Navbar';
-import { AuthenticitySeal } from '@/components/ui/AuthenticitySeal';
 import { CustomCursor } from '@/components/ui/CustomCursor';
+import { PrivacyConsentBanner } from '@/components/ui/PrivacyConsentBanner';
 
 export const viewport: Viewport = {
   themeColor: '#050507',
@@ -95,19 +95,25 @@ export default function RootLayout({
               {/* Carrito Especial Flotante Global */}
               <SpecialCartDrawer />
 
+              {/* Aviso de privacidad (LFPDPPP) — una vez por navegador */}
+              <PrivacyConsentBanner />
+
               {/* Footer — misma textura "Obsidian Quarry" (Higgsfield) que el Hero,
                   aquí casi imperceptible, solo para que la sección oscura no
-                  se sienta plana frente al resto del sitio con fotografía real. */}
+                  se sienta plana frente al resto del sitio con fotografía real.
+                  Se quitó el AuthenticitySeal compact (pedido del cliente,
+                  2026-08-27) — sigue disponible en la ficha de producto. */}
               <footer className="relative overflow-hidden border-t border-border bg-background py-8 text-zinc-500 text-xs text-center space-y-4">
                 <div
                   className="absolute inset-0 opacity-[0.06] dark:opacity-[0.1] mix-blend-overlay pointer-events-none"
                   style={{ backgroundImage: "url('/assets/hero/obsidian-texture.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
                   aria-hidden
                 />
-                <div className="relative flex justify-center">
-                  <AuthenticitySeal compact />
-                </div>
-                <p className="relative">© {new Date().getFullYear()} {SAAS_CONFIG.brandName}. Diseñado por BDM Soluciones Digitales.</p>
+                <p className="relative">
+                  © {new Date().getFullYear()} {SAAS_CONFIG.brandName}. Diseñado por BDM Soluciones Digitales.
+                  {' · '}
+                  <a href="/aviso-de-privacidad" className="hover:text-white transition">Aviso de Privacidad</a>
+                </p>
               </footer>
             </ThemeVariantProvider>
             </CartProvider>

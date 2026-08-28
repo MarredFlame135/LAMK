@@ -10,6 +10,7 @@ import { ShippingAddress } from '@/types/cart';
 import { useApp } from '@/context/AppContext';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { CrossSellModule } from '@/components/cart/CrossSellModule';
+import { useAuth } from '@/context/AuthContext';
 
 const EMPTY_ADDRESS_FORM = {
   fullName: '', phone: '', street: '', exteriorNumber: '', interiorNumber: '',
@@ -36,6 +37,7 @@ export function SpecialCartDrawer() {
     verifyOtpCode,
   } = useCart();
   const { t } = useApp();
+  const { user } = useAuth();
 
   const [step, setStep] = useState<'review' | 'checkout'>('review');
   const [otpInput, setOtpInput] = useState('');
@@ -43,6 +45,34 @@ export function SpecialCartDrawer() {
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  // Checkout real: arma el carrito en Shopify y manda al cliente a su
+  // Checkout oficial (tarjeta/OXXO/lo que tengas configurado en la tienda)
+  // — reemplaza el alert() que antes no hacía absolutamente nada.
+  const handleGoToShopifyCheckout = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const res = await fetch('/api/cart/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, email: user?.email, phone: phoneInput || shippingAddress?.phone }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.checkoutUrl) {
+        setCheckoutError(data.error || 'No se pudo iniciar el pago. Intenta de nuevo.');
+        return;
+      }
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      console.error('Error al ir a Shopify Checkout:', err);
+      setCheckoutError('Error de red. Intenta de nuevo.');
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   const handleSaveAddress = (e: React.FormEvent) => {
     e.preventDefault();
@@ -347,19 +377,25 @@ export function SpecialCartDrawer() {
                   onChange={(e) => setOtpInput(e.target.value)}
                   className="w-full p-2 bg-black border border-zinc-700 text-center font-mono text-sm rounded text-white"
                 />
-                <button
-                  onClick={() => {
-                    if (verifyOtpCode(otpInput)) {
-                      alert('¡Verificación exitosa! Redirigiendo a pasarela segura...');
-                      setShowOtpModal(false);
-                    } else {
-                      alert('Código incorrecto. Intenta de nuevo.');
-                    }
-                  }}
-                  className="w-full py-2 bg-[#FF1E42] hover:bg-red-700 font-bold text-xs uppercase rounded"
-                >
-                  CONFIRMAR CÓDIGO
-                </button>
+                {checkoutError && (
+                  <p className="text-[10px] text-red-400 bg-red-950/30 border border-red-900/50 rounded p-2">{checkoutError}</p>
+                )}
+                <Magnetic className="block w-full" strength={0.2}>
+                  <button
+                    onClick={() => {
+                      if (verifyOtpCode(otpInput)) {
+                        setShowOtpModal(false);
+                        handleGoToShopifyCheckout();
+                      } else {
+                        setCheckoutError('Código incorrecto. Intenta de nuevo.');
+                      }
+                    }}
+                    disabled={checkoutLoading}
+                    className="w-full py-2 bg-[#FF1E42] hover:bg-red-700 disabled:opacity-60 font-bold text-xs uppercase rounded"
+                  >
+                    {checkoutLoading ? 'ABRIENDO PAGO SEGURO...' : 'CONFIRMAR Y PAGAR →'}
+                  </button>
+                </Magnetic>
                 <button
                   onClick={() => setShowOtpModal(false)}
                   className="w-full py-1.5 text-zinc-500 hover:text-zinc-300 text-[10px] uppercase tracking-wider"

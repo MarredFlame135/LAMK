@@ -1,9 +1,17 @@
 // src/lib/mock-users.ts
 //
-// Directorio de coleccionistas usado por /vault (perfil propio) y
-// /profile/[username] (perfiles públicos). Mientras no hay backend de
-// usuarios real, esto sustituye a una consulta a base de datos por username.
-// Las mismas entradas alimentan el Top 5 que se muestra en CollectorVault.
+// Directorio de coleccionistas usado SOLO por /profile/[username] (perfiles
+// públicos de otros coleccionistas) — /vault (tu propio perfil) YA NO usa
+// esto, jala tu sesión real de Shopify (ver vault/page.tsx).
+//
+// ⚠️ Corrección (2026-08-27): este archivo tenía una entrada 'dante-medina'
+// con 12,400 XP / tier LEGEND que coincide con el nombre real del cliente
+// dueño de LAMK — y CollectorVault.tsx la usaba para un "Ranking Global Top
+// 5" inventado que se mostraba en TODAS las bóvedas, resaltando esa entrada
+// falsa como "(TÚ)" cuando el propio Dante veía su bóveda real. Ya se quitó
+// el ranking de CollectorVault.tsx por completo. Este directorio se queda
+// (todavía alimenta /profile/[username]) pero un ranking real necesitaría
+// un directorio de clientes de verdad, que no existe hoy.
 
 import { UserProfile } from '@/types/user';
 

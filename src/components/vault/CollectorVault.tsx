@@ -4,7 +4,7 @@
 
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { UserProfile, LeaderboardEntry } from '@/types/user';
+import { UserProfile } from '@/types/user';
 import { calculateGamificationTier, TIER_THRESHOLDS } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
 import { HolographicCard } from '@/components/ui/holographic-card';
@@ -16,18 +16,9 @@ const LAST_TIER_KEY = 'lamk_last_seen_tier_v1';
 
 interface CollectorVaultProps {
   user: UserProfile;
-  username?: string;       // Slug público (ej. "sneaker_god_mx"), usado para resaltar en el ranking
+  username?: string;       // Slug público (ej. "sneaker_god_mx") del perfil que se está viendo
   isOwnProfile?: boolean;  // false cuando se ve el perfil público de otro coleccionista
 }
-
-// Datos de ejemplo para el Ranking Global Top 5 (mismo directorio que src/lib/mock-users.ts)
-const MOCK_LEADERBOARD: LeaderboardEntry[] = [
-  { position: 1, username: 'sneaker_god_mx', xp: 18900, tier: 'LEGEND' },
-  { position: 2, username: 'hype_valentina', xp: 15200, tier: 'LEGEND' },
-  { position: 3, username: 'dante-medina', xp: 12400, tier: 'LEGEND' },
-  { position: 4, username: 'kickz_puebla', xp: 9800, tier: 'COLLECTOR' },
-  { position: 5, username: 'retro_collector', xp: 7600, tier: 'COLLECTOR' },
-];
 
 export function CollectorVault({ user, username, isOwnProfile = true }: CollectorVaultProps) {
   // Curva de progresión geométrica (+30% de dificultad por nivel) — la misma
@@ -176,43 +167,14 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
 
         </div>
 
-        {/* Panel Derecho: Ranking Global (Leaderboard) & Niveles */}
+        {/* Panel Derecho: Niveles. El "Ranking Global Top 5" que había aquí
+            era 100% inventado (mock-users.ts) — mostraba a "dante-medina"
+            en el puesto #3 con 12,400 XP sin que existiera ninguna compra
+            real detrás. Se quitó por completo en vez de dejarlo (2026-08-27,
+            reporte del cliente); un ranking real necesita un directorio de
+            clientes que este proyecto todavía no tiene — ver nota en
+            mock-users.ts. */}
         <div className="lg:col-span-5 space-y-6">
-          
-          {/* Tabla de Ranking Global */}
-          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-            <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">
-              // {t.vault.rankGlobal}
-            </h3>
-
-            <div className="space-y-2">
-              {MOCK_LEADERBOARD.map((entry) => {
-                const isHighlighted = entry.username === (username || 'dante-medina');
-                return (
-                  <a
-                    key={entry.position}
-                    href={`/profile/${entry.username}`}
-                    className={`flex items-center justify-between p-3 rounded-lg border text-xs transition ${
-                      isHighlighted
-                        ? 'bg-red-950/20 border-red-600/50 text-white font-bold'
-                        : 'bg-black/40 border-border/60 text-zinc-300 hover:border-zinc-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-amber-400 font-bold text-sm">
-                        #{entry.position < 10 ? `0${entry.position}` : entry.position}
-                      </span>
-                      <span>@{entry.username}{isHighlighted && isOwnProfile ? ' (TÚ)' : ''}</span>
-                    </div>
-                    <span className="font-mono text-zinc-400">{entry.xp.toLocaleString()} XP</span>
-                  </a>
-                );
-              })}
-            </div>
-            <p className="text-[10px] text-zinc-500 font-mono">
-              El ranking se actualiza en tiempo real con cada compra completada.
-            </p>
-          </div>
 
           {/* Explicación de los Niveles (Tiers) */}
           <div className="bg-card border border-border rounded-xl p-5 space-y-3">
