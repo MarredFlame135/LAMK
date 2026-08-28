@@ -21,8 +21,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, ShippingAddress, VerificationStatus } from '@/types/cart';
 import { ProductVariant } from '@/types/product';
 import { track } from '@/lib/analytics';
-
-const FREE_SHIPPING_THRESHOLD = 3000; // $3,000 MXN para envío gratis
+import { computeCartTotals } from '@/lib/cart-math';
 const LOCAL_STORAGE_KEY = 'lamk_cart_state_v1';
 
 interface CartContextType {
@@ -81,11 +80,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [items, shippingAddress, isLoaded]);
 
-  const subtotal = items.reduce((acc, item) => acc + item.variant.price * item.quantity, 0);
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
-  const progressPercentage = Math.min(100, (subtotal / FREE_SHIPPING_THRESHOLD) * 100);
-  const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD || items.length === 0 ? 0 : 180;
-  const total = subtotal + shippingCost;
+  const { subtotal, shippingCost, total, remainingForFreeShipping, progressPercentage } = computeCartTotals(items);
 
   const addItem = (productTitle: string, productId: string, productImage: string, variant: ProductVariant) => {
     setItems((prev) => {
