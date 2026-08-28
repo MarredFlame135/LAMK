@@ -1,23 +1,20 @@
 // src/components/home/Lookbook.tsx
 //
 // "Fit Check" / Lookbook de modelos — grid editorial asimétrico, borde a
-// borde. Las 5 imágenes son placeholders generados con Higgsfield para no
+// borde. Las imágenes son placeholders generados con Higgsfield para no
 // dejar la sección vacía; reemplázalas por fotografía real del mismo
 // tamaño/aspect-ratio en las rutas de abajo — el código no cambia, solo el
-// contenido de los archivos:
+// contenido de los archivos.
 //
-//   public/images/lookbook/modelo-1.png  (retrato, 1536×2048 / 3:4)
-//   public/images/lookbook/modelo-2.png  (retrato, 1536×2048 / 3:4)
-//   public/images/lookbook/modelo-3.png  (horizontal, 2048×1536 / 4:3)
-//   public/images/lookbook/modelo-4.png  (retrato, 1536×2048 / 3:4)
-//   public/images/lookbook/modelo-5.png  (horizontal, 2048×1536 / 4:3)
+// Colección por temporada (2026-08-27, pedido del cliente: "que sea toda
+// una colección, hasta por temporada"): 9 piezas en dos ánimos — NIGHT RUNS
+// (nocturno, moody) y CONCRETE HEAT (diurno, cálido) — cada tile lleva su
+// insignia de temporada.
 //
-// Interacción (ronda "élite UI/UX"): cada tile crece sutilmente (1 → 1.1)
-// conforme cruza el viewport en scroll — vía useScroll/useTransform de
-// framer-motion, el mismo mecanismo que ScrollMacroBackground.tsx, sin
-// GSAP. Al hover se suma un segundo "estallido" de escala en la imagen
-// (independiente del scroll-scale, en una capa aparte) y un imán suave
-// hacia el cursor (reusa <Magnetic>, ya usado en CTAs del sitio).
+//   public/images/lookbook/modelo-1.png..modelo-5.png  → NIGHT RUNS
+//   public/images/lookbook/modelo-6.png..modelo-9.png  → CONCRETE HEAT
+//   (1,2,4,6,9 son retrato 3:4 · 3,5,7,8 son horizontal 4:3 — mantén el
+//   aspect-ratio al reemplazar para que el grid no se deforme)
 
 'use client';
 
@@ -27,27 +24,32 @@ import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion
 import { fadeUp, staggerContainer } from '@/lib/motion';
 import { Magnetic } from '@/components/ui/Magnetic';
 
+type Season = 'NIGHT RUNS' | 'CONCRETE HEAT';
+
 interface LookbookItem {
   src: string;
   alt: string;
   caption: string;
+  season: Season;
   span: string;
 }
 
 const ITEMS: LookbookItem[] = [
-  { src: '/images/lookbook/modelo-1.png', alt: 'Fit check — outfit 01', caption: 'Concrete Steps', span: 'col-span-2 row-span-2' },
-  { src: '/images/lookbook/modelo-2.png', alt: 'Fit check — outfit 02', caption: 'Raw Wall', span: 'col-span-2' },
-  { src: '/images/lookbook/modelo-3.png', alt: 'Fit check — outfit 03', caption: 'Wet Asphalt', span: 'col-span-2' },
-  { src: '/images/lookbook/modelo-4.png', alt: 'Fit check — outfit 04', caption: 'Empty Street', span: 'col-span-2 row-span-2' },
-  { src: '/images/lookbook/modelo-5.png', alt: 'Fit check — outfit 05', caption: 'Curb Sit', span: 'col-span-2' },
+  { src: '/images/lookbook/modelo-1.png', alt: 'Fit check — outfit 01', caption: 'Concrete Steps', season: 'NIGHT RUNS', span: 'col-span-2 row-span-2' },
+  { src: '/images/lookbook/modelo-2.png', alt: 'Fit check — outfit 02', caption: 'Raw Wall', season: 'NIGHT RUNS', span: 'col-span-2' },
+  { src: '/images/lookbook/modelo-3.png', alt: 'Fit check — outfit 03', caption: 'Wet Asphalt', season: 'NIGHT RUNS', span: 'col-span-2' },
+  { src: '/images/lookbook/modelo-4.png', alt: 'Fit check — outfit 04', caption: 'Empty Street', season: 'NIGHT RUNS', span: 'col-span-2 row-span-2' },
+  { src: '/images/lookbook/modelo-5.png', alt: 'Fit check — outfit 05', caption: 'Curb Sit', season: 'NIGHT RUNS', span: 'col-span-2' },
+  { src: '/images/lookbook/modelo-6.png', alt: 'Fit check — outfit 06', caption: 'Golden Plaza', season: 'CONCRETE HEAT', span: 'col-span-2' },
+  { src: '/images/lookbook/modelo-7.png', alt: 'Fit check — outfit 07', caption: 'Sunlit Wall', season: 'CONCRETE HEAT', span: 'col-span-2 row-span-2' },
+  { src: '/images/lookbook/modelo-8.png', alt: 'Fit check — outfit 08', caption: 'Skate Park', season: 'CONCRETE HEAT', span: 'col-span-2' },
+  { src: '/images/lookbook/modelo-9.png', alt: 'Fit check — outfit 09', caption: 'Daylight Steps', season: 'CONCRETE HEAT', span: 'col-span-2' },
 ];
 
 function LookbookTile({ item, index }: { item: LookbookItem; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
-  // Crece de 1 → 1.1 mientras el tile cruza el viewport (no un salto: sigue
-  // el progreso real del scroll, como pidió el brief — "scale: 1.05 a 1.1").
   const scrollScale = useTransform(scrollYProgress, [0, 0.5, 1], reduceMotion ? [1, 1, 1] : [1, 1.1, 1]);
 
   return (
@@ -56,14 +58,12 @@ function LookbookTile({ item, index }: { item: LookbookItem; index: number }) {
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, margin: '-10%' }}
-      transition={{ delay: (index % 5) * 0.06 }}
+      transition={{ delay: (index % 9) * 0.05 }}
       className={`relative overflow-hidden bg-zinc-900 ${item.span}`}
     >
       <Magnetic className="block w-full h-full" strength={0.06}>
         <div ref={ref} className="group relative w-full h-full overflow-hidden">
-          {/* Capa 1: crecimiento atado al scroll */}
           <motion.div className="relative w-full h-full" style={{ scale: scrollScale }}>
-            {/* Capa 2: estallido de hover, independiente del scroll */}
             <motion.div
               className="relative w-full h-full"
               whileHover={reduceMotion ? undefined : { scale: 1.06 }}
@@ -79,6 +79,9 @@ function LookbookTile({ item, index }: { item: LookbookItem; index: number }) {
             </motion.div>
           </motion.div>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <span className="pointer-events-none absolute top-3 left-3 font-mono text-[9px] uppercase tracking-[0.15em] text-white/80 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded">
+            {item.season}
+          </span>
           <span className="pointer-events-none absolute bottom-3 left-3 font-mono text-[10px] uppercase tracking-[0.15em] text-white opacity-0 group-hover:opacity-100 transition-opacity duration-500">
             {item.caption}
           </span>
@@ -105,12 +108,11 @@ export function Lookbook() {
           </h2>
         </motion.div>
         <p className="text-xs text-zinc-500 max-w-xs">
-          Lookbook editorial — cómo combina la comunidad LAMK sus piezas en la vida real.
+          Dos temporadas, una comunidad — Night Runs y Concrete Heat.
         </p>
       </motion.div>
 
-      {/* Grid editorial asimétrico, borde a borde (sin padding lateral en el track) */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 auto-rows-[14rem] sm:auto-rows-[16rem] gap-1">
+      <div className="grid grid-cols-4 sm:grid-cols-6 auto-rows-[14rem] sm:auto-rows-[16rem] grid-flow-dense gap-1">
         {ITEMS.map((item, i) => (
           <LookbookTile key={item.src} item={item} index={i} />
         ))}
