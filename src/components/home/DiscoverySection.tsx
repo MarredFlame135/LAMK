@@ -20,8 +20,15 @@ interface DiscoverySectionProps {
 
 const HOME_PREVIEW_LIMIT = 8;
 
+// Fix (auditoría 2026-08-27, hallazgo #5): arrancaba en 'HOT' (Hype≥70),
+// pero el propio DiscoveryTabs.tsx documenta que 'TODOS' es el default real
+// del sistema ("para no esconder inventario real"). CatalogGrid.tsx ya
+// arranca en 'ALL' — esto era la única inconsistencia. Confirmado en
+// producción: 0 de 265 productos superan Hype≥70 hoy, así que la sección
+// arrancaba vacía ("No hay piezas...") en el primer paint para cualquier
+// visitante.
 export function DiscoverySection({ products }: DiscoverySectionProps) {
-  const [tab, setTab] = useState<DiscoveryTab>('HOT');
+  const [tab, setTab] = useState<DiscoveryTab>('ALL');
   const { addItem } = useCart();
 
   const items = useMemo(() => filterByDiscoveryTab(products, tab).slice(0, HOME_PREVIEW_LIMIT), [products, tab]);

@@ -3,6 +3,12 @@
 // Reusa la tarjeta "Vitrina de Museo" (ProductCard) en vez de tener su
 // propio markup de tarjeta duplicado — así el rediseño HUD vive en un solo
 // lugar y este carrusel lo hereda automáticamente.
+//
+// Fix (auditoría 2026-08-27, hallazgo #3): esto renderizaba el catálogo
+// COMPLETO sin límite (265 productos reales) — hidratación gigante, y la
+// causa directa de que 265 precios llegaran en $0 al HTML servido (ver
+// fix de CountUp.tsx). Un carrusel "trending" con 265 tarjetas no es
+// curaduría, es el catálogo entero disfrazado.
 
 'use client';
 
@@ -11,14 +17,19 @@ import { Product, ProductVariant } from '@/types/product';
 import { useCart } from '@/hooks/useCart';
 import { ProductCard } from '@/components/catalog/ProductCard';
 
+const HOME_CURATED_LIMIT = 14;
+
 interface HypeCarouselProps {
   products: Product[];
 }
 
 export function HypeCarousel({ products }: HypeCarouselProps) {
   const { addItem } = useCart();
-  // Ordenar productos por el score de Hype Meter de mayor a menor
-  const trendingProducts = [...products].sort((a, b) => b.hypeMeter.score - a.hypeMeter.score);
+  // Curado: solo lo que de verdad está en tendencia, con tope duro.
+  const trendingProducts = [...products]
+    .filter((p) => !p.isSoldOut)
+    .sort((a, b) => b.hypeMeter.score - a.hypeMeter.score)
+    .slice(0, HOME_CURATED_LIMIT);
 
   const handleAddToCart = (product: Product, variant: ProductVariant) => {
     addItem(product.title, product.id, product.images[0], variant);

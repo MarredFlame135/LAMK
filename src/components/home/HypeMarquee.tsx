@@ -14,16 +14,27 @@ const ITEMS = [
 ];
 
 export function HypeMarquee() {
-  const track = [...ITEMS, ...ITEMS]; // duplicado para el loop continuo
-
   return (
     <div className="relative overflow-hidden bg-[#FF1E42] py-2.5 border-y border-red-900/40">
       <div className="flex w-max animate-[marquee_28s_linear_infinite] gap-10">
-        {track.map((text, i) => (
-          <span key={i} className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-white whitespace-nowrap">
-            {text}
-          </span>
-        ))}
+        {/* Set real — lo único que debe leer un lector de pantalla */}
+        <div className="flex gap-10">
+          {ITEMS.map((text, i) => (
+            <span key={i} className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-white whitespace-nowrap">
+              {text}
+            </span>
+          ))}
+        </div>
+        {/* Fix (auditoría 2026-08-27, hallazgo #7): clon solo visual para
+            que el loop sea continuo — sin aria-hidden, un lector de
+            pantalla leía cada aviso dos veces seguidas. */}
+        <div className="flex gap-10" aria-hidden="true">
+          {ITEMS.map((text, i) => (
+            <span key={i} className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-white whitespace-nowrap">
+              {text}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );
