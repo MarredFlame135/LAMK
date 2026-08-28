@@ -27,6 +27,19 @@ export interface ShippingAddress {
 
 export type VerificationStatus = 'NOT_REQUIRED' | 'PENDING_OTP' | 'VERIFIED' | 'FAILED';
 
+// Sugerencia de cross-sell del "Double Check" — siempre un producto REAL del
+// catálogo (id/handle reales), nunca un nombre inventado. `matchedBrand` es
+// la marca del carrito que motivó la sugerencia, para poder mostrar el
+// "porque llevas {marca}" en la UI.
+export interface CrossSellSuggestion {
+  productId: string;
+  handle: string;
+  title: string;
+  image: string;
+  price: number;
+  matchedBrand: string;
+}
+
 export interface SpecialCartState {
   items: CartItem[];
   subtotal: number;

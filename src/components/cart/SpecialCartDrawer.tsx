@@ -8,6 +8,7 @@ import { isValidMexicanPostalCode, isValidMexicanPhone } from '@/lib/validators'
 import { ShippingAddress } from '@/types/cart';
 import { useApp } from '@/context/AppContext';
 import { Magnetic } from '@/components/ui/Magnetic';
+import { CrossSellModule } from '@/components/cart/CrossSellModule';
 
 const EMPTY_ADDRESS_FORM = {
   fullName: '', phone: '', street: '', exteriorNumber: '', interiorNumber: '',
@@ -186,6 +187,9 @@ export function SpecialCartDrawer() {
                 <span className="text-[#FF1E42]">${total.toLocaleString()} MXN</span>
               </div>
             </div>
+
+            {/* "Double Check" — cross-sell antes del checkout (RF Smart Cart) */}
+            <CrossSellModule items={items} />
 
             {/* Paso 1: Dirección de envío con validación de CP mexicano (RF-07) */}
             {!shippingAddress?.isNormalized ? (

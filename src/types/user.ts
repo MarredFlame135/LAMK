@@ -22,6 +22,33 @@ export interface UserPreferences {
   apparelSize?: 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 }
 
+// Segmentación para CRM/campañas (RF pendiente — hoy solo el tipo, la
+// captura real de estos datos todavía no existe en /auth/register ni en el
+// checkout, así que en la práctica llega undefined hasta que se agregue esa
+// UI. No inventar un valor por defecto en el frontend: si no se preguntó,
+// se queda sin segmentar).
+export type AgeSegment = 'TEEN_13_17' | 'YOUNG_ADULT_18_24' | 'ADULT_25_34' | 'ADULT_35_PLUS';
+
+// Afinidad de marca real: a diferencia de `preferredBrands` (elegido a mano
+// por el usuario en su perfil), esto es un score derivado de comportamiento
+// real — vistas y compras — no una preferencia declarada. Se calcula server-side
+// (ver lib/segmentation.ts) a partir de CollectionItem[] + historial de vistas;
+// nunca se debe inicializar con valores inventados en el cliente.
+export interface BrandAffinityScore {
+  brand: string;
+  score: number;        // 0-100, ponderado: compra > vista repetida > vista única
+  purchaseCount: number;
+  viewCount: number;
+}
+
+export interface CustomerSegment {
+  ageSegment?: AgeSegment;
+  shoeSize?: number;             // atajo a preferences.shoeSize, para filtrar sin desanidar
+  topBrandAffinity: BrandAffinityScore[]; // ordenado desc por score, top 3 típicamente
+  tier: CollectorTier;
+  xp: number;
+}
+
 export interface OrderSummary {
   id: string;
   name: string;         // ej. "#1042"
@@ -48,6 +75,9 @@ export interface UserProfile {
   ordersCount: number;
   totalSpent: number;
   recentOrders?: OrderSummary[];      // Historial real de pedidos (Shopify), opcional (mock no lo trae)
+
+  // Segmentación CRM — opcional a propósito, ver CustomerSegment arriba.
+  segment?: CustomerSegment;
 }
 
 export interface LeaderboardEntry {

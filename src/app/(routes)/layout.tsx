@@ -8,6 +8,7 @@ import { SpecialCartDrawer } from '@/components/cart/SpecialCartDrawer';
 import { SAAS_CONFIG } from '@/lib/saas-config';
 import { AppProvider } from '@/context/AppContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { CartProvider } from '@/context/CartContext';
 import { ThemeVariantProvider } from '@/components/themes/ThemeVariantContext';
 import { PwaRegister } from '@/components/ui/PwaRegister';
 import { Navbar } from '@/components/ui/Navbar';
@@ -63,6 +64,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AppProvider>
             <AuthProvider>
+            <CartProvider>
             <ThemeVariantProvider>
               <PwaRegister />
               <CustomCursor />
@@ -108,6 +110,7 @@ export default function RootLayout({
                 <p className="relative">© {new Date().getFullYear()} {SAAS_CONFIG.brandName}. PWA POWERED BY HYDROGEN & NEXT.JS.</p>
               </footer>
             </ThemeVariantProvider>
+            </CartProvider>
             </AuthProvider>
           </AppProvider>
         </ThemeProvider>
