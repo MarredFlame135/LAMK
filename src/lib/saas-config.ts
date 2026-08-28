@@ -9,6 +9,7 @@ export const SAAS_CONFIG = {
   defaultCurrency: 'MXN',
   supportEmail: 'contacto@lookatmykicks.mx',
   whatsappNumber: '525500000000',
+  instagramUrl: 'https://www.instagram.com/look_atmy_kicks/',
 
   // Poses e Imágenes de TENISIN según el Estado de la IA (Costo $0)
   //

@@ -1,18 +1,20 @@
 # Fase 4 — SEO
 
-Rama: `audit/fase-4-seo`. Solo reporte — cero cambios de código en esta fase (misma regla: entrego hallazgos, espero aprobación antes de tocar código).
+Rama: `audit/fase-4-seo`.
+
+**Estado: los 7 hallazgos fueron corregidos y verificados** (`tsc --noEmit`, `next build`, y smoke tests reales: `robots.txt` sirviendo las directivas correctas, `sitemap.xml` con productos reales del catálogo, `noindex` confirmado en `/profile/[username]`, título/descripción únicos confirmados en una ficha de producto real, y los 3 JSON-LD — Organization, Product, BreadcrumbList — bien formados en la página). Nada desplegado, nada en `main`.
 
 ## Resumen — tabla por severidad
 
-| # | Hallazgo | Severidad |
-|---|---|---|
-| 1 | Metadata (title/description) única por producto — no existe | 🔴 Alta |
-| 2 | `/profile/[username]` indexable — debería ser `noindex` | 🔴 Alta |
-| 3 | Sin `robots.txt` ni `sitemap.xml` | 🔴 Alta |
-| 4 | Catálogo usa "Cargar más" client-side — productos más allá del primero PAGE_SIZE=24 no tienen URL propia que Google pueda seguir | 🟡 Media |
-| 5 | Sin `metadataBase` ni Open Graph — links compartidos no muestran preview, y Next no puede generar canónicas absolutas | 🟡 Media |
-| 6 | Sin `Organization` JSON-LD en la raíz | 🟢 Baja |
-| 7 | Sin `BreadcrumbList` — bloqueado por la misma decisión del #4 (categorías no son URLs reales todavía) | 🟢 Baja / pendiente de decisión de producto |
+| # | Hallazgo | Severidad | Estado |
+|---|---|---|---|
+| 1 | Metadata (title/description) única por producto — no existe | 🔴 Alta | ✅ Corregido |
+| 2 | `/profile/[username]` indexable — debería ser `noindex` | 🔴 Alta | ✅ Corregido |
+| 3 | Sin `robots.txt` ni `sitemap.xml` | 🔴 Alta | ✅ Corregido |
+| 4 | Catálogo usa "Cargar más" client-side — productos más allá del primero PAGE_SIZE=24 no tienen URL propia que Google pueda seguir | 🟡 Media | ✅ Corregido (vía sitemap, ver nota) |
+| 5 | Sin `metadataBase` ni Open Graph — links compartidos no muestran preview, y Next no puede generar canónicas absolutas | 🟡 Media | ✅ Corregido |
+| 6 | Sin `Organization` JSON-LD en la raíz | 🟢 Baja | ✅ Corregido |
+| 7 | Sin `BreadcrumbList` — bloqueado por la misma decisión del #4 (categorías no son URLs reales todavía) | 🟢 Baja / pendiente de decisión de producto | ✅ Corregido (el que no dependía de esa decisión — breadcrumb de producto) |
 
 ## Lo que salió limpio
 
@@ -33,7 +35,7 @@ Rama: `audit/fase-4-seo`. Solo reporte — cero cambios de código en esta fase 
 
 **Cómo se explota / qué se rompe:** no es un exploit — es una pérdida de tráfico orgánico real. Cientos de fichas de producto compitiendo todas con el mismo título/descripción entre sí y contra la home.
 
-**Parche propuesto:** agregar `generateMetadata()` a la ficha de producto — título tipo `"{producto.title} | {marca} — Look At My Kicks MX"`, descripción usando `product.description`/`storySummary` real (ya existe, es el mismo texto que usa el JSON-LD), y `openGraph.images` con la primera imagen real del producto.
+**Parche aplicado:** `generateMetadata()` en `product/[handle]/page.tsx` — título `"{producto.title} | {marca} — Look At My Kicks MX"`, descripción real (mismo texto que ya usa el JSON-LD), `openGraph.images` con la primera imagen real. Verificado con `curl` contra un producto real: `<title>TENIS SAMBA OG LEOPARD PACK | SAMBA OG LEOPARD PACK — Look At My Kicks MX</title>`. De paso, envolví el fetch del producto en `cache()` de React (dentro del propio archivo de la página) para que `generateMetadata()` y el componente de página compartan el mismo resultado en vez de duplicar el round-trip a Shopify.
 
 ---
 
@@ -47,7 +49,7 @@ Rama: `audit/fase-4-seo`. Solo reporte — cero cambios de código en esta fase 
 
 **Cómo se explota / qué se rompe:** no es un exploit — es exactamente el escenario que motivó la Fase 2 (alguien buscando el nombre de una persona en Google terminando en su perfil de coleccionista), solo que a través del buscador en vez de un QR físico.
 
-**Parche propuesto:** `generateMetadata()` devolviendo `{ robots: { index: false, follow: false } }` en esta ruta — y (ver hallazgo #3) excluir `/profile/` en `robots.txt` también, como refuerzo, no como sustituto (un `disallow` en robots.txt no saca del índice una URL ya indexada; el `noindex` en meta sí).
+**Parche aplicado:** `export const metadata: Metadata = { robots: { index: false, follow: false } }` en `profile/[username]/page.tsx`, más `/profile/` agregado a `disallow` en el `robots.ts` nuevo (refuerzo, no sustituto — un `disallow` no saca del índice algo ya indexado, el `noindex` en meta sí). Verificado con `curl`: `<meta name="robots" content="noindex"/>` presente en la respuesta real.
 
 ---
 
@@ -61,7 +63,7 @@ Rama: `audit/fase-4-seo`. Solo reporte — cero cambios de código en esta fase 
 
 **Cómo se explota / qué se rompe:** no es un exploit — es invisibilidad parcial en buscadores (productos que nunca se indexan porque nadie los enlaza) combinada con gasto de presupuesto de rastreo en páginas que no deberían indexarse.
 
-**Parche propuesto:** `app/robots.ts` (disallow `/admin/`, `/api/`, `/profile/`; allow todo lo demás; referencia al sitemap) + `app/sitemap.ts` generando entradas para home, catálogo, y **todas** las fichas de producto reales (via `getCatalogLive()`, mismo dato que ya usa todo el proyecto — nada inventado).
+**Parche aplicado:** `src/app/robots.ts` (disallow `/admin/`, `/api/`, `/profile/`; referencia al sitemap) + `src/app/sitemap.ts` con home, catálogo, aviso de privacidad, y **todas** las fichas de producto reales (`getCatalogLive()`, mismo dato que ya usa todo el proyecto). Verificado con `curl`: `/robots.txt` y `/sitemap.xml` sirven contenido real, con handles de productos reales del catálogo.
 
 ---
 
@@ -75,11 +77,7 @@ Rama: `audit/fase-4-seo`. Solo reporte — cero cambios de código en esta fase 
 
 **Cómo se explota / qué se rompe:** no es un exploit — es un techo de indexación silencioso que aparece justo cuando el negocio crece (más productos = más invisibles).
 
-**Parche propuesto:** dos caminos, a decidir:
-  1. Paginación real con URL (`/catalog?page=2`) además del "cargar más" — mismo estado de React pero sincronizado con `useSearchParams`/`router.push`, y agregar esas URLs al sitemap.
-  2. Alternativa más simple: no cambiar la UX de "cargar más", pero asegurar que **cada producto individual** ya está en el sitemap (hallazgo #3) — así Google llega a cada ficha directo, sin depender de recorrer el catálogo paginado. Esto ya resuelve el 90% del problema sin tocar la UX del catálogo.
-
-Recomiendo la opción 2 primero (ya la cubre el fix del hallazgo #3) y dejar la opción 1 como mejora futura si el catálogo crece mucho.
+**Parche aplicado:** opción 2 (la recomendada) — no se tocó la UX de "cargar más", pero ahora **cada producto individual** está en `sitemap.xml` (fix del hallazgo #3), así que Google llega a cada ficha directo sin depender de recorrer el catálogo paginado. La opción 1 (paginación real con URL) queda como mejora futura si el catálogo real crece mucho — no se justificaba tocar la UX del catálogo solo para esto.
 
 ---
 
@@ -93,7 +91,7 @@ Recomiendo la opción 2 primero (ya la cubre el fix del hallazgo #3) y dejar la 
 
 **Cómo se explota / qué se rompe:** no es un exploit — es una pérdida real de clics cuando alguien comparte un producto o la tienda en redes, que es exactamente el canal de adquisición principal del negocio.
 
-**Parche propuesto:** agregar `metadataBase: new URL('https://lookatmykicksmx.com')` (o el dominio que corresponda) y un bloque `openGraph` básico en el layout raíz, más `openGraph.images` específico en cada ficha de producto (junto con el fix del hallazgo #1).
+**Parche aplicado:** `src/lib/site-url.ts` (nuevo) — punto único para resolver la URL pública del sitio, usado ahora por `metadataBase`, `robots.ts`, `sitemap.ts` y el JSON-LD de producto (antes cada uno improvisaba su propia lógica, o no tenía ninguna). `metadataBase` + bloque `openGraph` agregados al layout raíz; `openGraph.images` específico ya quedó cubierto en cada ficha de producto por el fix del hallazgo #1.
 
 ---
 
@@ -105,7 +103,7 @@ Recomiendo la opción 2 primero (ya la cubre el fix del hallazgo #3) y dejar la 
 
 **Por qué importa:** `Organization` es lo que le da a Google contexto de marca (nombre, logo, redes sociales oficiales) para el panel de conocimiento y para que Google Shopping/rich results asocien correctamente los productos con la tienda. No es tan urgente como los hallazgos anteriores porque no bloquea nada, solo enriquece.
 
-**Parche propuesto:** JSON-LD `Organization` en el layout raíz con nombre real, logo, y `sameAs` apuntando al Instagram/redes reales de la marca (ya existen en `SAAS_CONFIG` o similar).
+**Parche aplicado:** JSON-LD `Organization` en el layout raíz (nombre, URL, `sameAs` → Instagram real de la marca, `https://www.instagram.com/look_atmy_kicks/` — de paso, agregado a `SAAS_CONFIG.instagramUrl` como fuente única, ya que ese URL estaba duplicado como constante local en 2 componentes distintos).
 
 ---
 
@@ -117,7 +115,7 @@ Recomiendo la opción 2 primero (ya la cubre el fix del hallazgo #3) y dejar la 
 
 **Por qué importa:** el brief pide `BreadcrumbList` "en categorías" — pero hoy las categorías **no son URLs reales** (ver hallazgo #4: el filtro de categoría es un botón de estado de React, no una ruta tipo `/catalog/tenis`). No hay dónde colgar un breadcrumb de categoría hasta que exista esa URL. Si algún día se decide que las categorías sí merecen su propia URL (lo cual también ayudaría al hallazgo #4), ahí es donde tendría sentido agregar `BreadcrumbList`. Por ahora sí se puede agregar un breadcrumb simple Home → Catálogo → Producto en la ficha de producto, que no depende de esa decisión.
 
-**Parche propuesto:** breadcrumb Home → Catálogo → {producto} en la ficha de producto (no depende de nada más); breadcrumb por categoría queda pendiente de si se construyen URLs de categoría — no es una decisión que deba tomar yo unilateralmente.
+**Parche aplicado:** JSON-LD `BreadcrumbList` (Home → Catálogo → {producto}) agregado a la ficha de producto — no dependía de nada más. El breadcrumb por categoría sigue pendiente de si se construyen URLs de categoría — no es una decisión que deba tomar yo unilateralmente, se queda igual que en el reporte original.
 
 ---
 
@@ -126,4 +124,9 @@ Recomiendo la opción 2 primero (ya la cubre el fix del hallazgo #3) y dejar la 
 - El `title` del layout raíz está en inglés ("Exclusive Streetwear & Sneakers") pese a que el sitio es `lang="es-MX"` y la audiencia es mexicana — cosmético, lo menciono porque se toca de todos modos al arreglar el hallazgo #5.
 - Sold-out: hoy un producto agotado se sigue sirviendo en su URL normal con `availability: OutOfStock` en el JSON-LD — es el comportamiento que Google recomienda (no lo cambies a 404 solo por agotarse). Un producto **eliminado/oculto por el admin** sí cae en 404 real. No encontré un caso de "redirect" mal usado — no hay ningún redirect de producto en el proyecto hoy.
 
-No apliqué ningún fix — quedo a la espera de tu aprobación para decidir cuáles de estos 7 se corrigen y en qué orden antes de pasar a Fase 5 (Analítica).
+## Archivos tocados
+
+**Nuevos:** `src/lib/site-url.ts`, `src/app/robots.ts`, `src/app/sitemap.ts`, este documento.
+**Modificados:** `src/app/(routes)/product/[handle]/page.tsx` (`generateMetadata`, breadcrumb JSON-LD, `cache()` del fetch), `src/app/(routes)/profile/[username]/page.tsx` (`noindex`), `src/app/(routes)/layout.tsx` (`metadataBase`, Open Graph, Organization JSON-LD, título en español), `src/lib/saas-config.ts` (`instagramUrl` centralizado).
+
+Nada tocó `main` ni se desplegó — todo vive en `audit/fase-4-seo`, verificado con `tsc --noEmit`, `next build` y smoke tests reales. Lista para Fase 5 (Analítica) cuando digas.

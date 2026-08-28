@@ -1,23 +1,52 @@
 // src/app/(routes)/product/[handle]/page.tsx
 
 import React from 'react';
+import { cache } from 'react';
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductDetail } from '@/components/product/ProductDetail';
 import { getProductByHandleLive } from '@/lib/catalog-source';
 import { recordView, getViews24h, computeHypeMeter } from '@/lib/hype';
+import { getSiteUrl } from '@/lib/site-url';
+import { SAAS_CONFIG } from '@/lib/saas-config';
 import { Product } from '@/types/product';
 
-// Fix (auditoría 2026-08-27, hallazgo #8): sin JSON-LD, Google Shopping y
-// los rich results no tienen forma de leer precio/disponibilidad de las
-// piezas — cero snippets de producto en buscador. Con precio y stock reales
-// (mismos datos que ya usa la ficha, nada inventado). La URL pública final
-// del sitio todavía no está definida (dominio propio pendiente de compra),
-// así que se usa NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN — el mismo dominio real
-// que ya sirve de referencia en el resto del proyecto — con fallback
-// relativo si algún día cambia.
+interface ProductPageProps {
+  params: { handle: string };
+}
+
+// Fix (hallazgo #1 de la auditoría de Fase 4): generateMetadata() y el
+// componente de página necesitan el mismo producto — sin cache(), sería un
+// segundo round-trip a Shopify por cada visita. cache() de React memoiza
+// por request, así que el segundo call reusa el resultado del primero sin
+// tocar la red otra vez.
+const getProduct = cache((handle: string) => getProductByHandleLive(handle));
+
+// Fix (hallazgo #1 de la auditoría de Fase 4): sin esto, TODAS las fichas de
+// producto compartían el mismo <title>/<meta description> genérico del
+// layout raíz — nada distinguía una ficha de otra en un resultado de
+// búsqueda de Google.
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { product } = await getProduct(params.handle);
+  if (!product) return {};
+
+  const description = product.description || product.storytelling.storySummary;
+  const image = product.images[0];
+
+  return {
+    title: `${product.title} | ${product.brand} — ${SAAS_CONFIG.brandName}`,
+    description,
+    openGraph: {
+      title: product.title,
+      description,
+      images: image ? [{ url: image }] : undefined,
+    },
+  };
+}
+
 function buildProductJsonLd(product: Product) {
   const variant = product.variants.find((v) => v.isAvailable) || product.variants[0];
-  const domain = process.env.NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN;
+  const siteUrl = getSiteUrl();
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -28,7 +57,7 @@ function buildProductJsonLd(product: Product) {
     sku: variant?.sku || product.id,
     offers: {
       '@type': 'Offer',
-      url: domain ? `https://${domain}/product/${product.handle}` : `/product/${product.handle}`,
+      url: `${siteUrl}/product/${product.handle}`,
       priceCurrency: 'MXN',
       price: variant?.price ?? 0,
       availability: product.isSoldOut
@@ -39,8 +68,20 @@ function buildProductJsonLd(product: Product) {
   };
 }
 
-interface ProductPageProps {
-  params: { handle: string };
+// Fix (hallazgo #7 de la auditoría de Fase 4): breadcrumb Home → Catálogo →
+// Producto — no depende de que existan URLs de categoría (a diferencia del
+// breadcrumb por categoría, que sí queda pendiente de esa decisión).
+function buildBreadcrumbJsonLd(product: Product) {
+  const siteUrl = getSiteUrl();
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Inicio', item: siteUrl },
+      { '@type': 'ListItem', position: 2, name: 'Catálogo', item: `${siteUrl}/catalog` },
+      { '@type': 'ListItem', position: 3, name: product.title, item: `${siteUrl}/product/${product.handle}` },
+    ],
+  };
 }
 
 // Nota: ya no se usa generateStaticParams() con handles fijos del mock — el
@@ -59,7 +100,7 @@ interface ProductPageProps {
 export const revalidate = 60;
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  const { product } = await getProductByHandleLive(params.handle);
+  const { product } = await getProduct(params.handle);
 
   if (!product) {
     notFound();
@@ -80,6 +121,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: JSON.stringify(buildProductJsonLd(productWithFreshHype)) }}
+      />
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(buildBreadcrumbJsonLd(productWithFreshHype)) }}
       />
       <ProductDetail product={productWithFreshHype} />
     </>

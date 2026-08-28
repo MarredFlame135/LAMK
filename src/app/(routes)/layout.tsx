@@ -16,19 +16,51 @@ import { CustomCursor } from '@/components/ui/CustomCursor';
 import { PrivacyConsentBanner } from '@/components/ui/PrivacyConsentBanner';
 import { CartTrigger } from '@/components/ui/CartTrigger';
 import { MobileMenu } from '@/components/ui/MobileMenu';
+import { getSiteUrl } from '@/lib/site-url';
 
 export const viewport: Viewport = {
   themeColor: '#050507',
 };
 
+const SITE_URL = getSiteUrl();
+const SITE_DESCRIPTION = 'Sneakers y streetwear exclusivo en México. Drops limitados, Hype Meter en vivo y entregas express.';
+
+// Fix (hallazgo #5 de la auditoría de Fase 4): sin `metadataBase`, Next no
+// puede resolver URLs relativas de `openGraph.images`/canónicas a
+// absolutas. Sin `openGraph`, compartir un link de LAMK en WhatsApp o
+// Instagram —el canal real de adquisición del negocio, según CLAUDE.md— no
+// mostraba ninguna tarjeta de preview. De paso, el título pasa a español
+// ("Exclusive Streetwear & Sneakers" no encajaba con `lang="es-MX"` ni con
+// la audiencia real del sitio).
 export const metadata: Metadata = {
-  title: `${SAAS_CONFIG.brandName} | Exclusive Streetwear & Sneakers`,
-  description: 'Plataforma e-commerce PWA de calzado y ropa streetwear premium en México. Drops exclusivos, Hype Meter y entregas express.',
+  metadataBase: new URL(SITE_URL),
+  title: `${SAAS_CONFIG.brandName} | Sneakers y Streetwear Exclusivo`,
+  description: SITE_DESCRIPTION,
   manifest: '/manifest/manifest.json',
   icons: {
     icon: '/icons/icon-192.svg',
     apple: '/icons/icon-192.svg',
   },
+  openGraph: {
+    type: 'website',
+    locale: 'es_MX',
+    siteName: SAAS_CONFIG.brandName,
+    title: `${SAAS_CONFIG.brandName} | Sneakers y Streetwear Exclusivo`,
+    description: SITE_DESCRIPTION,
+  },
+};
+
+// Fix (hallazgo #6 de la auditoría de Fase 4): sin esto no había ningún
+// JSON-LD de marca en todo el sitio (solo el de producto, ver
+// product/[handle]/page.tsx) — Organization es lo que le da a Google
+// contexto de marca para el panel de conocimiento y para que Google
+// Shopping asocie correctamente los productos con la tienda.
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: SAAS_CONFIG.brandName,
+  url: SITE_URL,
+  sameAs: [SAAS_CONFIG.instagramUrl],
 };
 
 // Tipografía "Haute-Tech Luxury Vault" (editorial suiza): Inter para cuerpo/UI
@@ -63,6 +95,11 @@ export default function RootLayout({
   return (
     <html lang="es-MX" suppressHydrationWarning className={`${inter.variable} ${spaceGrotesk.variable} ${jetBrainsMono.variable}`}>
       <body className="bg-background text-foreground antialiased min-h-screen flex flex-col font-sans selection:bg-[#FF1E42] selection:text-white">
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AppProvider>
             <AuthProvider>
