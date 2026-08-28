@@ -22,9 +22,20 @@ function AdminLoginForm() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
-      const data = await res.json();
+
+      // Si algo intercepta la respuesta antes de llegar a la API (ej. un
+      // muro de login de Vercel en un deploy protegido) puede llegar HTML
+      // en vez de JSON — sin este catch, `res.json()` tira y el usuario solo
+      // ve "Error de red", sin pista de qué pasó de verdad.
+      let data: { error?: string } = {};
+      try {
+        data = await res.json();
+      } catch {
+        setError('El servidor respondió con algo inesperado (¿estás en la URL correcta del sitio?).');
+        return;
+      }
 
       if (!res.ok) {
         setError(data.error || 'No se pudo iniciar sesión.');

@@ -64,14 +64,17 @@ export function CrossSellModule({ items }: CrossSellModuleProps) {
       variants={staggerContainer(0.06)}
       initial="hidden"
       animate="show"
-      className="p-3 bg-zinc-900/60 border border-border rounded-lg space-y-3"
+      className="p-4 bg-gradient-to-br from-red-950/30 via-card to-card border border-[#FF1E42]/20 rounded-2xl space-y-4"
     >
-      <motion.div variants={fadeUp}>
-        <p className="text-xs font-bold text-zinc-200">Double Check: ¿es todo lo que buscas?</p>
-        <p className="text-[10px] text-zinc-500 mt-0.5">Combina bien con lo que ya llevas en el carrito.</p>
+      <motion.div variants={fadeUp} className="flex items-center gap-2">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FF1E42]/15 text-[#FF1E42] text-xs font-black shrink-0">✓</span>
+        <div>
+          <p className="text-xs font-black uppercase tracking-wide text-white">Double Check</p>
+          <p className="text-[10px] text-zinc-500">¿Es todo lo que buscas? Esto combina con lo que ya llevas.</p>
+        </div>
       </motion.div>
 
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <AnimatePresence initial={false}>
           {suggestions.map((s) => {
             const added = addedIds.has(s.productId);
@@ -80,24 +83,25 @@ export function CrossSellModule({ items }: CrossSellModuleProps) {
                 key={s.productId}
                 variants={fadeUp}
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="flex items-center gap-3 p-2 bg-card border border-border/70 rounded"
+                whileHover={{ y: -2 }}
+                className="flex items-center gap-3 p-2.5 bg-black/40 border border-white/5 rounded-xl transition-colors hover:border-[#FF1E42]/30"
               >
-                <img src={s.image} alt={s.title} className="w-12 h-12 object-cover bg-black rounded shrink-0" />
+                <img src={s.image} alt={s.title} className="w-16 h-16 object-cover bg-black rounded-lg shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold uppercase line-clamp-1">{s.title}</p>
-                  <p className="text-[10px] text-zinc-500">
-                    Va bien con tu {s.matchedBrand} · ${s.price.toLocaleString()} MXN
-                  </p>
+                  <p className="text-[11px] font-bold uppercase line-clamp-1 text-zinc-100">{s.title}</p>
+                  <p className="text-[10px] text-zinc-500 mt-0.5">Va bien con tu {s.matchedBrand}</p>
+                  <p className="font-display text-sm font-black text-[#C5A059] mt-1 tabular-nums">${s.price.toLocaleString()} MXN</p>
                 </div>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
                   onClick={() => handleQuickAdd(s)}
                   disabled={added}
-                  className="shrink-0 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide rounded transition
+                  className="shrink-0 h-9 px-4 text-[10px] font-black uppercase tracking-wide rounded-full transition-colors
                     disabled:bg-emerald-950/40 disabled:text-emerald-400
-                    bg-zinc-800 hover:bg-zinc-700 text-white"
+                    bg-[#FF1E42] hover:bg-red-700 text-white"
                 >
-                  {added ? 'Agregado' : '+ Agregar'}
-                </button>
+                  {added ? '✓ Listo' : '+ Agregar'}
+                </motion.button>
               </motion.div>
             );
           })}

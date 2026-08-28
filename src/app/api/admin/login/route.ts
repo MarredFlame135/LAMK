@@ -17,11 +17,20 @@ export async function POST(request: Request) {
       );
     }
 
-    if (email !== adminEmail || password !== adminPassword) {
+    // Fix (reportado 2026-08-27): el login fallaba por comparación exacta —
+    // un espacio de más al pegar el correo, o mayúsculas distintas, bastaba
+    // para que `email !== adminEmail` rechazara credenciales que en la
+    // práctica eran correctas. El email se normaliza (trim + lowercase) en
+    // ambos lados; la contraseña se compara tal cual (sí es sensible a
+    // mayúsculas, a propósito).
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const normalizedAdminEmail = adminEmail.trim().toLowerCase();
+
+    if (normalizedEmail !== normalizedAdminEmail || password !== adminPassword) {
       return NextResponse.json({ error: 'Credenciales inválidas.' }, { status: 401 });
     }
 
-    const token = await signAdminSession({ email, issuedAt: Date.now() });
+    const token = await signAdminSession({ email: normalizedAdminEmail, issuedAt: Date.now() });
 
     const response = NextResponse.json({ success: true });
     response.cookies.set('lamk_admin_session', token, {

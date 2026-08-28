@@ -18,6 +18,9 @@ import { DropsCoverflow } from '@/components/home/DropsCoverflow';
 import { HypeCarousel } from '@/components/home/HypeCarousel';
 import { DiscoverySection } from '@/components/home/DiscoverySection';
 import { SocialProofSection } from '@/components/home/SocialProofSection';
+import { Lookbook } from '@/components/home/Lookbook';
+import { IGLiveMonitor } from '@/components/home/IGLiveMonitor';
+import { ScrollMacroBackground } from '@/components/home/ScrollMacroBackground';
 import { TenisinWidget } from '@/components/ai-concierge/TenisinWidget';
 import { getCatalogLive } from '@/lib/catalog-source';
 
@@ -32,6 +35,13 @@ export default async function HomePage() {
       <VolumetricShowcase products={products} />
       <DropsCoverflow products={products} />
       <HypeCarousel products={products} />
+
+      {/* Tarea 3: fondo macro atado al scroll, envolviendo el Lookbook */}
+      <ScrollMacroBackground>
+        <Lookbook />
+      </ScrollMacroBackground>
+
+      <IGLiveMonitor products={products} />
       <DiscoverySection products={products} />
       <SocialProofSection products={products} />
 

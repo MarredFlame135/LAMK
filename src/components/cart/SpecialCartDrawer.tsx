@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { isValidMexicanPostalCode, isValidMexicanPhone } from '@/lib/validators';
 import { ShippingAddress } from '@/types/cart';
@@ -68,19 +69,19 @@ export function SpecialCartDrawer() {
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Bottom Sheet en mobile / Panel Lateral Deslizante en sm+ */}
-      <div className="relative z-10 w-full sm:max-w-md h-[92vh] sm:h-full bg-background text-foreground border-t sm:border-t-0 sm:border-l border-border rounded-t-3xl sm:rounded-none flex flex-col shadow-2xl animate-[slideUpSheet_0.32s_ease-out] sm:animate-[slideInDrawer_0.32s_ease-out]">
+      {/* Bottom Sheet en mobile / Panel Lateral Deslizante en sm+ — ronda "premium overhaul": más aire, tipografía jerárquica */}
+      <div className="relative z-10 w-full sm:max-w-lg h-[94vh] sm:h-full bg-background text-foreground border-t sm:border-t-0 sm:border-l border-border rounded-t-3xl sm:rounded-none flex flex-col shadow-2xl animate-[slideUpSheet_0.32s_ease-out] sm:animate-[slideInDrawer_0.32s_ease-out]">
         {/* Handle visual del bottom sheet (solo mobile) */}
-        <div className="sm:hidden flex justify-center pt-2.5 pb-1">
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
           <span className="w-10 h-1 rounded-full bg-zinc-700" />
         </div>
 
         {/* Header del Carrito */}
-        <div className="p-5 border-b border-border flex items-center justify-between bg-card">
-          <div className="flex items-center gap-2">
+        <div className="px-6 sm:px-8 py-6 border-b border-border flex items-center justify-between bg-card">
+          <div className="flex items-center gap-2.5">
             <span className="h-2 w-2 rounded-full bg-[#FF1E42] animate-pulse" />
-            <h2 className="text-sm font-bold tracking-widest uppercase">
-              {t.cart.title} ({items.reduce((a, b) => a + b.quantity, 0)})
+            <h2 className="font-display text-lg font-black tracking-tight uppercase">
+              {t.cart.title} <span className="text-zinc-500 font-normal">({items.reduce((a, b) => a + b.quantity, 0)})</span>
             </h2>
           </div>
           <button
@@ -92,8 +93,8 @@ export function SpecialCartDrawer() {
         </div>
 
         {/* Barra de Progreso de Envío Gratis / Perks VIP */}
-        <div className="p-4 bg-zinc-900/60 border-b border-border">
-          <div className="flex justify-between text-xs mb-1 font-semibold">
+        <div className="px-6 sm:px-8 py-4 bg-zinc-900/60 border-b border-border">
+          <div className="flex justify-between text-xs mb-2 font-semibold">
             {remainingForFreeShipping > 0 ? (
               <span>{t.cart.freeShippingRemaining} <strong className="text-[#FF1E42]">${remainingForFreeShipping.toLocaleString()} MXN</strong> {t.cart.freeShippingRemainingTail}</span>
             ) : (
@@ -109,7 +110,7 @@ export function SpecialCartDrawer() {
         </div>
 
         {/* Lista de Productos en Carrito */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5">
           {items.length === 0 ? (
             <div className="text-center py-16 text-zinc-500">
               <p className="text-lg font-medium">{t.cart.empty}</p>
@@ -119,48 +120,58 @@ export function SpecialCartDrawer() {
             items.map((item) => (
               <div
                 key={item.id}
-                className="flex gap-4 p-3 bg-card border border-border/80 rounded-lg hover:border-zinc-700 transition"
+                className="flex gap-5 pb-5 border-b border-border/60 last:border-b-0 last:pb-0"
               >
                 <img
                   src={item.productImage || '/placeholder-sneaker.svg'}
                   alt={item.productTitle}
-                  className="w-20 h-20 object-cover bg-black rounded"
+                  className="w-24 h-24 sm:w-28 sm:h-28 object-cover bg-black rounded-xl shrink-0"
                 />
-                <div className="flex-1 flex flex-col justify-between">
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                   <div>
-                    <h4 className="text-xs font-bold uppercase line-clamp-1">{item.productTitle}</h4>
-                    <p className="text-[11px] text-zinc-400">
+                    <h4 className="font-display text-sm font-bold uppercase tracking-tight line-clamp-1">{item.productTitle}</h4>
+                    <p className="text-[11px] text-zinc-500 mt-1">
                       Talla: {item.variant.sizeLabel || `${item.variant.size.mx} MX (${item.variant.size.usMen} US)`}
                     </p>
-                    <p className="text-xs font-semibold text-[#FF1E42] mt-1">
-                      ${item.variant.price.toLocaleString()} MXN
-                    </p>
                   </div>
-                  
-                  {/* Control de Cantidad */}
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center border border-zinc-700 rounded bg-black">
+
+                  <div className="flex items-end justify-between mt-3">
+                    {/* Precio grande — jerarquía tipográfica real */}
+                    <span className="font-display text-xl font-black text-[#FF1E42] tabular-nums">
+                      ${(item.variant.price * item.quantity).toLocaleString()}
+                      <span className="text-[10px] font-normal text-zinc-500 ml-1">MXN</span>
+                    </span>
+
+                    {/* Stepper de cantidad — pill elegante en vez de caja cuadrada */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center bg-zinc-900 rounded-full border border-zinc-700 overflow-hidden">
+                        <motion.button
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                          aria-label="Restar cantidad"
+                        >
+                          −
+                        </motion.button>
+                        <span className="w-6 text-center text-xs font-bold tabular-nums">{item.quantity}</span>
+                        <motion.button
+                          whileTap={{ scale: 0.85 }}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                          aria-label="Sumar cantidad"
+                        >
+                          +
+                        </motion.button>
+                      </div>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="min-w-[36px] min-h-[36px] text-xs text-zinc-400 hover:text-white"
+                        onClick={() => removeItem(item.id)}
+                        className="text-zinc-600 hover:text-red-500 transition-colors min-h-[32px] min-w-[32px] flex items-center justify-center"
+                        aria-label="Quitar del carrito"
+                        title={t.cart.remove}
                       >
-                        -
-                      </button>
-                      <span className="px-2 text-xs font-bold">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="min-w-[36px] min-h-[36px] text-xs text-zinc-400 hover:text-white"
-                      >
-                        +
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/></svg>
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="text-[10px] text-zinc-500 hover:text-red-500 uppercase tracking-wider min-h-[36px] px-2"
-                    >
-                      {t.cart.remove}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -170,21 +181,24 @@ export function SpecialCartDrawer() {
 
         {/* Footer y Resumen de Pago */}
         {items.length > 0 && (
-          <div className="p-5 border-t border-border bg-card space-y-3">
-            <div className="space-y-1 text-xs text-zinc-400">
-              <div className="flex justify-between">
+          <div className="px-6 sm:px-8 py-6 border-t border-border bg-card space-y-5">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-zinc-500">
                 <span>{t.cart.subtotal}</span>
-                <span className="text-white">${subtotal.toLocaleString()} MXN</span>
+                <span className="text-zinc-300 tabular-nums">${subtotal.toLocaleString()} MXN</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between text-xs text-zinc-500">
                 <span>{t.cart.shipping}</span>
-                <span className="text-white">
+                <span className="text-zinc-300 tabular-nums">
                   {shippingCost === 0 ? <strong className="text-emerald-400">{t.cart.free}</strong> : `$${shippingCost} MXN`}
                 </span>
               </div>
-              <div className="flex justify-between text-sm font-bold text-white pt-2 border-t border-border">
-                <span>{t.cart.total}</span>
-                <span className="text-[#FF1E42]">${total.toLocaleString()} MXN</span>
+              {/* Total — la cifra que más pesa en toda la pantalla, tipografía de display */}
+              <div className="flex items-baseline justify-between pt-3 border-t border-border">
+                <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">{t.cart.total}</span>
+                <span className="font-display text-3xl font-black text-[#FF1E42] tabular-nums">
+                  ${total.toLocaleString()}<span className="text-xs font-normal text-zinc-500 ml-1">MXN</span>
+                </span>
               </div>
             </div>
 

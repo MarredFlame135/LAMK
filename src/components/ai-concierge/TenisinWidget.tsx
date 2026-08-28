@@ -400,7 +400,7 @@ export function TenisinWidget() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="fixed inset-x-0 bottom-0 z-50 w-full h-[75vh] rounded-t-3xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[30rem] sm:rounded-2xl bg-background/95 backdrop-blur-md border border-border shadow-2xl overflow-hidden text-foreground flex flex-col"
+              className="fixed inset-x-0 bottom-0 z-50 w-full h-[75vh] rounded-t-3xl sm:inset-x-auto sm:bottom-24 sm:right-6 sm:w-96 sm:h-[30rem] sm:rounded-2xl bg-[#0B0C0F]/97 backdrop-blur-md border border-zinc-800 shadow-2xl overflow-hidden text-zinc-100 flex flex-col"
             >
 
             {/* Header de TENISIN */}
@@ -446,7 +446,7 @@ export function TenisinWidget() {
                     className={`max-w-[85%] p-3 rounded-xl ${
                       m.sender === 'USER'
                         ? 'bg-[#FF1E42] text-white rounded-tr-none font-medium'
-                        : 'bg-card border border-border text-zinc-200 rounded-tl-none'
+                        : 'bg-[#16161B] border border-zinc-800 text-zinc-100 rounded-tl-none'
                     }`}
                   >
                     {m.text}
@@ -459,7 +459,7 @@ export function TenisinWidget() {
                         <button
                           key={i}
                           onClick={opt.onClick}
-                          className="px-3 py-2 min-h-[36px] bg-card border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-lg text-[11px] font-bold text-zinc-200 transition-colors"
+                          className="px-3 py-2 min-h-[36px] bg-[#16161B] border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-lg text-[11px] font-bold text-zinc-100 transition-colors"
                         >
                           {opt.label}
                         </button>
@@ -471,7 +471,7 @@ export function TenisinWidget() {
                   {m.products && (
                     <div className="mt-2 w-[85%] space-y-2">
                       {m.products.map((p) => (
-                        <div key={p.id} className="flex items-center gap-2 p-2 bg-card border border-border rounded-lg">
+                        <div key={p.id} className="flex items-center gap-2 p-2 bg-[#16161B] border border-zinc-800 rounded-lg">
                           <motion.a
                             href={`/product/${p.handle}`}
                             whileHover={{ x: 3 }}
@@ -487,7 +487,7 @@ export function TenisinWidget() {
                           </motion.a>
                           <button
                             onClick={() => startLayawayFlow(p, m.resultsSizeLabel)}
-                            className="shrink-0 px-2 py-2 min-h-[36px] bg-black border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-md text-[10px] font-bold text-zinc-300 transition-colors"
+                            className="shrink-0 px-2 py-2 min-h-[36px] bg-black border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-md text-[10px] font-bold text-zinc-100 transition-colors"
                           >
                             📌 Apartar
                           </button>
@@ -503,7 +503,7 @@ export function TenisinWidget() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center gap-1 p-3 w-fit bg-card border border-border rounded-xl rounded-tl-none"
+                  className="flex items-center gap-1 p-3 w-fit bg-[#16161B] border border-zinc-800 rounded-xl rounded-tl-none"
                 >
                   {[0, 1, 2].map((i) => (
                     <motion.span
@@ -518,7 +518,7 @@ export function TenisinWidget() {
             </div>
 
             {/* Formulario de envío */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-border bg-card flex gap-2">
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-zinc-800 bg-[#0B0C0F] flex gap-2">
               <input
                 type="text"
                 placeholder={
