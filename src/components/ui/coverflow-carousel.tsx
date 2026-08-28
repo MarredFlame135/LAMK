@@ -105,7 +105,7 @@ export function CoverflowCarousel({ items, className }: CoverflowCarouselProps) 
                 zIndex: 10 - abs,
               }}
               transition={{ type: 'spring', stiffness: 260, damping: 26 }}
-              className="absolute flex flex-col items-center"
+              className="absolute inset-0 flex flex-col items-center justify-center"
             >
               <motion.a
                 href={item.href || '#'}
