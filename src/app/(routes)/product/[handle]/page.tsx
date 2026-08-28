@@ -46,7 +46,17 @@ interface ProductPageProps {
 // Nota: ya no se usa generateStaticParams() con handles fijos del mock — el
 // catálogo real de Shopify cambia (nuevos drops, productos agotados/eliminados),
 // así que cada handle se resuelve dinámicamente en request time.
-export const dynamic = 'force-dynamic';
+//
+// Fix (hallazgo #4 de la auditoría de Fase 3): `force-dynamic` hacía que
+// CADA visita a una ficha de producto —la página con más tráfico repetido
+// del sitio— disparara un round-trip en vivo a Shopify, sin caché de CDN
+// posible. `revalidate` no contradice la nota de arriba: el primer visitante
+// de un handle sigue resolviéndolo en vivo (no hay generateStaticParams,
+// así que no hay nada pre-generado), pero el resultado se sirve desde
+// caché/CDN hasta por 60s antes de volver a tocar Shopify — el checkout
+// real siempre revalida el precio/stock contra Shopify de todos modos, así
+// que nunca se vende algo desactualizado por este margen.
+export const revalidate = 60;
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { product } = await getProductByHandleLive(params.handle);

@@ -115,7 +115,7 @@ export default function RootLayout({
               <footer className="relative overflow-hidden border-t border-border bg-background py-8 text-zinc-500 text-xs text-center space-y-4">
                 <div
                   className="absolute inset-0 opacity-[0.06] dark:opacity-[0.1] mix-blend-overlay pointer-events-none"
-                  style={{ backgroundImage: "url('/assets/hero/obsidian-texture.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+                  style={{ backgroundImage: "url('/assets/hero/obsidian-texture.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
                   aria-hidden
                 />
                 <p className="relative">

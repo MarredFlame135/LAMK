@@ -60,9 +60,12 @@ export function HeroSection() {
           sizes="100vw"
           className="object-cover opacity-30"
         />
+        {/* Fix (hallazgo #2 de la auditoría de Fase 3): esta textura era el
+            elemento LCP de toda la home y pesaba 1.7 MB en PNG sin comprimir
+            — ahora es WebP (28 KB) del mismo archivo. */}
         <div
           className="absolute inset-0 opacity-25 mix-blend-overlay"
-          style={{ backgroundImage: "url('/assets/hero/obsidian-texture.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+          style={{ backgroundImage: "url('/assets/hero/obsidian-texture.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/50" />
@@ -123,11 +126,17 @@ export function HeroSection() {
           onMouseLeave={hoverPose.onMouseLeave}
           className="relative flex items-center gap-3 bg-gradient-to-b from-[#0E0E13]/90 to-black/90 backdrop-blur-md border border-zinc-800 pl-3 pr-4 py-3 rounded-2xl shadow-xl cursor-pointer max-w-[15rem]"
         >
+          {/* Fix (hallazgo #1 de la auditoría de Fase 3): antes era un
+              <img> plano cargando el PNG original de hasta 6.4 MB para un
+              contenedor de 56px — ahora next/image sobre el WebP ya
+              redimensionado (240×240, ~20 KB). */}
           <div className="w-14 h-14 shrink-0 relative animate-float tenisin-glow">
-            <img
+            <Image
               src={SAAS_CONFIG.mascotPoses[hoverPose.pose]}
               alt={SAAS_CONFIG.mascotName}
-              className="w-full h-full object-contain transition-opacity duration-150"
+              fill
+              sizes="56px"
+              className="object-contain transition-opacity duration-150"
             />
           </div>
           <div className="min-w-0">

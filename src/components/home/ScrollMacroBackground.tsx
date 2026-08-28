@@ -38,7 +38,7 @@ export function ScrollMacroBackground({ children, className = '' }: { children: 
     <div ref={sectionRef} className={`relative overflow-hidden ${className}`}>
       <motion.div className="pointer-events-none absolute inset-0" style={{ rotate, scale, y: translateY, opacity }} aria-hidden>
         <Image
-          src="/assets/hero/sneaker-macro.png"
+          src="/assets/hero/sneaker-macro.webp"
           alt=""
           fill
           sizes="100vw"

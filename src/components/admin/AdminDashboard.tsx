@@ -43,7 +43,7 @@ export function AdminDashboard() {
       <motion.div variants={fadeUp} className="relative overflow-hidden p-6 bg-gradient-to-r from-red-950/30 via-card to-card border border-border rounded-2xl flex items-center justify-between flex-wrap gap-4">
         <div
           className="absolute inset-0 opacity-[0.08] mix-blend-overlay pointer-events-none"
-          style={{ backgroundImage: "url('/assets/hero/obsidian-texture.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
+          style={{ backgroundImage: "url('/assets/hero/obsidian-texture.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
           aria-hidden
         />
         <div className="relative">

@@ -8,7 +8,11 @@
 'use client';
 
 import React, { createContext, useContext, useRef, ReactNode } from 'react';
-import { motion, useAnimationFrame, useMotionValue, useTransform } from 'motion/react';
+// Fix (hallazgo #5 de la auditoría de Fase 3): usaba el paquete standalone
+// `motion` en vez de `framer-motion` (que ya es el estándar del resto del
+// proyecto, 25 archivos) — dos motores de animación cargando en la misma
+// página (Home, vía HeroSection). La API es la misma.
+import { motion, useAnimationFrame, useMotionValue, useTransform } from 'framer-motion';
 import { useMousePositionRef } from '@/hooks/use-mouse-position-ref';
 
 interface FloatingContextValue {

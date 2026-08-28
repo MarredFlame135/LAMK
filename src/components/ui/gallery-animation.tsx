@@ -9,7 +9,9 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { AnimatePresence, motion } from 'motion/react';
+// Fix (hallazgo #5 de la auditoría de Fase 3): ver el mismo comentario en
+// parallax-floating.tsx — consolidado a framer-motion.
+import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
 export interface GalleryItem {

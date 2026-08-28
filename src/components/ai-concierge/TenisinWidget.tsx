@@ -406,14 +406,16 @@ export function TenisinWidget() {
             {/* Header de TENISIN */}
             <div className="p-4 bg-gradient-to-r from-red-900/60 to-black border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden tenisin-glow">
-                  <img
+                {/* Fix (hallazgo #1 de la auditoría de Fase 3): <img> plano
+                    cargando el PNG original de hasta 6.4 MB para 40px de
+                    display — ahora next/image sobre el WebP de 240×240. */}
+                <div className="relative w-10 h-10 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center overflow-hidden tenisin-glow">
+                  <Image
                     src={currentMascotImage}
                     alt={SAAS_CONFIG.mascotName}
-                    className="w-full h-full object-contain animate-float"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = 'none';
-                    }}
+                    fill
+                    sizes="40px"
+                    className="object-contain animate-float"
                   />
                 </div>
                 <div>
@@ -557,13 +559,12 @@ export function TenisinWidget() {
           className="group relative flex items-center gap-3 p-2 pr-4 min-h-[48px] bg-gradient-to-r from-[#050507] to-zinc-900 text-white rounded-full shadow-2xl border border-border hover:border-red-600/60 transition-colors"
         >
           <div className="relative w-12 h-12 flex items-center justify-center animate-float tenisin-glow">
-            <img
+            <Image
               src={currentMascotImage}
               alt={SAAS_CONFIG.mascotName}
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
+              fill
+              sizes="48px"
+              className="object-contain"
             />
           </div>
 

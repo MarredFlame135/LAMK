@@ -21,8 +21,16 @@ import { SocialProofSection } from '@/components/home/SocialProofSection';
 import { Lookbook } from '@/components/home/Lookbook';
 import { IGLiveMonitor } from '@/components/home/IGLiveMonitor';
 import { ScrollMacroBackground } from '@/components/home/ScrollMacroBackground';
-import { TenisinWidget } from '@/components/ai-concierge/TenisinWidget';
+import { TenisinWidgetLoader } from '@/components/ai-concierge/TenisinWidgetLoader';
 import { getCatalogLive } from '@/lib/catalog-source';
+
+// Fix (hallazgo #3 de la auditoría de Fase 3): sin esto, Next trata la
+// página como 100% estática (generada solo en build) — el stock real y el
+// Hype Meter quedaban congelados hasta el siguiente deploy. Mismo patrón
+// que ya usa api/catalog/route.ts (revalidate = 60): sigue sirviéndose
+// desde caché/CDN la mayor parte del tiempo (ISR), solo se refresca cada
+// 60s en vez de solo en cada deploy.
+export const revalidate = 60;
 
 export default async function HomePage() {
   // Fuente única de verdad: catálogo real de Shopify, con fallback a mock si falla.
@@ -46,7 +54,7 @@ export default async function HomePage() {
       <SocialProofSection products={products} />
 
       {/* Widget Flotante Global de TENISIN */}
-      <TenisinWidget />
+      <TenisinWidgetLoader />
     </div>
   );
 }

@@ -1,6 +1,20 @@
 # Fase 3 — Rendimiento
 
-Rama: `audit/fase-3-rendimiento`. Solo reporte — cero cambios de código en esta fase (misma regla que las anteriores: entrego hallazgos, espero aprobación antes de tocar código).
+Rama: `audit/fase-3-rendimiento`.
+
+**Estado: los 6 hallazgos fueron corregidos y verificados** (`tsc --noEmit`, `next build`, smoke tests reales, y una segunda corrida de Lighthouse contra el build ya corregido para comparar antes/después con la misma metodología). Nada desplegado, nada en `main`.
+
+## Resultado medido (antes → después, misma metodología, mismo build local)
+
+| Métrica | Antes | Después |
+|---|---|---|
+| Performance score (Lighthouse) | 72 | **82** |
+| LCP | ~26.3s (score 0) | **~4.5s** (score 0.38 — mejora real, sigue sin ser "bueno" per Google, pero el número absoluto está inflado por correr en esta VM local y no en el edge de Vercel; lo que importa es la caída de ~5.8× manteniendo la misma vara de medición) |
+| CLS | 0 | 0.001 (sigue siendo excelente) |
+| TBT (proxy de INP) | 190ms (score 0.91) | **20ms** (score 1.0) |
+| Peso total de la página | 5.2 MB | **0.52 MB** (10× menos) |
+
+El bundle propio de la home bajó de 60.3 KB a 14.1 KB, y el First Load JS de 228 KB a 179 KB — solo por diferir TenisinWidget.
 
 ## Nota de metodología (léela antes que la tabla)
 
@@ -10,14 +24,14 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Un solo hallazgo explica casi todo lo demás:** las 4 poses del mascot TENISIN pesan entre **2.5 MB y 6.4 MB cada una**, y se muestran a 40–56 píxeles de tamaño, sin pasar nunca por `next/image`. Solo esas 4 imágenes ya son ~21 MB en `public/`. Arreglar eso probablemente hace más por el rendimiento real del sitio que cualquier otra cosa en este reporte junto.
 
-| # | Hallazgo | Severidad |
-|---|---|---|
-| 1 | Imágenes del mascot TENISIN: 2.5–6.4 MB cada una, mostradas a ~40-56px, sin `next/image` | 🔴 Alta |
-| 2 | Textura de fondo del Hero (1.75 MB) es justo el elemento LCP, y es un `background-image` en CSS — no puede beneficiarse de `priority`/preload como si fuera una imagen real | 🟠 Media-Alta |
-| 3 | Home y Catálogo son 100% estáticos (sin `revalidate`) — stock/Hype Meter quedan congelados hasta el siguiente deploy | 🟡 Media |
-| 4 | Ficha de producto (`/product/[handle]`) es `force-dynamic` — cada visita hace un round-trip en vivo a Shopify, cero cacheable en CDN | 🟡 Media |
-| 5 | `framer-motion` + `motion` (paquete standalone) duplicados en el bundle — dos motores de animación distintos cargando en la misma página (Home) | 🟢 Baja |
-| 6 | Cero uso de `next/dynamic` — todo el JS de cada ruta se carga de un jalón | 🟢 Baja (informativo) |
+| # | Hallazgo | Severidad | Estado |
+|---|---|---|---|
+| 1 | Imágenes del mascot TENISIN: 2.5–6.4 MB cada una, mostradas a ~40-56px, sin `next/image` | 🔴 Alta | ✅ Corregido |
+| 2 | Textura de fondo del Hero (1.75 MB) es justo el elemento LCP, y es un `background-image` en CSS — no puede beneficiarse de `priority`/preload como si fuera una imagen real | 🟠 Media-Alta | ✅ Corregido |
+| 3 | Home y Catálogo son 100% estáticos (sin `revalidate`) — stock/Hype Meter quedan congelados hasta el siguiente deploy | 🟡 Media | ✅ Corregido |
+| 4 | Ficha de producto (`/product/[handle]`) es `force-dynamic` — cada visita hace un round-trip en vivo a Shopify, cero cacheable en CDN | 🟡 Media | ✅ Corregido |
+| 5 | `framer-motion` + `motion` (paquete standalone) duplicados en el bundle — dos motores de animación distintos cargando en la misma página (Home) | 🟢 Baja | ✅ Corregido |
+| 6 | Cero uso de `next/dynamic` — todo el JS de cada ruta se carga de un jalón | 🟢 Baja (informativo) | ✅ Corregido |
 
 ## Lo que salió limpio
 
@@ -39,7 +53,7 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Cómo se explota / qué se rompe:** en una conexión móvil real (no la wifi de oficina), cargar 2.5-6 MB extra por un ícono de 56px es la diferencia entre un hero que aparece en 1-2 segundos y uno que tarda muchos segundos o nunca termina de cargar en una red saturada — exactamente el escenario que el cliente reportó como "quiero que se sienta más reactivo".
 
-**Parche propuesto:** redimensionar y comprimir las 4 poses a algo como 160×160px (2x de su tamaño de display más grande) en WebP — debería quedar cada una por debajo de 20-30 KB, no varios MB — y servirlas con `next/image` en vez de `<img>` plano. Aplica también como regla general: cualquier imagen nueva generada con Higgsfield necesita un paso de redimensionado/compresión antes de entrar a `public/`, no se puede asumir que el archivo generado ya viene listo para producción.
+**Parche aplicado:** las 4 poses (+ `tenisin.png` base y, de regalo, `sneaker-macro.png` que encontré con el mismo problema al revisar referencias) se redimensionaron a 240×240px y se convirtieron a WebP calidad 85 — de 2.5-6.4 MB cada una a **17-23 KB**. `HeroSection.tsx` y `TenisinWidget.tsx` (2 usos) ahora usan `next/image` con `fill`+`sizes` en vez de `<img>` plano. Los PNG viejos se borraron del repo (`git rm`), no se quedaron huérfanos.
 
 ---
 
@@ -53,9 +67,7 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Cómo se explota / qué se rompe:** en la simulación con throttling móvil, el LCP total de la home salió en varios segundos por encima de lo que Google considera "bueno" (<2.5s) — con la advertencia de metodología de arriba, el número exacto puede estar inflado por el entorno de prueba, pero la causa raíz (imagen de 1.75MB compitiendo por ancho de banda, sin poder priorizarse) es real independientemente del número exacto.
 
-**Parche propuesto:** dos cambios independientes, cualquiera de los dos ayuda:
-  1. Comprimir/convertir `obsidian-texture.png` a WebP (una textura abstracta a 25% de opacidad tolera compresión agresiva sin que se note).
-  2. Convertirla en un `<Image fill>` con `loading="lazy"` en vez de CSS puro — así al menos entra al sistema de optimización de Next (WebP automático, tamaños responsive) aunque siga siendo decorativa.
+**Parche aplicado:** opción 1 — `obsidian-texture.png` (1.7 MB, 2048×1152) se redujo a 1600×900 y se convirtió a WebP calidad 78 → **28 KB**. Actualizada en los 3 lugares que la usan (`HeroSection.tsx`, el footer en `layout.tsx`, y el banner de `AdminDashboard.tsx`). No se convirtió a `<Image>` component (sigue siendo `background-image` de CSS) — el ahorro de peso ya es el 98% del problema; cambiar la arquitectura de fondo CSS a componente de imagen queda como mejora opcional futura, no urgente después de este ajuste.
 
 ---
 
@@ -69,7 +81,7 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Cómo se explota / qué se rompe:** no es un exploit — es un riesgo de negocio (vender algo que ya no hay, o no mostrar un producto que ya volvió a haber) disfrazado de "está muy rápido".
 
-**Parche propuesto:** agregar `export const revalidate = 60` (o el intervalo que decidan) a ambas páginas — mismo patrón que ya usa `api/catalog/route.ts`. Sigue siendo servido desde caché/CDN la mayor parte del tiempo (ISR), solo se refresca cada 60s en vez de solo en cada deploy.
+**Parche aplicado:** `export const revalidate = 60` en ambas páginas — mismo patrón que ya usa `api/catalog/route.ts`.
 
 ---
 
@@ -83,7 +95,7 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Cómo se explota / qué se rompe:** no es un exploit — es tiempo de respuesta más lento del necesario en la página más visitada, y más carga innecesaria contra la API de Shopify.
 
-**Parche propuesto:** cambiar a `export const revalidate = 60` (igual que las otras páginas) en vez de `force-dynamic` — el stock/precio pueden tener hasta 60s de desfase, que es aceptable para una ficha de producto (el checkout real siempre vuelve a validar contra Shopify de todos modos, así que nunca se vendería algo a un precio desactualizado).
+**Parche aplicado:** `export const revalidate = 60` en vez de `force-dynamic`. Como no hay `generateStaticParams()`, el primer visitante de cada handle lo sigue resolviendo en vivo (no cambia esa parte de la lógica original) — lo que cambia es que la respuesta ya queda cacheable hasta 60s en vez de ir a Shopify en cada request.
 
 ---
 
@@ -95,7 +107,7 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Por qué importa:** son APIs casi idénticas (mismo equipo, `motion` es el sucesor del paquete `framer-motion`), así que hoy se paga el peso de dos motores de animación por una diferencia que probablemente ni se nota visualmente. Ya estaba documentado como deuda técnica conocida en `CLAUDE.md` desde la Fase 0.
 
-**Parche propuesto:** cambiar los 2 imports de `'motion/react'` a `'framer-motion'` (la API es compatible en los usos actuales) y quitar `motion` de `package.json`. Cambio pequeño y de bajo riesgo.
+**Parche aplicado:** los 2 imports cambiados de `'motion/react'` a `'framer-motion'`, `"motion"` quitado de `package.json` y `npm install` corrido para sincronizar `package-lock.json` (se removieron 11 paquetes entre `motion` y su árbol de dependencias).
 
 ---
 
@@ -107,18 +119,20 @@ El brief pide medir en "un móvil de gama media, no en tu propia máquina" — n
 
 **Por qué importa:** el bundle de la home (228 KB First Load JS) no es alarmante por sí solo, pero componentes pesados de interacción que no son visibles de inmediato (ej. el panel de admin dentro de `/admin/offline-sales`, o widgets que solo se activan con una acción del usuario como el chat de TENISIN) son candidatos naturales a cargar bajo demanda en vez de en el bundle inicial.
 
-**Parche propuesto:** no es urgente — lo dejo como oportunidad, no como algo que haya medido con un impacto concreto hoy. Si se retoma, el candidato más claro es el propio `TenisinWidget` (chat flotante, no se necesita hasta que el usuario lo abre).
+**Parche aplicado:** `TenisinWidget` (el candidato más claro — chat flotante, cero contenido de SEO, no se necesita hasta que el usuario interactúa) ahora se carga vía `next/dynamic` con `ssr: false`, a través de un wrapper cliente nuevo (`TenisinWidgetLoader.tsx` — necesario porque `ssr: false` solo se permite dentro de un Client Component, y `page.tsx` es un Server Component que lee el catálogo). Resultado medido: bundle propio de la home 60.3 KB → 14.1 KB, First Load JS 228 KB → 179 KB.
+
+**Efecto secundario a tener presente, no es un bug:** antes el botón flotante de TENISIN venía en el HTML servido por el servidor (SSR) y aparecía de inmediato; ahora, al diferirse por completo al cliente, aparece con un pequeño retraso (el que tarda el navegador en pedir y ejecutar ese chunk aparte) después de que la página ya cargó lo importante. Verificado con `curl`: el marcado del botón ya no está en el HTML inicial. Es el trade-off esperado de este tipo de fix — lo señalo para que no se lea como una regresión sorpresa si alguien nota el cambio.
 
 ---
 
-## Métricas de la corrida (con el caveat de metodología de arriba)
+## Métricas antes/después
 
-| Métrica | Valor medido (Lighthouse, móvil emulado, build de producción local) |
-|---|---|
-| Performance score | 72/100 |
-| LCP | ~26s (elemento: la textura de fondo del Hero — ver hallazgo #2; número probablemente inflado por el entorno de prueba, pero la causa raíz del peso de imagen es real) |
-| CLS | 0 (perfecto) |
-| TBT (proxy de INP en laboratorio) | 190ms (score 0.91 — bueno) |
-| Peso total de la página (Home) | 5.2 MB — de los cuales ~4.3 MB son las 2 imágenes de los hallazgos #1 y #2 |
+Ver la tabla al inicio del documento — misma metodología (Lighthouse, móvil emulado, build de producción local) corrida dos veces, antes y después de los 6 fixes, para que la comparación sea justa.
 
-No apliqué ningún fix — quedo a la espera de tu aprobación para decidir cuáles de estos 6 se corrigen y en qué orden antes de pasar a Fase 4 (SEO).
+## Archivos tocados
+
+**Nuevos:** `src/components/ai-concierge/TenisinWidgetLoader.tsx`, 7 archivos `.webp` en `public/assets/branding/` y `public/assets/hero/`.
+**Borrados:** las 7 versiones `.png` originales de esos mismos assets (`git rm`, no quedaron huérfanos).
+**Modificados:** `src/lib/saas-config.ts` (rutas a `.webp`), `src/components/home/HeroSection.tsx` (mascot + textura vía `next/image`/WebP), `src/components/ai-concierge/TenisinWidget.tsx` (2 usos de `<img>` → `next/image`), `src/app/(routes)/layout.tsx` y `src/components/admin/AdminDashboard.tsx` (textura → WebP), `src/components/home/ScrollMacroBackground.tsx` (sneaker-macro → WebP), `src/app/(routes)/page.tsx` (`revalidate = 60`, `TenisinWidgetLoader`), `src/app/(routes)/catalog/page.tsx` (`revalidate = 60`), `src/app/(routes)/product/[handle]/page.tsx` (`force-dynamic` → `revalidate = 60`), `src/components/ui/parallax-floating.tsx` y `gallery-animation.tsx` (import a `framer-motion`), `package.json`/`package-lock.json` (sin `motion`).
+
+Nada tocó `main` ni se desplegó — todo vive en `audit/fase-3-rendimiento`, verificado con `tsc --noEmit`, `next build`, smoke tests reales y una comparación de Lighthouse antes/después. Lista para Fase 4 (SEO) cuando digas.
