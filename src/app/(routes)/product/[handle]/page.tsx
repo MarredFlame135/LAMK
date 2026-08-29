@@ -31,16 +31,17 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   if (!product) return {};
 
   const description = product.description || product.storytelling.storySummary;
-  const image = product.images[0];
 
+  // Fix (hallazgo #1 de la auditoría "Prompt Maestro v4", Fase A): `images`
+  // ya no se declara a mano aquí — este mismo directorio tiene
+  // opengraph-image.tsx (convención de Next.js), que genera una tarjeta de
+  // marca (precio, serial, badge de autenticidad) en vez de solo la foto
+  // pelona del producto, y Next la inyecta sola en openGraph/twitter.
   return {
     title: `${product.title} | ${product.brand} — ${SAAS_CONFIG.brandName}`,
     description,
-    openGraph: {
-      title: product.title,
-      description,
-      images: image ? [{ url: image }] : undefined,
-    },
+    openGraph: { title: product.title, description },
+    twitter: { card: 'summary_large_image', title: product.title, description },
   };
 }
 

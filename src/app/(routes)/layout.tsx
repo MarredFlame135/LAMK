@@ -48,6 +48,17 @@ export const metadata: Metadata = {
     title: `${SAAS_CONFIG.brandName} | Sneakers y Streetwear Exclusivo`,
     description: SITE_DESCRIPTION,
   },
+  // Fix (hallazgo #1 de la auditoría "Prompt Maestro v4", Fase A): sin esto
+  // Twitter/X renderizaba el link en 'summary' (tarjeta chica) en vez de
+  // 'summary_large_image' — la imagen de opengraph-image.tsx se ve pero a
+  // un tercio del tamaño. `images` se omite a propósito: Next.js la rellena
+  // solo con el opengraph-image.tsx de la ruta (o el de product/[handle]
+  // cuando aplica) — declararla aquí a mano la duplicaría.
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SAAS_CONFIG.brandName} | Sneakers y Streetwear Exclusivo`,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 // Fix (hallazgo #6 de la auditoría de Fase 4): sin esto no había ningún
