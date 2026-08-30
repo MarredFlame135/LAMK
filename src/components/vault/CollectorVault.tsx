@@ -12,12 +12,14 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile, CollectionItem } from '@/types/user';
-import { calculateGamificationTier, TIER_THRESHOLDS } from '@/utils/gamification';
+import { calculateGamificationTier } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
 import { HolographicCard } from '@/components/ui/holographic-card';
-import { CountUp } from '@/components/ui/count-up';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { ReviewForm } from './ReviewForm';
+import { CollectorPlaque } from './CollectorPlaque';
+import { RankProgress } from './RankProgress';
+import { RankLadder } from './RankLadder';
 import { haptics } from '@/lib/haptics';
 import { fadeUp, staggerContainer } from '@/lib/motion';
 
@@ -68,12 +70,12 @@ function CollectionCard({ item, index }: { item: CollectionItem; index: number }
 
   return (
     <motion.div variants={fadeUp} custom={index}>
-      <HolographicCard className="group relative p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-xl overflow-hidden hover:border-amber-500/50 transition-colors">
+      <HolographicCard className="group relative p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-xl overflow-hidden hover:border-[#C5A059]/50 transition-colors">
         <div className="aspect-square bg-black rounded-lg mb-2 overflow-hidden">
           <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
         </div>
         <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
-        <span className="text-[9px] font-mono text-amber-400 block mt-0.5">{item.serialNumber}</span>
+        <span className="text-[9px] font-mono text-[#C5A059] block mt-0.5">{item.serialNumber}</span>
 
         <Magnetic className="absolute top-2 right-2" strength={0.25}>
           <button
@@ -82,7 +84,7 @@ function CollectionCard({ item, index }: { item: CollectionItem; index: number }
               haptics.tap();
               shareCollectionItem(item, () => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
             }}
-            className="flex items-center justify-center h-7 w-7 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-zinc-300 hover:text-white hover:border-amber-500/50 transition opacity-0 group-hover:opacity-100"
+            className="flex items-center justify-center h-7 w-7 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-zinc-300 hover:text-white hover:border-[#C5A059]/50 transition opacity-0 group-hover:opacity-100"
             aria-label="Flexionar / compartir esta pieza"
             title="Flexionar / Compartir"
           >
@@ -133,46 +135,17 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Panel Izquierdo: Tarjeta de Perfil + Experiencia XP + Tarjetas Cromadas */}
-        <motion.div variants={fadeUp} className="lg:col-span-7 bg-card border border-border rounded-xl p-6 space-y-6">
+        <motion.div variants={fadeUp} className="lg:col-span-7 space-y-6">
 
-          {/* Header del Perfil */}
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-amber-500 via-red-600 to-amber-300 p-0.5 animate-pulse">
-              <div className="w-full h-full bg-black rounded-[10px] flex items-center justify-center font-black text-xl">
-                {user.firstName[0]}
-              </div>
-            </div>
+          {/* Placa de Coleccionista + barra de rango — reemplaza el header
+              de perfil genérico anterior (avatar+pill+barra plana) por la
+              credencial de membresía y un nivel de videojuego real, con
+              checkpoints en cada rango de TIER_LADDER. */}
+          <CollectorPlaque user={user} displayName={`@${username || user.email.split('@')[0]}`} />
+          <RankProgress tierInfo={tierInfo} />
 
-            <div>
-              <h2 className="text-xl font-black uppercase tracking-wide">{user.firstName} {user.lastName}</h2>
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-amber-950/40 border border-amber-500/40 rounded-full text-amber-400 text-[10px] font-mono font-bold uppercase mt-1">
-                ◆ TIER: {user.tier}
-              </div>
-            </div>
-          </div>
-
-          {/* Barra de Progreso XP (Efecto Meta-Gradiente) */}
-          <div className="space-y-1.5 bg-black/50 p-4 border border-border/80 rounded-lg">
-            <div className="flex justify-between text-xs font-mono">
-              <span className="text-zinc-400">{t.vault.xpLabel}</span>
-              <span className="text-amber-400 font-bold">
-                <CountUp value={user.xp} suffix=" XP" /> {tierInfo.nextTier !== 'HALL_OF_FAME' && `/ ${tierInfo.nextTierXp.toLocaleString()} XP`}
-              </span>
-            </div>
-            <div className="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${tierInfo.progressPercentage}%` }}
-                transition={{ duration: 1.1, ease: 'easeOut', delay: 0.3 }}
-                className="bg-gradient-to-r from-red-600 via-amber-500 to-amber-300 h-full"
-              />
-            </div>
-            <p className="text-[10px] text-zinc-400 font-mono text-right">
-              {tierInfo.nextTier === 'HALL_OF_FAME'
-                ? '¡Rango máximo alcanzado! Eres HALL OF FAME.'
-                : `Te faltan ${tierInfo.xpRemaining.toLocaleString()} XP para subir a ${tierInfo.nextTier}.`}
-            </p>
-          </div>
+          {/* Colección + historial + reseña — un solo panel, como antes */}
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
 
           {/* Colección de Piezas (Tarjetas Cromadas) */}
           <div className="space-y-3">
@@ -240,51 +213,15 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
           {/* Reseña verificada — solo si tiene compra real */}
           {isOwnProfile && user.ordersCount > 0 && <ReviewForm />}
 
-        </motion.div>
-
-        {/* Panel Derecho: Niveles. El "Ranking Global Top 5" que había aquí era
-            100% inventado (mock-users.ts) — se quitó por completo, ver commit
-            2026-08-27 / nota en mock-users.ts. */}
-        <motion.div variants={fadeUp} className="lg:col-span-5 space-y-6">
-
-          {/* Explicación de los Niveles (Tiers) — la fila del tier actual se
-              resalta (estado codificado en forma, no solo en texto) */}
-          <div className="bg-card border border-border rounded-xl p-5 space-y-3">
-            <h4 className="text-xs font-mono text-amber-400 uppercase font-bold tracking-wider">
-              BENEFICIOS POR TIER
-            </h4>
-            <div className="space-y-2 text-xs text-zinc-400">
-              {[
-                { tier: 'ROOKIE', range: `0 – ${TIER_THRESHOLDS.HYPEBEAST.toLocaleString()} XP`, color: 'text-zinc-200', dot: 'bg-zinc-500', perk: 'Perfil básico y acceso a la comunidad.' },
-                { tier: 'HYPEBEAST', range: `${TIER_THRESHOLDS.HYPEBEAST.toLocaleString()} – ${TIER_THRESHOLDS.COLLECTOR.toLocaleString()} XP`, color: 'text-emerald-400', dot: 'bg-emerald-500', perk: 'Alertas prioritarias de Restock por WhatsApp.' },
-                { tier: 'COLLECTOR', range: `${TIER_THRESHOLDS.COLLECTOR.toLocaleString()} – ${TIER_THRESHOLDS.LEGEND.toLocaleString()} XP`, color: 'text-amber-400', dot: 'bg-amber-500', perk: 'Acceso anticipado a Drops (30 min antes).' },
-                { tier: 'LEGEND', range: `${TIER_THRESHOLDS.LEGEND.toLocaleString()}+ XP`, color: 'text-red-500', dot: 'bg-[#FF1E42]', perk: 'Piezas exclusivas, apartado extendido y eventos VIP.' },
-              ].map((row, i) => {
-                const isCurrent = row.tier === user.tier;
-                return (
-                  <motion.div
-                    key={row.tier}
-                    variants={fadeUp}
-                    initial="hidden"
-                    animate="show"
-                    transition={{ delay: 0.15 + i * 0.06 }}
-                    className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-colors ${
-                      isCurrent ? 'bg-amber-950/20 border-amber-500/40' : 'bg-black/30 border-border/60'
-                    }`}
-                  >
-                    <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${row.dot}`} />
-                    <div className="flex-1">
-                      <strong className={`${row.color} block`}>
-                        {row.tier} ({row.range}) {isCurrent && <span className="text-[9px] text-amber-400 font-mono">· TÚ</span>}
-                      </strong>
-                      {row.perk}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
           </div>
 
+        </motion.div>
+
+        {/* Panel Derecho: Escalera de Rango. El "Ranking Global Top 5" que
+            había aquí era 100% inventado (mock-users.ts) — se quitó por
+            completo, ver commit 2026-08-27 / nota en mock-users.ts. */}
+        <motion.div variants={fadeUp} className="lg:col-span-5 space-y-6">
+          <RankLadder currentTier={user.tier} />
         </motion.div>
 
       </div>

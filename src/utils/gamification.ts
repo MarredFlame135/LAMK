@@ -76,3 +76,22 @@ export function calculateGamificationTier(xp: number): TierInfo {
     };
   }
 }
+
+// Fuente única para todo lo que muestre la escalera de rangos (Placa de
+// Coleccionista, barra de XP, panel de rangos) — antes CollectorVault.tsx
+// tenía esta misma lista de perks hardcodeada inline solo para el panel
+// lateral; ahora RankProgress ("próximo desbloqueo") y RankLadder la
+// comparten, así que no puede quedar desincronizada entre los dos.
+export const TIER_LADDER: { tier: CollectorTier; threshold: number; perk: string }[] = [
+  { tier: 'ROOKIE', threshold: TIER_THRESHOLDS.ROOKIE, perk: 'Perfil básico y acceso a la comunidad.' },
+  { tier: 'HYPEBEAST', threshold: TIER_THRESHOLDS.HYPEBEAST, perk: 'Alertas prioritarias de restock por WhatsApp.' },
+  { tier: 'COLLECTOR', threshold: TIER_THRESHOLDS.COLLECTOR, perk: 'Acceso anticipado a drops (30 min antes).' },
+  { tier: 'LEGEND', threshold: TIER_THRESHOLDS.LEGEND, perk: 'Piezas exclusivas, apartado extendido y eventos VIP.' },
+];
+
+// Perk del rango que todavía no alcanza — lo que muestra RankProgress como
+// "próximo desbloqueo". null cuando ya está en el rango máximo (MAX).
+export function getNextUnlockPerk(tierInfo: TierInfo): string | null {
+  if (tierInfo.nextTier === 'HALL_OF_FAME') return null;
+  return TIER_LADDER.find((row) => row.tier === tierInfo.nextTier)?.perk ?? null;
+}

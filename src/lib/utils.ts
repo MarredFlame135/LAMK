@@ -16,3 +16,11 @@ export function deriveSerial(product: Pick<Product, 'variants' | 'id'>): string 
   const code = raw.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase();
   return `LK-${code}`;
 }
+
+// Mismo principio que deriveSerial pero para un coleccionista: un fragmento
+// estable del GID real de Shopify Customer, nunca un correlativo inventado
+// (ver Placa de Coleccionista en CollectorPlaque.tsx).
+export function deriveCollectorSerial(customerId: string): string {
+  const code = customerId.replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase();
+  return `LK-C-${code}`;
+}
