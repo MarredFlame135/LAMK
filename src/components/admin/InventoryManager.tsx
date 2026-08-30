@@ -120,47 +120,47 @@ export function InventoryManager() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Subir Nuevo Artículo */}
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-3">
-          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200">Subir Nuevo Artículo</h4>
+        <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-3">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-foreground">Subir Nuevo Artículo</h4>
           <form onSubmit={handleSaveDraft} className="space-y-3 text-xs">
-            <label className="flex flex-col items-center justify-center gap-2 h-32 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-red-600/60 transition overflow-hidden relative">
+            <label className="flex flex-col items-center justify-center gap-2 h-32 border border-dashed border-border rounded-lg cursor-pointer hover:border-red-600/60 transition overflow-hidden relative">
               {imageFile ? (
                 <Image src={imageFile.processedUrl} alt="preview" fill sizes="200px" className="object-cover" />
               ) : (
-                <span className="text-zinc-400">{isProcessingImage ? 'Procesando con IA...' : '📸 Toca para subir foto'}</span>
+                <span className="text-muted-foreground">{isProcessingImage ? 'Procesando con IA...' : '📸 Toca para subir foto'}</span>
               )}
               <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
             </label>
 
-            <input required placeholder="Título del producto" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white" />
+            <input required placeholder="Título del producto" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full p-2.5 bg-muted border border-border rounded text-foreground" />
             <div className="grid grid-cols-2 gap-2">
-              <input required placeholder="Marca" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white" />
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Product['category'] })} className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white">
+              <input required placeholder="Marca" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="w-full p-2.5 bg-muted border border-border rounded text-foreground" />
+              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as Product['category'] })} className="w-full p-2.5 bg-muted border border-border rounded text-foreground">
                 {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <input required type="number" placeholder="Precio MXN" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white" />
-              <input placeholder="Tallas (ej. 26,27,28)" value={form.sizeOptions} onChange={(e) => setForm({ ...form, sizeOptions: e.target.value })} className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white" />
+              <input required type="number" placeholder="Precio MXN" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full p-2.5 bg-muted border border-border rounded text-foreground" />
+              <input placeholder="Tallas (ej. 26,27,28)" value={form.sizeOptions} onChange={(e) => setForm({ ...form, sizeOptions: e.target.value })} className="w-full p-2.5 bg-muted border border-border rounded text-foreground" />
             </div>
-            <textarea placeholder="Descripción" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full p-2.5 bg-black border border-zinc-800 rounded text-white" rows={2} />
+            <textarea placeholder="Descripción" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full p-2.5 bg-muted border border-border rounded text-foreground" rows={2} />
 
             <button type="submit" disabled={!imageFile || isSaving} className="w-full py-2.5 min-h-[44px] bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-bold uppercase rounded transition">
               {isSaving ? 'Guardando...' : 'Guardar Borrador'}
             </button>
-            <p className="text-[10px] text-zinc-600">Se guarda localmente. Publicarlo en Shopify requiere activar el scope write_products de la Admin API.</p>
+            <p className="text-[10px] text-muted-foreground">Se guarda localmente. Publicarlo en Shopify requiere activar el scope write_products de la Admin API.</p>
           </form>
 
           {drafts.length > 0 && (
-            <div className="pt-3 border-t border-zinc-800 space-y-2">
-              <p className="text-[10px] font-mono text-zinc-400 uppercase">Borradores pendientes de publicar ({drafts.length})</p>
+            <div className="pt-3 border-t border-border space-y-2">
+              <p className="text-[10px] font-mono text-muted-foreground uppercase">Borradores pendientes de publicar ({drafts.length})</p>
               {drafts.map((d) => (
-                <div key={d.id} className="flex items-center gap-2 p-2 bg-black/40 border border-zinc-800 rounded">
+                <div key={d.id} className="flex items-center gap-2 p-2 bg-muted border border-border rounded">
                   <div className="relative w-8 h-8 rounded bg-black overflow-hidden shrink-0">
                     <Image src={d.imageUrl} alt={d.title} fill sizes="32px" className="object-cover" />
                   </div>
-                  <span className="flex-1 truncate text-zinc-300">{d.title}</span>
-                  <button onClick={() => handleDeleteDraft(d.id)} className="text-zinc-400 hover:text-red-400 text-[10px] uppercase font-bold">Quitar</button>
+                  <span className="flex-1 truncate text-foreground">{d.title}</span>
+                  <button onClick={() => handleDeleteDraft(d.id)} className="text-muted-foreground hover:text-red-400 text-[10px] uppercase font-bold">Quitar</button>
                 </div>
               ))}
             </div>
@@ -168,21 +168,21 @@ export function InventoryManager() {
         </div>
 
         {/* Gestión / Dar de Baja */}
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-3">
-          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200">Gestión de Catálogo ({products.length} artículos)</h4>
+        <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-3">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-foreground">Gestión de Catálogo ({products.length} artículos)</h4>
           <div className="max-h-96 overflow-y-auto space-y-2">
             {products.map((p) => {
               const isHidden = hidden.has(p.id);
               return (
-                <div key={p.id} className="flex items-center gap-3 p-2 bg-black/40 border border-zinc-800 rounded text-xs">
+                <div key={p.id} className="flex items-center gap-3 p-2 bg-muted border border-border rounded text-xs">
                   <div className="relative w-9 h-9 rounded bg-black overflow-hidden shrink-0">
                     <Image src={p.images[0]} alt={p.title} fill sizes="36px" className="object-cover" />
                   </div>
-                  <span className="flex-1 truncate text-zinc-300">{p.title}</span>
+                  <span className="flex-1 truncate text-foreground">{p.title}</span>
                   <button
                     onClick={() => toggleHidden(p.id, !isHidden)}
                     className={`px-3 py-1.5 min-h-[32px] rounded-full text-[10px] font-bold uppercase transition ${
-                      isHidden ? 'bg-zinc-800 text-zinc-400' : 'bg-emerald-950 text-emerald-400'
+                      isHidden ? 'bg-zinc-800 text-muted-foreground' : 'bg-emerald-950 text-emerald-400'
                     }`}
                   >
                     {isHidden ? 'DESACTIVADO' : 'ACTIVO'}

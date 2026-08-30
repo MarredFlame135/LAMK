@@ -25,7 +25,7 @@ module.exports = {
         popover: { DEFAULT: 'var(--popover)', foreground: 'var(--foreground)' },
         primary: { DEFAULT: 'var(--primary)', foreground: '#FFFFFF' },
         secondary: { DEFAULT: 'var(--secondary)', foreground: 'var(--foreground)' },
-        muted: { DEFAULT: 'var(--muted)', foreground: 'var(--foreground)' },
+        muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },
         accent: { DEFAULT: 'var(--accent)', foreground: '#050507' },
         destructive: { DEFAULT: 'var(--destructive)', foreground: '#FFFFFF' },
         border: 'var(--border)',

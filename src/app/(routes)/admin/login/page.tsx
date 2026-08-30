@@ -64,24 +64,24 @@ function AdminLoginForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Correo</label>
+          <label className="block text-xs text-muted-foreground mb-1">Correo</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
+            className="w-full p-3 bg-muted border border-border rounded-lg text-sm text-foreground outline-none focus:border-[#FF1E42]"
             placeholder="admin@lookatmykicksmx.com"
           />
         </div>
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Contraseña</label>
+          <label className="block text-xs text-muted-foreground mb-1">Contraseña</label>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
+            className="w-full p-3 bg-muted border border-border rounded-lg text-sm text-foreground outline-none focus:border-[#FF1E42]"
             placeholder="••••••••"
           />
         </div>
@@ -105,7 +105,7 @@ function AdminLoginForm() {
 export default function AdminLoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background text-foreground px-4">
-      <Suspense fallback={<div className="text-zinc-400 text-xs">Cargando...</div>}>
+      <Suspense fallback={<div className="text-muted-foreground text-xs">Cargando...</div>}>
         <AdminLoginForm />
       </Suspense>
     </div>

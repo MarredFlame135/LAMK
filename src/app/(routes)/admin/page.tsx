@@ -48,7 +48,7 @@ export default async function AdminOverviewPage({ searchParams }: { searchParams
           <h1 className="font-display text-2xl font-black uppercase tracking-tight mt-1">Look At My Kicks MX</h1>
         </div>
         {role === 'staff' && (
-          <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 border border-border rounded-full px-2.5 py-1">Rol: Staff</span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground border border-border rounded-full px-2.5 py-1">Rol: Staff</span>
         )}
       </div>
 
@@ -68,7 +68,7 @@ export default async function AdminOverviewPage({ searchParams }: { searchParams
             className="p-4 bg-card border border-border rounded-lg hover:border-zinc-600 transition"
           >
             <p className="text-xs font-bold uppercase tracking-wide">{link.label}</p>
-            <p className="text-[10px] text-zinc-500 mt-1">{link.desc}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{link.desc}</p>
           </a>
         ))}
       </div>

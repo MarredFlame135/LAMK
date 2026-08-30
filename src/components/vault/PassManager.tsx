@@ -130,7 +130,7 @@ export function PassManager({ handle, serial, tier, xp, pieces, siteUrl, feature
           />
 
           <div className="relative text-center">
-            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-zinc-400">LAMK Vault // Collector Pass</span>
+            <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted-foreground">LAMK Vault // Collector Pass</span>
           </div>
 
           {featuredImageUrl && (
@@ -144,7 +144,7 @@ export function PassManager({ handle, serial, tier, xp, pieces, siteUrl, feature
             <span className="font-display font-black uppercase">@{handle}</span>
             <span className="font-mono font-bold uppercase tracking-wide" style={{ color: CRIMSON }}>{tier}</span>
           </div>
-          <div className="relative flex items-center justify-between text-[10px] font-mono text-zinc-500 uppercase tracking-wide -mt-3">
+          <div className="relative flex items-center justify-between text-[10px] font-mono text-muted-foreground uppercase tracking-wide -mt-3">
             <span>ÍNDICE {xp.toLocaleString()}</span>
             <span>{pieces} PIEZAS</span>
           </div>
@@ -155,11 +155,11 @@ export function PassManager({ handle, serial, tier, xp, pieces, siteUrl, feature
             </div>
           ) : (
             <div className="relative flex items-center justify-center h-[240px] border border-dashed border-border rounded-lg">
-              <p className="text-xs text-zinc-500 text-center px-6">Genera tu pass para tener un QR que otros puedan escanear.</p>
+              <p className="text-xs text-muted-foreground text-center px-6">Genera tu pass para tener un QR que otros puedan escanear.</p>
             </div>
           )}
 
-          <div className="relative flex items-center justify-between text-[9px] font-mono text-zinc-500 uppercase tracking-wide">
+          <div className="relative flex items-center justify-between text-[9px] font-mono text-muted-foreground uppercase tracking-wide">
             <span>#LK-C-{serial}</span>
           </div>
         </div>
@@ -183,7 +183,7 @@ export function PassManager({ handle, serial, tier, xp, pieces, siteUrl, feature
               <button
                 onClick={revoke}
                 disabled={busy}
-                className="w-full py-2.5 text-zinc-500 hover:text-[#FF1E42] text-[11px] font-mono uppercase tracking-widest transition disabled:opacity-50"
+                className="w-full py-2.5 text-muted-foreground hover:text-[#FF1E42] text-[11px] font-mono uppercase tracking-widest transition disabled:opacity-50"
               >
                 Revocar mi QR
               </button>
@@ -197,7 +197,7 @@ export function PassManager({ handle, serial, tier, xp, pieces, siteUrl, feature
               {busy ? 'Generando...' : 'Generar mi Collector Pass'}
             </button>
           )}
-          <a href="/vault/scan" className="text-center text-[11px] font-mono text-zinc-500 hover:text-white uppercase tracking-widest transition">
+          <a href="/vault/scan" className="text-center text-[11px] font-mono text-muted-foreground hover:text-foreground uppercase tracking-widest transition">
             Escanear el pass de otro coleccionista →
           </a>
         </div>

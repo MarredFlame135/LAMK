@@ -57,7 +57,7 @@ export function ReviewForm() {
 
   return (
     <form onSubmit={handleSubmit} className="p-5 bg-card border border-border rounded-xl space-y-3">
-      <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">// DEJA TU RESEÑA VERIFICADA</h3>
+      <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// DEJA TU RESEÑA VERIFICADA</h3>
 
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
@@ -73,10 +73,10 @@ export function ReviewForm() {
         onChange={(e) => setText(e.target.value)}
         placeholder="Cuéntanos qué te pareció tu par..."
         rows={3}
-        className="w-full p-3 bg-black border border-border rounded-lg text-xs text-white outline-none focus:border-[#FF1E42]"
+        className="w-full p-3 bg-muted border border-border rounded-lg text-xs text-foreground outline-none focus:border-[#FF1E42]"
       />
 
-      <label className="flex items-center justify-center gap-2 h-20 border border-dashed border-zinc-700 rounded-lg cursor-pointer hover:border-red-600/60 transition text-[11px] text-zinc-400 overflow-hidden relative">
+      <label className="flex items-center justify-center gap-2 h-20 border border-dashed border-border rounded-lg cursor-pointer hover:border-red-600/60 transition text-[11px] text-muted-foreground overflow-hidden relative">
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photo} alt="preview" className="absolute inset-0 w-full h-full object-cover" />

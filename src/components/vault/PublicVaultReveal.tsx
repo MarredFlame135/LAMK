@@ -106,7 +106,7 @@ export function PublicVaultReveal({ data, children }: { data: PublicVaultData; c
               animate={{ opacity: 0 }}
               transition={{ duration: 0.3, delay: 0.6 }}
             >
-              <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-zinc-500">Autenticando coleccionista…</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-muted-foreground">Autenticando coleccionista…</span>
               <motion.span
                 className="font-mono text-lg font-bold tracking-widest"
                 style={{ color: GOLD }}
@@ -125,7 +125,7 @@ export function PublicVaultReveal({ data, children }: { data: PublicVaultData; c
               animate={{ opacity: [0, 1, 1, 0], y: [40, 0, 0, -20] }}
               transition={{ duration: 1.2, delay: 0.65, times: [0, 0.25, 0.75, 1], ease: EASE_LUXURY }}
             >
-              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">LAMK Vault // Collector</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">LAMK Vault // Collector</span>
               <span className="font-display text-3xl font-black uppercase text-white">@{data.handle}</span>
               {data.tier && (
                 <span className="font-mono text-[11px] font-bold uppercase tracking-widest" style={{ color: CRIMSON }}>{data.tier}</span>

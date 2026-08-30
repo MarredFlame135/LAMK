@@ -84,7 +84,7 @@ function CollectionCard({ item, index }: { item: CollectionItem; index: number }
 
   return (
     <motion.div variants={fadeUp} custom={index}>
-      <HolographicCard className="group relative p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-xl overflow-hidden hover:border-[#C5A059]/50 transition-colors">
+      <HolographicCard className="group relative p-3 bg-card dark:bg-gradient-to-b dark:from-zinc-800/50 dark:to-zinc-950 border border-border dark:border-zinc-700/80 rounded-xl overflow-hidden hover:border-[#C5A059]/50 transition-colors">
         <div className="relative aspect-square bg-black rounded-lg mb-2 overflow-hidden">
           <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
           {badge && (
@@ -157,10 +157,15 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
         </div>
         {isOwnProfile && (
           <div className="flex items-center gap-4 mb-1">
-            <a href="/vault/pass" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition">
+            {/* Fix (reportado 2026-08-30): text-muted-foreground hover:text-white
+                es prácticamente invisible en modo claro (gris claro sobre
+                fondo claro, y el hover pasaba a BLANCO sobre fondo claro —
+                peor todavía). Estos dos links son la única forma de llegar
+                a /vault/pass y /vault/settings desde la Bóveda. */}
+            <a href="/vault/pass" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition">
               Mi Pass →
             </a>
-            <a href="/vault/settings" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition">
+            <a href="/vault/settings" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground transition">
               Configuración →
             </a>
           </div>
@@ -184,13 +189,13 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
 
           {/* Colección de Piezas (Tarjetas Cromadas) */}
           <div className="space-y-3">
-            <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">
+            <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">
               // MI COLECCIÓN ({user.collection.length} PIEZAS)
             </h3>
 
             {user.collection.length === 0 ? (
               <div className="p-8 border border-dashed border-border rounded-lg text-center space-y-3">
-                <p className="text-zinc-400 text-xs">Aún no tienes pares en tu bóveda. Completa tu primer pedido para desbloquear tu tarjeta digital.</p>
+                <p className="text-muted-foreground text-xs">Aún no tienes pares en tu bóveda. Completa tu primer pedido para desbloquear tu tarjeta digital.</p>
                 <Magnetic className="inline-block" strength={0.2}>
                   <a href="/catalog" className="inline-block px-5 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white text-[11px] font-bold uppercase tracking-widest rounded-lg transition">
                     Ver catálogo →
@@ -218,17 +223,17 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
           {/* Historial Real de Pedidos (solo en tu propia bóveda) */}
           {isOwnProfile && (
             <div className="space-y-3">
-              <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">
+              <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">
                 // HISTORIAL DE PEDIDOS
               </h3>
               {!user.recentOrders || user.recentOrders.length === 0 ? (
-                <div className="p-6 border border-dashed border-border rounded-lg text-center text-zinc-400 text-xs">
+                <div className="p-6 border border-dashed border-border rounded-lg text-center text-muted-foreground text-xs">
                   Todavía no tienes pedidos registrados en Shopify.
                 </div>
               ) : (
                 <div className="overflow-x-auto border border-border/80 rounded-lg">
                   <table className="w-full text-left text-xs">
-                    <thead className="text-zinc-400 font-mono border-b border-border bg-black/40">
+                    <thead className="text-muted-foreground font-mono border-b border-border bg-muted">
                       <tr>
                         <th className="py-2 px-3">PEDIDO</th>
                         <th className="py-2 px-3">FECHA</th>
@@ -237,9 +242,9 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
                     </thead>
                     <tbody className="divide-y divide-zinc-800/60">
                       {user.recentOrders.map((order) => (
-                        <tr key={order.id} className="hover:bg-zinc-900/40 transition-colors">
-                          <td className="py-2 px-3 font-bold text-zinc-200">{order.name}</td>
-                          <td className="py-2 px-3 text-zinc-400 font-mono">
+                        <tr key={order.id} className="hover:bg-muted transition-colors">
+                          <td className="py-2 px-3 font-bold text-foreground">{order.name}</td>
+                          <td className="py-2 px-3 text-muted-foreground font-mono">
                             {order.date ? new Date(order.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                           </td>
                           <td className="py-2 px-3 text-right font-mono text-[#FF1E42] font-bold">

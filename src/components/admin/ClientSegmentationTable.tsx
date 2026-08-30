@@ -56,14 +56,14 @@ export function ClientSegmentationTable({ customers }: { customers: AdminCustome
             className="p-3 bg-card border rounded-lg text-left transition"
             style={filter === seg ? { borderColor: '#C5A059' } : { borderColor: 'var(--border)' }}
           >
-            <p className="text-[10px] font-mono uppercase tracking-wide text-zinc-500">{SEGMENT_META[seg].label}</p>
+            <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">{SEGMENT_META[seg].label}</p>
             <p className="text-lg font-mono font-bold">{distribution[seg]}</p>
           </button>
         ))}
       </div>
 
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-mono text-zinc-500 uppercase tracking-wide">
+        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wide">
           {filter === 'ALL' ? `${filtered.length} clientes` : `${filtered.length} en "${SEGMENT_META[filter].label}" — ${SEGMENT_META[filter].action}`}
         </p>
         <button onClick={exportFiltered} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold uppercase rounded transition">
@@ -73,7 +73,7 @@ export function ClientSegmentationTable({ customers }: { customers: AdminCustome
 
       <div className="overflow-x-auto border border-border rounded-lg">
         <table className="w-full text-left text-xs min-w-[640px]">
-          <thead className="text-zinc-400 font-mono border-b border-border bg-black/40">
+          <thead className="text-muted-foreground font-mono border-b border-border bg-muted">
             <tr>
               <th className="py-2 px-3">CLIENTE</th>
               <th className="py-2 px-3">SEGMENTO</th>
@@ -84,22 +84,22 @@ export function ClientSegmentationTable({ customers }: { customers: AdminCustome
           </thead>
           <tbody className="divide-y divide-border/60">
             {filtered.map((c) => (
-              <tr key={c.id} className="hover:bg-zinc-900/40 transition-colors">
+              <tr key={c.id} className="hover:bg-muted transition-colors">
                 <td className="py-2 px-3">
-                  <p className="font-bold text-zinc-200 truncate max-w-[180px]">{c.name}</p>
-                  <p className="text-[10px] text-zinc-500 font-mono">{c.phone || c.email}</p>
+                  <p className="font-bold text-foreground truncate max-w-[180px]">{c.name}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{c.phone || c.email}</p>
                 </td>
                 <td className="py-2 px-3 font-mono text-[10px] uppercase">{SEGMENT_META[c.segment].label}</td>
                 <td className="py-2 px-3 font-mono">{c.ordersCount}</td>
                 <td className="py-2 px-3 font-mono">${c.totalSpent.toLocaleString('es-MX')}</td>
-                <td className="py-2 px-3 font-mono text-zinc-400">
+                <td className="py-2 px-3 font-mono text-muted-foreground">
                   {c.lastOrderDate ? new Date(c.lastOrderDate).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && <div className="p-8 text-center text-zinc-500 text-xs">Sin clientes en este segmento.</div>}
+        {filtered.length === 0 && <div className="p-8 text-center text-muted-foreground text-xs">Sin clientes en este segmento.</div>}
       </div>
     </div>
   );

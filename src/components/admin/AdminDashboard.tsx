@@ -47,7 +47,7 @@ export function AdminDashboard() {
           aria-hidden
         />
         <div className="relative">
-          <a href="/admin" className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase tracking-widest transition">← Panel de Mando</a>
+          <a href="/admin" className="text-[10px] font-mono text-muted-foreground hover:text-foreground uppercase tracking-widest transition">← Panel de Mando</a>
           <span className="block text-xs font-mono text-[#FF1E42] uppercase tracking-widest mt-1">// PARETO & DEMAND CONTROL CENTER</span>
           <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">DASHBOARD DE OPERACIÓN E INTELIGENCIA</h1>
         </div>

@@ -13,7 +13,7 @@ import { useClients } from '@/hooks/useClients';
 import { LayawayRequest } from '@/types/admin';
 
 const TIER_STYLES: Record<string, string> = {
-  ROOKIE: 'bg-zinc-800 text-zinc-300 border-zinc-700',
+  ROOKIE: 'bg-zinc-800 text-foreground border-zinc-700',
   HYPEBEAST: 'bg-sky-950 text-sky-400 border-sky-900',
   COLLECTOR: 'bg-violet-950 text-violet-400 border-violet-900',
   LEGEND: 'bg-amber-950 text-amber-400 border-amber-900',
@@ -50,14 +50,14 @@ function PaymentNoteForm({ layawayId, onSave }: { layawayId: string; onSave: (id
         placeholder="Monto MXN"
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        className="w-24 bg-black border border-zinc-800 rounded px-2 py-1 text-[11px] text-zinc-200 outline-none focus:border-red-600"
+        className="w-24 bg-muted border border-border rounded px-2 py-1 text-[11px] text-foreground outline-none focus:border-red-600"
       />
       <input
         type="text"
         placeholder="Nota (ej. transferencia, efectivo...)"
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        className="flex-1 min-w-[140px] bg-black border border-zinc-800 rounded px-2 py-1 text-[11px] text-zinc-200 outline-none focus:border-red-600"
+        className="flex-1 min-w-[140px] bg-muted border border-border rounded px-2 py-1 text-[11px] text-foreground outline-none focus:border-red-600"
       />
       <button
         onClick={submit}
@@ -74,12 +74,12 @@ export function ClientsPanel() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
-    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+    <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-4">
+      <div className="flex items-center justify-between border-b border-border pb-2">
         <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
           CLIENTES & ADELANTO DE PAGOS / APARTADOS
         </h3>
-        <span className="text-[10px] font-mono text-zinc-400">{customers.length} cliente(s)</span>
+        <span className="text-[10px] font-mono text-muted-foreground">{customers.length} cliente(s)</span>
       </div>
 
       {!adminApiConfigured && (
@@ -94,15 +94,15 @@ export function ClientsPanel() {
       )}
 
       {isLoading ? (
-        <div className="p-8 text-center text-zinc-400 text-xs">Cargando clientes...</div>
+        <div className="p-8 text-center text-muted-foreground text-xs">Cargando clientes...</div>
       ) : customers.length === 0 ? (
-        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-400 text-xs">
+        <div className="p-8 border border-dashed border-border rounded-lg text-center text-muted-foreground text-xs">
           Aún no hay clientes ni contactos capturados.
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-zinc-400 border-b border-zinc-800 font-mono">
+            <thead className="text-muted-foreground border-b border-border font-mono">
               <tr>
                 <th className="py-2">CLIENTE</th>
                 <th className="py-2">WHATSAPP</th>
@@ -117,24 +117,24 @@ export function ClientsPanel() {
                 const activeLayaways = c.layaways.filter((l) => l.status !== 'CANCELLED');
                 return (
                   <React.Fragment key={c.id}>
-                    <tr className="hover:bg-zinc-900/40 align-top">
+                    <tr className="hover:bg-muted align-top">
                       <td className="py-3 max-w-[200px]">
-                        <p className="font-semibold text-zinc-200 truncate">{c.name}</p>
-                        {c.email && <p className="text-[10px] text-zinc-400 truncate">{c.email}</p>}
+                        <p className="font-semibold text-foreground truncate">{c.name}</p>
+                        {c.email && <p className="text-[10px] text-muted-foreground truncate">{c.email}</p>}
                         {c.source === 'LEAD_ONLY' && (
-                          <span className="text-[9px] text-zinc-600 font-mono uppercase">Sin cuenta Shopify</span>
+                          <span className="text-[9px] text-muted-foreground font-mono uppercase">Sin cuenta Shopify</span>
                         )}
                       </td>
-                      <td className="py-3 font-mono text-zinc-300">{c.phone || '—'}</td>
+                      <td className="py-3 font-mono text-foreground">{c.phone || '—'}</td>
                       <td className="py-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${TIER_STYLES[c.tier]}`}>
                           {c.tier}
                         </span>
-                        <p className="text-[10px] text-zinc-400 font-mono mt-1">{c.xp.toLocaleString()} XP</p>
+                        <p className="text-[10px] text-muted-foreground font-mono mt-1">{c.xp.toLocaleString()} XP</p>
                       </td>
                       <td className="py-3">
                         {activeLayaways.length === 0 ? (
-                          <span className="text-zinc-600">—</span>
+                          <span className="text-muted-foreground">—</span>
                         ) : (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-950 text-red-400 border border-red-900">
                             {activeLayaways.length} activo(s)
@@ -145,7 +145,7 @@ export function ClientsPanel() {
                         {activeLayaways.length > 0 && (
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : c.id)}
-                            className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px] rounded uppercase transition"
+                            className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-foreground font-bold text-[10px] rounded uppercase transition"
                           >
                             {isExpanded ? 'Ocultar' : 'Ver abonos'}
                           </button>
@@ -154,12 +154,12 @@ export function ClientsPanel() {
                     </tr>
 
                     {isExpanded && activeLayaways.map((l) => (
-                      <tr key={l.id} className="bg-black/40">
+                      <tr key={l.id} className="bg-muted">
                         <td colSpan={5} className="py-3 px-3">
-                          <div className="flex flex-col gap-2 border border-zinc-800 rounded-lg p-3">
+                          <div className="flex flex-col gap-2 border border-border rounded-lg p-3">
                             <div className="flex flex-wrap items-center justify-between gap-2">
-                              <p className="text-zinc-200 font-semibold">
-                                {l.productTitle} <span className="text-zinc-400 font-normal">· talla {l.requestedSize}</span>
+                              <p className="text-foreground font-semibold">
+                                {l.productTitle} <span className="text-muted-foreground font-normal">· talla {l.requestedSize}</span>
                               </p>
                               <a
                                 href={`https://wa.me/52${c.phone}?text=${encodeURIComponent(whatsAppReceiptMessage(c.name, l))}`}
@@ -171,7 +171,7 @@ export function ClientsPanel() {
                               </a>
                             </div>
 
-                            <p className="text-[10px] font-mono text-zinc-400">
+                            <p className="text-[10px] font-mono text-muted-foreground">
                               Total ${l.totalPrice.toLocaleString()} MXN · Anticipo pactado ${l.depositAmount.toLocaleString()} MXN ({l.percentage}%)
                               {' · Abonado hasta ahora: '}
                               <strong className="text-emerald-400">
@@ -182,9 +182,9 @@ export function ClientsPanel() {
                             {l.paymentNotes.length > 0 && (
                               <ul className="space-y-1 text-[11px]">
                                 {l.paymentNotes.map((p) => (
-                                  <li key={p.id} className="flex justify-between text-zinc-400 border-b border-zinc-900 pb-1">
+                                  <li key={p.id} className="flex justify-between text-muted-foreground border-b border-zinc-900 pb-1">
                                     <span>{p.note || 'Abono sin nota'}</span>
-                                    <span className="font-mono text-zinc-300">
+                                    <span className="font-mono text-foreground">
                                       ${p.amount.toLocaleString()} MXN · {new Date(p.date).toLocaleDateString('es-MX')}
                                     </span>
                                   </li>

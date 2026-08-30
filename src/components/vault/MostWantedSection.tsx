@@ -36,7 +36,7 @@ function MostWantedCard({ product, onRemove }: { product: Product; onRemove: (id
   };
 
   return (
-    <motion.div variants={fadeUp} className="group relative bg-black/40 border border-border/80 rounded-xl overflow-hidden">
+    <motion.div variants={fadeUp} className="group relative bg-muted border border-border/80 rounded-xl overflow-hidden">
       <a href={`/product/${product.handle}`} className="block">
         <div className="relative aspect-square bg-muted/40">
           <Image src={product.images[0] || '/placeholder-sneaker.svg'} alt={product.title} fill sizes="200px" className="object-contain p-3" />
@@ -47,8 +47,8 @@ function MostWantedCard({ product, onRemove }: { product: Product; onRemove: (id
           )}
         </div>
         <div className="p-2.5">
-          <p className="text-[9px] font-mono text-zinc-400 uppercase truncate">{product.brand}</p>
-          <h4 className="text-[11px] font-bold uppercase line-clamp-1">{product.title}</h4>
+          <p className="text-[9px] font-mono text-muted-foreground uppercase truncate">{product.brand}</p>
+          <h4 className="text-[11px] font-bold uppercase line-clamp-1 text-foreground">{product.title}</h4>
           {price !== undefined && (
             <p className="text-xs font-mono font-bold mt-0.5" style={{ color: GOLD }}>MXN {price.toLocaleString('es-MX')}</p>
           )}
@@ -71,13 +71,13 @@ export function MostWantedSection({ initialItems }: { initialItems: Product[] })
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-      <h3 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">
+      <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">
         // MOST WANTED ({items.length})
       </h3>
 
       {items.length === 0 ? (
         <div className="p-6 border border-dashed border-border rounded-lg text-center">
-          <p className="text-zinc-400 text-xs">
+          <p className="text-muted-foreground text-xs">
             Aún no agregas piezas a tu Most Wanted. Marca las que quieres cazar desde su ficha de producto.
           </p>
         </div>

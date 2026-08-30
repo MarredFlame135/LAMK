@@ -44,22 +44,22 @@ export function AdminAccessPanel() {
 
       {data ? (
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-zinc-900/60 border border-border rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-muted border border-border rounded-lg">
             <div>
-              <p className="text-xs font-bold text-zinc-200">{data.rootAdmin || '—'}</p>
-              <p className="text-[10px] text-zinc-400">Admin raíz — credencial fija (ADMIN_EMAIL/ADMIN_PASSWORD)</p>
+              <p className="text-xs font-bold text-foreground">{data.rootAdmin || '—'}</p>
+              <p className="text-[10px] text-muted-foreground">Admin raíz — credencial fija (ADMIN_EMAIL/ADMIN_PASSWORD)</p>
             </div>
             <span className="text-[9px] font-mono uppercase px-2 py-1 bg-[#FF1E42]/15 text-[#FF1E42] rounded-full">Raíz</span>
           </div>
 
           {data.allowlisted.length === 0 ? (
-            <p className="text-xs text-zinc-400 px-1">Nadie más tiene acceso otorgado todavía.</p>
+            <p className="text-xs text-muted-foreground px-1">Nadie más tiene acceso otorgado todavía.</p>
           ) : (
             data.allowlisted.map((email) => (
-              <div key={email} className="flex items-center justify-between p-3 bg-zinc-900/60 border border-border rounded-lg">
+              <div key={email} className="flex items-center justify-between p-3 bg-muted border border-border rounded-lg">
                 <div>
-                  <p className="text-xs font-bold text-zinc-200">{email}</p>
-                  <p className="text-[10px] text-zinc-400">Entra con su cuenta de cliente normal</p>
+                  <p className="text-xs font-bold text-foreground">{email}</p>
+                  <p className="text-[10px] text-muted-foreground">Entra con su cuenta de cliente normal</p>
                 </div>
                 <span className="text-[9px] font-mono uppercase px-2 py-1 bg-emerald-950/40 text-emerald-400 rounded-full">Otorgado</span>
               </div>
@@ -67,13 +67,13 @@ export function AdminAccessPanel() {
           )}
         </div>
       ) : (
-        <p className="text-xs text-zinc-400">Cargando...</p>
+        <p className="text-xs text-muted-foreground">Cargando...</p>
       )}
 
-      <div className="p-4 bg-zinc-900/60 border border-dashed border-zinc-700 rounded-lg space-y-3">
-        <p className="text-xs font-bold text-zinc-200">Otorgar acceso a un correo nuevo</p>
-        <p className="text-[11px] text-zinc-400 leading-relaxed">
-          Este correo debe tener <strong className="text-zinc-300">ya una cuenta de cliente</strong> en{' '}
+      <div className="p-4 bg-muted border border-dashed border-border rounded-lg space-y-3">
+        <p className="text-xs font-bold text-foreground">Otorgar acceso a un correo nuevo</p>
+        <p className="text-[11px] text-muted-foreground leading-relaxed">
+          Este correo debe tener <strong className="text-foreground">ya una cuenta de cliente</strong> en{' '}
           <a href="/auth/register" className="text-[#FF1E42] hover:underline">/auth/register</a> — el acceso de admin usa esa
           misma contraseña, no una nueva. Escribe el correo y copia el valor para agregarlo:
         </p>
@@ -83,7 +83,7 @@ export function AdminAccessPanel() {
             value={newEmail}
             onChange={(e) => setNewEmail(e.target.value)}
             placeholder="correo@ejemplo.com"
-            className="flex-1 p-2 bg-black border border-zinc-700 text-xs rounded text-white"
+            className="flex-1 p-2 bg-muted border border-border text-xs rounded text-foreground"
           />
           <button
             onClick={handleCopy}
@@ -93,8 +93,8 @@ export function AdminAccessPanel() {
             {copied ? '✓ Copiado' : 'Copiar'}
           </button>
         </div>
-        <p className="text-[10px] text-zinc-400 leading-relaxed">
-          Pídele a Claude que agregue este correo a la variable <code className="text-zinc-300">ADMIN_EMAILS</code> en Vercel
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
+          Pídele a Claude que agregue este correo a la variable <code className="text-foreground">ADMIN_EMAILS</code> en Vercel
           (Production) — es un cambio de configuración con acceso de dueño, no algo que este formulario deba poder hacer solo.
           Si varios correos ya están otorgados, sepáralos con comas en esa misma variable.
         </p>

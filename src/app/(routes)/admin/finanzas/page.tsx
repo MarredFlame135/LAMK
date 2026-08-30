@@ -37,7 +37,7 @@ export default async function AdminFinanzasPage() {
   return (
     <div className="p-6 bg-background text-foreground space-y-8">
       <div className="border-b border-border pb-4">
-        <a href="/admin" className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase tracking-widest transition">← Panel de Mando</a>
+        <a href="/admin" className="text-[10px] font-mono text-muted-foreground hover:text-foreground uppercase tracking-widest transition">← Panel de Mando</a>
         <span className="block text-xs font-mono text-[#FF1E42] uppercase tracking-widest mt-1">// FINANZAS</span>
         <h1 className="font-display text-2xl font-black uppercase tracking-tight mt-1">Margen, capital y proyección</h1>
       </div>
@@ -50,29 +50,29 @@ export default async function AdminFinanzasPage() {
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="p-4 bg-card border border-border rounded-lg">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Capital inmovilizado</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Capital inmovilizado</p>
               <p className="text-xl font-mono font-bold mt-1">{inventoryValue !== null ? formatMxn(inventoryValue) : '—'}</p>
-              <p className="text-[10px] font-mono text-zinc-500 mt-1">{valuation.costDataAvailable ? 'a costo real' : 'a precio de venta (sin costo real disponible)'}</p>
+              <p className="text-[10px] font-mono text-muted-foreground mt-1">{valuation.costDataAvailable ? 'a costo real' : 'a precio de venta (sin costo real disponible)'}</p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Días de inventario</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Días de inventario</p>
               <p className="text-xl font-mono font-bold mt-1">{daysOfInventory !== null ? daysOfInventory : '—'}</p>
-              <p className="text-[10px] font-mono text-zinc-500 mt-1">al ritmo de venta de este mes</p>
+              <p className="text-[10px] font-mono text-muted-foreground mt-1">al ritmo de venta de este mes</p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Proyección 30 días</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Proyección 30 días</p>
               <p className="text-xl font-mono font-bold mt-1">{formatMxn(projection30d)}</p>
-              <p className="text-[10px] font-mono text-zinc-500 mt-1">extrapolación lineal, no forecast</p>
+              <p className="text-[10px] font-mono text-muted-foreground mt-1">extrapolación lineal, no forecast</p>
             </div>
             <div className="p-4 bg-card border border-border rounded-lg">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Margen bruto mes</p>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Margen bruto mes</p>
               <p className="text-xl font-mono font-bold mt-1">{dashboard.grossMarginPct !== null ? `${dashboard.grossMarginPct}%` : '—'}</p>
-              <p className="text-[10px] font-mono text-zinc-500 mt-1">sobre ventas del mes</p>
+              <p className="text-[10px] font-mono text-muted-foreground mt-1">sobre ventas del mes</p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <h2 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">// MARGEN Y VALOR POR CATEGORÍA</h2>
+            <h2 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// MARGEN Y VALOR POR CATEGORÍA</h2>
             <FinanceDetailTable categories={valuation.categories} costDataAvailable={valuation.costDataAvailable} />
           </div>
         </>

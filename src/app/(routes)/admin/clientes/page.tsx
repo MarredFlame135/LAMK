@@ -21,7 +21,7 @@ export default async function AdminClientesPage() {
   return (
     <div className="p-6 bg-background text-foreground space-y-8">
       <div className="border-b border-border pb-4">
-        <a href="/admin" className="text-[10px] font-mono text-zinc-400 hover:text-white uppercase tracking-widest transition">← Panel de Mando</a>
+        <a href="/admin" className="text-[10px] font-mono text-muted-foreground hover:text-foreground uppercase tracking-widest transition">← Panel de Mando</a>
         <span className="block text-xs font-mono text-[#FF1E42] uppercase tracking-widest mt-1">// CLIENTES</span>
         <h1 className="font-display text-2xl font-black uppercase tracking-tight mt-1">Segmentación RFM</h1>
       </div>
@@ -35,7 +35,7 @@ export default async function AdminClientesPage() {
       )}
 
       <div className="space-y-3">
-        <h2 className="text-xs font-mono uppercase text-zinc-400 tracking-wider">// DEMANDA INSATISFECHA (MOST WANTED)</h2>
+        <h2 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// DEMANDA INSATISFECHA (MOST WANTED)</h2>
         <UnmetDemandPanel rows={unmetDemand} />
       </div>
     </div>

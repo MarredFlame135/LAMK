@@ -15,7 +15,7 @@ const STATUS_STYLES: Record<LayawayStatus, string> = {
   PENDING: 'bg-amber-950 text-amber-400 border-amber-900',
   CONTACTED: 'bg-sky-950 text-sky-400 border-sky-900',
   CONFIRMED: 'bg-emerald-950 text-emerald-400 border-emerald-900',
-  CANCELLED: 'bg-zinc-800 text-zinc-400 border-zinc-700',
+  CANCELLED: 'bg-zinc-800 text-muted-foreground border-zinc-700',
 };
 
 const STATUS_LABELS: Record<LayawayStatus, string> = {
@@ -34,7 +34,7 @@ function NoteCell({ id, initialNote, onSave }: { id: string; initialNote: string
       placeholder="Sin comentario..."
       onChange={(e) => setValue(e.target.value)}
       onBlur={() => { if (value !== initialNote) onSave(id, value); }}
-      className="w-full min-w-[140px] bg-black border border-zinc-800 rounded px-2 py-1.5 text-[11px] text-zinc-200 outline-none focus:border-red-600"
+      className="w-full min-w-[140px] bg-muted border border-border rounded px-2 py-1.5 text-[11px] text-foreground outline-none focus:border-red-600"
     />
   );
 }
@@ -44,8 +44,8 @@ export function LayawayPanel() {
   const pendingCount = layaways.filter((l) => l.status === 'PENDING').length;
 
   return (
-    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+    <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-4">
+      <div className="flex items-center justify-between border-b border-border pb-2">
         <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
           APARTADOS (TENISIN)
         </h3>
@@ -57,14 +57,14 @@ export function LayawayPanel() {
       </div>
 
       {layaways.length === 0 ? (
-        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-400 text-xs">
+        <div className="p-8 border border-dashed border-border rounded-lg text-center text-muted-foreground text-xs">
           Aún no hay apartados. En cuanto un cliente aparte un par con TENISIN, la solicitud
           (producto, % y anticipo) aparecerá aquí con su WhatsApp listo para contactar.
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-zinc-400 border-b border-zinc-800 font-mono">
+            <thead className="text-muted-foreground border-b border-border font-mono">
               <tr>
                 <th className="py-2">PRODUCTO</th>
                 <th className="py-2">ANTICIPO</th>
@@ -76,17 +76,17 @@ export function LayawayPanel() {
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
               {layaways.map((l) => (
-                <tr key={l.id} className="hover:bg-zinc-900/40 align-top">
+                <tr key={l.id} className="hover:bg-muted align-top">
                   <td className="py-3 max-w-[220px]">
                     <div className="flex items-center gap-2">
                       {l.productImage && (
-                        <div className="w-9 h-9 rounded bg-black overflow-hidden shrink-0 border border-zinc-800">
+                        <div className="w-9 h-9 rounded bg-muted overflow-hidden shrink-0 border border-border">
                           <img src={l.productImage} alt={l.productTitle} className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="font-semibold text-zinc-200 truncate">{l.productTitle}</p>
-                        <p className="text-[10px] text-zinc-400 font-mono">
+                        <p className="font-semibold text-foreground truncate">{l.productTitle}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">
                           Talla {l.requestedSize} · HEAT {l.hypeScore}%
                         </p>
                       </div>
@@ -94,9 +94,9 @@ export function LayawayPanel() {
                   </td>
                   <td className="py-3 font-mono">
                     <p className="text-emerald-400 font-bold">${l.depositAmount.toLocaleString()} MXN</p>
-                    <p className="text-[10px] text-zinc-400">{l.percentage}% de ${l.totalPrice.toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">{l.percentage}% de ${l.totalPrice.toLocaleString()}</p>
                   </td>
-                  <td className="py-3 font-mono text-zinc-300">{l.customerPhone}</td>
+                  <td className="py-3 font-mono text-foreground">{l.customerPhone}</td>
                   <td className="py-3">
                     <NoteCell id={l.id} initialNote={l.note} onSave={setNote} />
                   </td>
@@ -119,14 +119,14 @@ export function LayawayPanel() {
                       {l.status !== 'CONFIRMED' && (
                         <button
                           onClick={() => setStatus(l.id, 'CONFIRMED')}
-                          className="px-2 py-1 bg-zinc-800 hover:bg-emerald-900 text-zinc-300 font-bold text-[10px] rounded uppercase transition"
+                          className="px-2 py-1 bg-zinc-800 hover:bg-emerald-900 text-foreground font-bold text-[10px] rounded uppercase transition"
                         >
                           Confirmar
                         </button>
                       )}
                       <button
                         onClick={() => remove(l.id)}
-                        className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px] rounded uppercase transition"
+                        className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-foreground font-bold text-[10px] rounded uppercase transition"
                       >
                         Descartar
                       </button>

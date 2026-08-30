@@ -30,7 +30,7 @@ export default async function VaultPassPage() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center px-4 text-center">
         <div className="max-w-sm space-y-4">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted-foreground">
             Necesitas un usuario público y visibilidad distinta a "Privado" antes de generar tu Collector Pass.
           </p>
           <a href="/vault/settings" className="inline-block px-5 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition">

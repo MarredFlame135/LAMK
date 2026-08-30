@@ -15,8 +15,8 @@ export function DemandRequestsPanel() {
   const pendingCount = leads.filter((l) => !l.wasMatched && !l.notified).length;
 
   return (
-    <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-4">
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+    <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-4">
+      <div className="flex items-center justify-between border-b border-border pb-2">
         <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
           PETICIONES DE CLIENTES (TENISIN)
         </h3>
@@ -28,14 +28,14 @@ export function DemandRequestsPanel() {
       </div>
 
       {leads.length === 0 ? (
-        <div className="p-8 border border-dashed border-zinc-800 rounded-lg text-center text-zinc-400 text-xs">
+        <div className="p-8 border border-dashed border-border rounded-lg text-center text-muted-foreground text-xs">
           Aún no hay búsquedas registradas. En cuanto un cliente use el chat de TENISIN, sus peticiones
           (encontradas o no) aparecerán aquí en tiempo real.
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="text-zinc-400 border-b border-zinc-800 font-mono">
+            <thead className="text-muted-foreground border-b border-border font-mono">
               <tr>
                 <th className="py-2">BÚSQUEDA DEL CLIENTE</th>
                 <th className="py-2">RESULTADO</th>
@@ -46,11 +46,11 @@ export function DemandRequestsPanel() {
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
               {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-zinc-900/40">
+                <tr key={lead.id} className="hover:bg-muted">
                   <td className="py-3 max-w-[200px]">
-                    <p className="font-semibold text-zinc-200 truncate">"{lead.rawQuery || lead.productTitle}"</p>
+                    <p className="font-semibold text-foreground truncate">"{lead.rawQuery || lead.productTitle}"</p>
                     {lead.wasMatched && (
-                      <p className="text-[10px] text-zinc-400 truncate">→ {lead.productTitle}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">→ {lead.productTitle}</p>
                     )}
                   </td>
                   <td className="py-3">
@@ -64,10 +64,10 @@ export function DemandRequestsPanel() {
                       </span>
                     )}
                   </td>
-                  <td className="py-3 font-mono text-zinc-300">
-                    {lead.customerPhone || <span className="text-zinc-600">— no dejó —</span>}
+                  <td className="py-3 font-mono text-foreground">
+                    {lead.customerPhone || <span className="text-muted-foreground">— no dejó —</span>}
                   </td>
-                  <td className="py-3 text-zinc-400 font-mono">
+                  <td className="py-3 text-muted-foreground font-mono">
                     {new Date(lead.createdAt).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </td>
                   <td className="py-3 text-right space-x-2">
@@ -84,7 +84,7 @@ export function DemandRequestsPanel() {
                     )}
                     <button
                       onClick={() => remove(lead.id)}
-                      className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px] rounded uppercase tracking-wider transition"
+                      className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-foreground font-bold text-[10px] rounded uppercase tracking-wider transition"
                     >
                       DESCARTAR
                     </button>

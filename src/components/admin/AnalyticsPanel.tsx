@@ -64,13 +64,13 @@ function monthLabel(key: string): string {
 // --- Stat tile ---
 function StatTile({ icon: Icon, label, value, hint }: { icon: any; label: string; value: string; hint?: string }) {
   return (
-    <div className="p-4 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20 space-y-1">
-      <div className="flex items-center gap-2 text-zinc-400">
+    <div className="p-4 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-1">
+      <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         <span className="text-[10px] font-mono uppercase tracking-widest">{label}</span>
       </div>
-      <p className="text-2xl font-black text-white">{value}</p>
-      {hint && <p className="text-[10px] text-zinc-400">{hint}</p>}
+      <p className="text-2xl font-black text-foreground">{value}</p>
+      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }
@@ -91,18 +91,18 @@ function MonthlyRevenueChart({ sales }: { sales: OfflineSale[] }) {
   const max = Math.max(1, ...byMonth.map(([, v]) => v));
 
   if (byMonth.length === 0) {
-    return <p className="text-xs text-zinc-400 py-8 text-center">Aún no hay ventas registradas para graficar.</p>;
+    return <p className="text-xs text-muted-foreground py-8 text-center">Aún no hay ventas registradas para graficar.</p>;
   }
 
   return (
     <div className="relative">
-      <div className="flex items-end gap-3 h-40 border-b border-zinc-800/80 pb-1">
+      <div className="flex items-end gap-3 h-40 border-b border-border/80 pb-1">
         {byMonth.map(([key, value]) => {
           const heightPct = Math.max(4, (value / max) * 100);
           return (
             <div key={key} className="flex-1 flex flex-col items-center justify-end h-full gap-1.5 relative">
               {hovered === key && (
-                <div className="absolute -top-7 px-2 py-1 bg-black border border-zinc-700 rounded text-[10px] text-white font-mono whitespace-nowrap z-10">
+                <div className="absolute -top-7 px-2 py-1 bg-card border border-border rounded text-[10px] text-foreground font-mono whitespace-nowrap z-10">
                   ${value.toLocaleString()} MXN
                 </div>
               )}
@@ -118,7 +118,7 @@ function MonthlyRevenueChart({ sales }: { sales: OfflineSale[] }) {
       </div>
       <div className="flex gap-3 mt-1.5">
         {byMonth.map(([key]) => (
-          <span key={key} className="flex-1 text-center text-[9px] font-mono text-zinc-400 uppercase">
+          <span key={key} className="flex-1 text-center text-[9px] font-mono text-muted-foreground uppercase">
             {monthLabel(key)}
           </span>
         ))}
@@ -133,7 +133,7 @@ function TopViewedChart({ items }: { items: TopViewedItem[] }) {
   const max = Math.max(1, ...items.map((i) => i.views));
 
   if (items.length === 0) {
-    return <p className="text-xs text-zinc-400 py-8 text-center">Aún no hay vistas registradas — se llenan cuando alguien visita una ficha de producto.</p>;
+    return <p className="text-xs text-muted-foreground py-8 text-center">Aún no hay vistas registradas — se llenan cuando alguien visita una ficha de producto.</p>;
   }
 
   return (
@@ -142,8 +142,8 @@ function TopViewedChart({ items }: { items: TopViewedItem[] }) {
         const widthPct = Math.max(3, (item.views / max) * 100);
         return (
           <div key={item.id} className="flex items-center gap-3 text-xs">
-            <span className="w-32 sm:w-40 truncate text-zinc-300">{item.title}</span>
-            <div className="flex-1 h-4 bg-zinc-900 rounded-[4px] overflow-hidden relative">
+            <span className="w-32 sm:w-40 truncate text-foreground">{item.title}</span>
+            <div className="flex-1 h-4 bg-black/10 dark:bg-white/10 rounded-[4px] overflow-hidden relative">
               <div
                 onMouseEnter={() => setHovered(item.id)}
                 onMouseLeave={() => setHovered(null)}
@@ -156,7 +156,7 @@ function TopViewedChart({ items }: { items: TopViewedItem[] }) {
                 </div>
               )}
             </div>
-            <span className="w-8 text-right font-mono text-zinc-400">{item.views}</span>
+            <span className="w-8 text-right font-mono text-muted-foreground">{item.views}</span>
           </div>
         );
       })}
@@ -173,7 +173,7 @@ function DemandByCategoryChart({ counts }: { counts: Record<string, number> }) {
   const max = Math.max(1, ...entries.map((e) => e.count));
 
   if (entries.length === 0) {
-    return <p className="text-xs text-zinc-400 py-8 text-center">Sin peticiones de restock todavía.</p>;
+    return <p className="text-xs text-muted-foreground py-8 text-center">Sin peticiones de restock todavía.</p>;
   }
 
   return (
@@ -181,23 +181,23 @@ function DemandByCategoryChart({ counts }: { counts: Record<string, number> }) {
       <div className="space-y-2">
         {entries.map(({ cat, count }) => (
           <div key={cat} className="flex items-center gap-3 text-xs">
-            <span className="w-24 text-zinc-300 truncate">{CATEGORY_LABELS[cat as Product['category']]}</span>
-            <div className="flex-1 h-3 bg-zinc-900 rounded-[4px] overflow-hidden">
+            <span className="w-24 text-foreground truncate">{CATEGORY_LABELS[cat as Product['category']]}</span>
+            <div className="flex-1 h-3 bg-black/10 dark:bg-white/10 rounded-[4px] overflow-hidden">
               <div
                 className="h-full rounded-[4px]"
                 style={{ width: `${Math.max(4, (count / max) * 100)}%`, backgroundColor: CATEGORY_COLORS[cat] }}
               />
             </div>
-            <span className="w-6 text-right font-mono text-zinc-400">{count}</span>
+            <span className="w-6 text-right font-mono text-muted-foreground">{count}</span>
           </div>
         ))}
       </div>
       {/* Leyenda (identidad nunca solo por color) */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-2 border-t border-zinc-800/60">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-2 border-t border-border">
         {entries.map(({ cat }) => (
           <div key={cat} className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[cat] }} />
-            <span className="text-[10px] text-zinc-400 font-mono">{CATEGORY_LABELS[cat as Product['category']]}</span>
+            <span className="text-[10px] text-muted-foreground font-mono">{CATEGORY_LABELS[cat as Product['category']]}</span>
           </div>
         ))}
       </div>
@@ -239,7 +239,7 @@ export function AnalyticsPanel() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100">DASHBOARD DE OPERACIÓN E INTELIGENCIA</h3>
-        <span className="text-[9px] font-mono text-zinc-600 uppercase">Datos reales — sin cifras simuladas</span>
+        <span className="text-[9px] font-mono text-muted-foreground uppercase">Datos reales — sin cifras simuladas</span>
       </div>
 
       {/* Stat tiles */}
@@ -251,26 +251,26 @@ export function AnalyticsPanel() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
-          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200 mb-4">Ventas Físicas por Mes</h4>
+        <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-foreground mb-4">Ventas Físicas por Mes</h4>
           <MonthlyRevenueChart sales={sales} />
         </div>
 
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
-          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200 mb-4">Top Pares Más Deseados (vistas reales 24h)</h4>
+        <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-foreground mb-4">Top Pares Más Deseados (vistas reales 24h)</h4>
           <TopViewedChart items={topViewed} />
         </div>
 
-        <div className="p-5 bg-[#0E0E13] border border-zinc-800 rounded-xl shadow-lg shadow-black/20">
-          <h4 className="font-display text-xs font-black uppercase tracking-wide text-zinc-200 mb-4">Demanda Acumulada de Agotados por Categoría</h4>
+        <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20">
+          <h4 className="font-display text-xs font-black uppercase tracking-wide text-foreground mb-4">Demanda Acumulada de Agotados por Categoría</h4>
           <DemandByCategoryChart counts={demandByCategory} />
         </div>
 
         {/* Estado vacío honesto: no hay orders reales de Shopify todavía */}
-        <div className="p-5 bg-[#0E0E13] border border-dashed border-zinc-800 rounded-xl flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
-          <Lock className="h-6 w-6 text-zinc-600" />
-          <h4 className="text-xs font-bold uppercase text-zinc-400">Top / Bottom Sellers de Shopify</h4>
-          <p className="text-[11px] text-zinc-400 max-w-xs">
+        <div className="p-5 bg-card border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-center space-y-2 min-h-[200px]">
+          <Lock className="h-6 w-6 text-muted-foreground" />
+          <h4 className="text-xs font-bold uppercase text-muted-foreground">Top / Bottom Sellers de Shopify</h4>
+          <p className="text-[11px] text-muted-foreground max-w-xs">
             Tu token actual no tiene scopes de Admin API (read_orders/read_products). Actívalos en
             Shopify Admin → tu app → Configuración → Admin API, y pásame el nuevo token para
             activar este gráfico con ventas reales.

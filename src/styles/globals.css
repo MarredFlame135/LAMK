@@ -20,6 +20,14 @@
   --primary: #FF1E42;
   --secondary: #EDE7DA;
   --muted: #EDE7DA;
+  /* Fix (reportado 2026-08-30): no existía un "texto secundario" que
+     cambiara con el tema — el patrón establecido (`text-zinc-400`) se
+     calibró explícitamente solo para fondo oscuro (ver comentario de
+     Fase 6 más abajo en este archivo... histórico, en CLAUDE.md). En modo
+     claro, zinc-400 sobre `--muted`/superficies oscuras hardcodeadas
+     perdía casi todo el contraste. #57534E sobre #F5F1E8/#EDE7DA da
+     ≈5:1, sobre AA (4.5:1). */
+  --muted-foreground: #57534E;
   --accent: #C5A059;
   --border: rgba(0, 0, 0, 0.06);
   --input: rgba(0, 0, 0, 0.1);
@@ -40,6 +48,9 @@
   --primary: #FF1E42;
   --secondary: #17171D;
   --muted: #17171D;
+  /* Mismo valor que el `text-zinc-400` ya calibrado y documentado en
+     CLAUDE.md (Fase 6): 8.19:1 sobre #050507. */
+  --muted-foreground: #A1A1AA;
   --accent: #C5A059;
   --border: rgba(255, 255, 255, 0.06);
   --input: rgba(255, 255, 255, 0.1);

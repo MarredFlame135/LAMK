@@ -47,7 +47,7 @@ export function CollectorPlaque({ user, displayName }: CollectorPlaqueProps) {
 
       <div className="relative p-5 sm:p-6 space-y-5">
         {/* Cabecera de placa — idéntico vocabulario a ProductCard */}
-        <div className="flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.2em] text-zinc-400">
+        <div className="flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.2em] text-muted-foreground">
           <span>LAMK Vault // Collector</span>
           <span>#{serial}</span>
         </div>
@@ -72,12 +72,12 @@ export function CollectorPlaque({ user, displayName }: CollectorPlaqueProps) {
               <div className="text-lg font-black tabular-nums" style={{ color: GOLD }}>
                 <CountUp value={user.xp} />
               </div>
-              <div className="text-[9px] uppercase tracking-[0.15em] text-zinc-400">XP</div>
+              <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">XP</div>
             </div>
             <div className="h-8 w-px bg-border" aria-hidden />
             <div className="text-right">
               <div className="text-lg font-black tabular-nums text-foreground">{user.collection.length}</div>
-              <div className="text-[9px] uppercase tracking-[0.15em] text-zinc-400">Piezas</div>
+              <div className="text-[9px] uppercase tracking-[0.15em] text-muted-foreground">Piezas</div>
             </div>
           </div>
         </div>

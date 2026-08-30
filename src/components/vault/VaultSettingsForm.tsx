@@ -39,7 +39,7 @@ interface VaultSettingsFormProps {
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <motion.div variants={fadeUp} className="bg-card border border-border rounded-xl p-6 space-y-4">
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400">// {title}</h2>
+      <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">// {title}</h2>
       {children}
     </motion.div>
   );
@@ -147,50 +147,50 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
       {/* Identidad */}
       <SectionCard title="Identidad">
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Usuario (handle público)</label>
+          <label className="block text-xs text-muted-foreground mb-1">Usuario (handle público)</label>
           <div className="flex items-center gap-1">
-            <span className="text-zinc-500 font-mono text-sm">@</span>
+            <span className="text-muted-foreground font-mono text-sm">@</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
               placeholder="tu_usuario"
               maxLength={24}
-              className="flex-1 p-2.5 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42] font-mono"
+              className="flex-1 p-2.5 bg-muted border border-border rounded-lg text-sm text-foreground outline-none focus:border-[#FF1E42] font-mono"
             />
           </div>
         </div>
         <div>
-          <label className="block text-xs text-zinc-400 mb-1">Bio ({bio.length}/280)</label>
+          <label className="block text-xs text-muted-foreground mb-1">Bio ({bio.length}/280)</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, 280))}
             rows={2}
-            className="w-full p-2.5 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42] resize-none"
+            className="w-full p-2.5 bg-muted border border-border rounded-lg text-sm text-foreground outline-none focus:border-[#FF1E42] resize-none"
           />
         </div>
         {!profile?.dateOfBirth && (
           <div>
-            <label className="block text-xs text-zinc-400 mb-1">Fecha de nacimiento</label>
+            <label className="block text-xs text-muted-foreground mb-1">Fecha de nacimiento</label>
             <input
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
-              className="p-2.5 bg-black border border-border rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
+              className="p-2.5 bg-muted border border-border rounded-lg text-sm text-foreground outline-none focus:border-[#FF1E42]"
             />
-            <p className="text-[10px] text-zinc-500 mt-1">
+            <p className="text-[10px] text-muted-foreground mt-1">
               Necesaria para activar funciones sociales (QR, seguir, bóveda pública) — protege tu cuenta si eres menor de edad. No se puede cambiar después desde aquí.
             </p>
           </div>
         )}
 
         <div className="pt-2 space-y-2">
-          <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Visibilidad</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Visibilidad</p>
           {([
             { key: 'profileVisibility' as const, label: 'Perfil', value: profileVisibility, set: setProfileVisibility },
             { key: 'vaultVisibility' as const, label: 'Bóveda pública', value: vaultVisibility, set: setVaultVisibility },
           ]).map((row) => (
             <div key={row.key}>
-              <p className="text-xs text-zinc-300 mb-1">{row.label}</p>
+              <p className="text-xs text-foreground mb-1">{row.label}</p>
               <div className="grid grid-cols-3 gap-1.5">
                 {VISIBILITY_OPTIONS.map((opt) => (
                   <button
@@ -202,7 +202,7 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
                     style={
                       row.value === opt.value
                         ? { borderColor: GOLD, color: GOLD, background: 'rgba(197,160,89,0.08)' }
-                        : { borderColor: 'var(--border)', color: '#a1a1aa' }
+                        : { borderColor: 'var(--border)', color: 'var(--muted-foreground)' }
                     }
                   >
                     {opt.label}
@@ -221,13 +221,13 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
           >
             {identitySaving ? 'Guardando...' : 'Guardar'}
           </button>
-          {identityStatus && <span className="text-xs text-zinc-400">{identityStatus}</span>}
+          {identityStatus && <span className="text-xs text-muted-foreground">{identityStatus}</span>}
         </div>
       </SectionCard>
 
       {/* Notificaciones */}
       <SectionCard title="Notificaciones">
-        <label className="flex items-start gap-2.5 text-xs text-zinc-300 cursor-pointer">
+        <label className="flex items-start gap-2.5 text-xs text-foreground cursor-pointer">
           <input
             type="checkbox"
             checked={marketingOptIn}
@@ -237,27 +237,27 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
           />
           <span>Quiero recibir avisos de drops y restocks por WhatsApp.</span>
         </label>
-        {notifStatus && <span className="text-xs text-zinc-500">{notifStatus}</span>}
+        {notifStatus && <span className="text-xs text-muted-foreground">{notifStatus}</span>}
       </SectionCard>
 
       {/* Datos y seguridad */}
       <SectionCard title="Datos y Seguridad">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-zinc-300">Contraseña</span>
+          <span className="text-xs text-foreground">Contraseña</span>
           <a href="/auth/reset-password" className="text-xs text-[#FF1E42] font-bold hover:underline">Cambiar →</a>
         </div>
 
         <div>
-          <p className="text-xs text-zinc-300 mb-1">Cuentas vinculadas</p>
+          <p className="text-xs text-foreground mb-1">Cuentas vinculadas</p>
           {linkedProviders.length === 0 ? (
-            <p className="text-[11px] text-zinc-500">Ninguna todavía.</p>
+            <p className="text-[11px] text-muted-foreground">Ninguna todavía.</p>
           ) : (
-            <p className="text-[11px] text-zinc-400 font-mono uppercase">{linkedProviders.join(', ')}</p>
+            <p className="text-[11px] text-muted-foreground font-mono uppercase">{linkedProviders.join(', ')}</p>
           )}
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-xs text-zinc-300">Exportar mis datos</span>
+          <span className="text-xs text-foreground">Exportar mis datos</span>
           <a href="/api/vault/settings/export" className="text-xs text-[#FF1E42] font-bold hover:underline">Descargar JSON →</a>
         </div>
 
@@ -267,22 +267,22 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
 
           {deletion ? (
             <div className="p-3 rounded-lg border border-red-900/50 bg-red-950/20 space-y-2">
-              <p className="text-xs text-zinc-300">
+              <p className="text-xs text-foreground">
                 Tu cuenta se eliminará el{' '}
-                <strong className="text-white">{new Date(deletion).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>.
+                <strong>{new Date(deletion).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>.
                 Puedes cancelar en cualquier momento antes de esa fecha.
               </p>
               <button
                 onClick={cancelDeletion}
                 disabled={deleteBusy}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition"
+                className="px-4 py-2 bg-muted hover:bg-border text-foreground text-xs font-bold uppercase tracking-widest rounded-lg transition"
               >
                 Cancelar eliminación
               </button>
             </div>
           ) : (
             <div className="space-y-2">
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-muted-foreground">
                 Se borra tu perfil social, bóveda pública, Most Wanted y cuentas vinculadas, 14 días después de confirmar (puedes cancelar antes). Si ya tienes pedidos, Shopify no permite borrar ese historial — se conserva por obligación fiscal, nunca se vuelve a usar para nada más.
               </p>
               <input
@@ -290,7 +290,7 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
                 placeholder={`Escribe "${email}" para confirmar`}
                 value={confirmEmail}
                 onChange={(e) => setConfirmEmail(e.target.value)}
-                className="w-full p-2.5 bg-black border border-red-900/50 rounded-lg text-sm text-white outline-none focus:border-[#FF1E42]"
+                className="w-full p-2.5 bg-muted border border-red-900/50 rounded-lg text-sm text-foreground outline-none focus:border-[#FF1E42]"
               />
               {deleteError && <p className="text-xs text-red-400">{deleteError}</p>}
               <button

@@ -29,7 +29,7 @@ function downloadCsv(csv: string, filename: string) {
 
 export function FinanceDetailTable({ categories, costDataAvailable }: { categories: CategoryValuation[]; costDataAvailable: boolean }) {
   if (categories.length === 0) {
-    return <div className="p-8 border border-dashed border-border rounded-lg text-center text-zinc-500 text-xs">Sin datos de inventario disponibles.</div>;
+    return <div className="p-8 border border-dashed border-border rounded-lg text-center text-muted-foreground text-xs">Sin datos de inventario disponibles.</div>;
   }
 
   return (
@@ -51,7 +51,7 @@ export function FinanceDetailTable({ categories, costDataAvailable }: { categori
 
       <div className="overflow-x-auto border border-border rounded-lg">
         <table className="w-full text-left text-xs min-w-[560px]">
-          <thead className="text-zinc-400 font-mono border-b border-border bg-black/40">
+          <thead className="text-muted-foreground font-mono border-b border-border bg-muted">
             <tr>
               <th className="py-2 px-3">CATEGORÍA</th>
               <th className="py-2 px-3">UNIDADES</th>
@@ -62,11 +62,11 @@ export function FinanceDetailTable({ categories, costDataAvailable }: { categori
           </thead>
           <tbody className="divide-y divide-border/60">
             {categories.map((c) => (
-              <tr key={c.category} className="hover:bg-zinc-900/40 transition-colors">
-                <td className="py-2 px-3 font-bold text-zinc-200">{c.category}</td>
+              <tr key={c.category} className="hover:bg-muted transition-colors">
+                <td className="py-2 px-3 font-bold text-foreground">{c.category}</td>
                 <td className="py-2 px-3 font-mono">{c.unitsInStock}</td>
                 <td className="py-2 px-3 font-mono">${Math.round(c.retailValue).toLocaleString('es-MX')}</td>
-                <td className="py-2 px-3 font-mono text-zinc-400">{c.costValue !== null ? `$${Math.round(c.costValue).toLocaleString('es-MX')}` : '—'}</td>
+                <td className="py-2 px-3 font-mono text-muted-foreground">{c.costValue !== null ? `$${Math.round(c.costValue).toLocaleString('es-MX')}` : '—'}</td>
                 <td className="py-2 px-3 font-mono" style={{ color: c.marginPct !== null ? '#C5A059' : undefined }}>
                   {c.marginPct !== null ? `${c.marginPct}%` : '—'}
                 </td>

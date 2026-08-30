@@ -26,7 +26,7 @@ export function CollectionIndexPanel({ breakdown }: { breakdown: CollectionIndex
   return (
     <motion.div variants={fadeUp} className="rounded-xl border border-border bg-card p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400">// Índice de Colección</h4>
+        <h4 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">// Índice de Colección</h4>
         <span className="font-mono text-2xl font-black tabular-nums" style={{ color: GOLD }}>
           <CountUp value={breakdown.score} />
         </span>
@@ -36,10 +36,10 @@ export function CollectionIndexPanel({ breakdown }: { breakdown: CollectionIndex
         {ROWS.map((row, i) => (
           <div key={row.key} className="space-y-1">
             <div className="flex items-center justify-between text-[10px] font-mono">
-              <span className="text-zinc-400 uppercase tracking-wide">{row.label}</span>
-              <span className="text-zinc-300 font-bold">{breakdown[row.key].toFixed(0)}</span>
+              <span className="text-muted-foreground uppercase tracking-wide">{row.label}</span>
+              <span className="text-foreground font-bold">{breakdown[row.key].toFixed(0)}</span>
             </div>
-            <div className="h-1 w-full rounded-full bg-zinc-900 overflow-hidden">
+            <div className="h-1 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: `linear-gradient(90deg, ${CRIMSON}, ${GOLD})` }}

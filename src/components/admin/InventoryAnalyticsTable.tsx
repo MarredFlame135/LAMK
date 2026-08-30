@@ -35,7 +35,7 @@ export function InventoryAnalyticsTable({ rows, salesDataAvailable }: { rows: In
   }, [rows]);
 
   if (rows.length === 0) {
-    return <div className="p-8 border border-dashed border-border rounded-lg text-center text-zinc-400 text-xs">Sin productos en el catálogo.</div>;
+    return <div className="p-8 border border-dashed border-border rounded-lg text-center text-muted-foreground text-xs">Sin productos en el catálogo.</div>;
   }
 
   return (
@@ -65,7 +65,7 @@ export function InventoryAnalyticsTable({ rows, salesDataAvailable }: { rows: In
 
       <div className="overflow-x-auto border border-border rounded-lg">
         <table className="w-full text-left text-xs min-w-[720px]">
-          <thead className="text-zinc-400 font-mono border-b border-border bg-black/40">
+          <thead className="text-muted-foreground font-mono border-b border-border bg-muted">
             <tr>
               <th className="py-2 px-3">PRODUCTO</th>
               <th className="py-2 px-3 cursor-pointer" onClick={() => setSortKey('stockRemaining')}>STOCK</th>
@@ -80,18 +80,18 @@ export function InventoryAnalyticsTable({ rows, salesDataAvailable }: { rows: In
             {filtered.map((r) => {
               const style = SIGNAL_STYLES[r.signal];
               return (
-                <tr key={r.id} className="hover:bg-zinc-900/40 transition-colors">
+                <tr key={r.id} className="hover:bg-muted transition-colors">
                   <td className="py-2 px-3 max-w-[240px]">
-                    <a href={`/product/${r.handle}`} target="_blank" rel="noreferrer" className="font-bold text-zinc-200 hover:underline truncate block">
+                    <a href={`/product/${r.handle}`} target="_blank" rel="noreferrer" className="font-bold text-foreground hover:underline truncate block">
                       {r.title}
                     </a>
-                    <span className="text-[10px] text-zinc-500 font-mono">{r.brand}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">{r.brand}</span>
                   </td>
                   <td className="py-2 px-3 font-mono">{r.isSoldOut ? <span className="text-[#FF1E42]">AGOTADO</span> : r.stockRemaining}</td>
-                  <td className="py-2 px-3 font-mono text-zinc-400">{r.daysListed ?? '—'}</td>
+                  <td className="py-2 px-3 font-mono text-muted-foreground">{r.daysListed ?? '—'}</td>
                   <td className="py-2 px-3 font-mono">{r.hypeSampleSize >= 50 ? r.hypeScore.toFixed(1) : '—'}</td>
-                  <td className="py-2 px-3 font-mono text-zinc-400">{r.views24h}</td>
-                  <td className="py-2 px-3 font-mono text-zinc-400">{r.salesUnits90d}</td>
+                  <td className="py-2 px-3 font-mono text-muted-foreground">{r.views24h}</td>
+                  <td className="py-2 px-3 font-mono text-muted-foreground">{r.salesUnits90d}</td>
                   <td className="py-2 px-3">
                     <span className="font-mono text-[10px] font-bold uppercase" style={{ color: style.color }}>{style.label}</span>
                   </td>

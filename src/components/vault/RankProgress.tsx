@@ -31,9 +31,9 @@ export function RankProgress({ tierInfo }: RankProgressProps) {
   const isMaxed = tierInfo.nextTier === 'HALL_OF_FAME';
 
   return (
-    <div className="rounded-lg border border-border/80 bg-black/40 p-4 sm:p-5 space-y-4">
+    <div className="rounded-lg border border-border/80 bg-muted p-4 sm:p-5 space-y-4">
       <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.15em]">
-        <span className="text-zinc-400">// Progreso de Rango</span>
+        <span className="text-muted-foreground">// Progreso de Rango</span>
         <span className="font-bold" style={{ color: GOLD }}>
           {fillPercent.toFixed(0)}%
         </span>
@@ -41,7 +41,7 @@ export function RankProgress({ tierInfo }: RankProgressProps) {
 
       {/* Riel del nivel — checkpoints reales en cada umbral de TIER_LADDER */}
       <div className="relative pt-2 pb-6">
-        <div className="relative h-2.5 w-full rounded-full bg-zinc-900 overflow-hidden">
+        <div className="relative h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${fillPercent}%` }}
@@ -85,7 +85,7 @@ export function RankProgress({ tierInfo }: RankProgressProps) {
               />
               <span
                 className={`mt-1.5 text-[8px] font-mono uppercase tracking-wide whitespace-nowrap ${
-                  isCurrent ? 'font-bold' : 'text-zinc-500'
+                  isCurrent ? 'font-bold' : 'text-muted-foreground'
                 }`}
                 style={isCurrent ? { color: GOLD } : undefined}
               >
@@ -105,12 +105,12 @@ export function RankProgress({ tierInfo }: RankProgressProps) {
         </p>
       ) : (
         <div className="space-y-1">
-          <p className="font-mono text-[11px] text-zinc-300">
-            <span className="font-bold text-white">{tierInfo.xpRemaining.toLocaleString()} XP</span>{' '}
-            <span className="text-zinc-500">para subir a</span>{' '}
+          <p className="font-mono text-[11px] text-foreground">
+            <span className="font-bold">{tierInfo.xpRemaining.toLocaleString()} XP</span>{' '}
+            <span className="text-muted-foreground font-normal">para subir a</span>{' '}
             <span className="font-bold" style={{ color: CRIMSON }}>{tierInfo.nextTier}</span>
           </p>
-          {nextPerk && <p className="text-[10px] text-zinc-500">Desbloquea: {nextPerk}</p>}
+          {nextPerk && <p className="text-[10px] text-muted-foreground">Desbloquea: {nextPerk}</p>}
         </div>
       )}
     </div>

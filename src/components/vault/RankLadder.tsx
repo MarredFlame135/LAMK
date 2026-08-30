@@ -31,7 +31,7 @@ export function RankLadder({ currentTier }: RankLadderProps) {
 
   return (
     <div className="rounded-xl border border-border bg-card p-5 space-y-1">
-      <h4 className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-400 mb-3">// Escalera de Rango</h4>
+      <h4 className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">// Escalera de Rango</h4>
 
       <motion.ol variants={staggerContainer(0.08)} initial="hidden" animate="show" className="relative">
         {TIER_LADDER.map((row, i) => {
@@ -68,7 +68,7 @@ export function RankLadder({ currentTier }: RankLadderProps) {
 
               <div className="flex-1 -mt-0.5">
                 <div className="flex items-center gap-2">
-                  <strong className={`font-mono text-xs uppercase tracking-wide ${reached ? 'text-white' : 'text-zinc-500'}`}>
+                  <strong className={`font-mono text-xs uppercase tracking-wide ${reached ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {row.tier}
                   </strong>
                   {isCurrent && (
@@ -77,8 +77,8 @@ export function RankLadder({ currentTier }: RankLadderProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] font-mono text-zinc-500 mt-0.5">{rangeLabel(i)}</p>
-                <p className={`text-xs mt-1 ${reached ? 'text-zinc-300' : 'text-zinc-600'}`}>{row.perk}</p>
+                <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{rangeLabel(i)}</p>
+                <p className={`text-xs mt-1 ${reached ? 'text-foreground' : 'text-muted-foreground'}`}>{row.perk}</p>
               </div>
             </motion.li>
           );

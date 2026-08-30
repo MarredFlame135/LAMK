@@ -17,9 +17,9 @@ function formatMxn(n: number): string {
 function Kpi({ label, value, sub, warn }: { label: string; value: string; sub?: string; warn?: boolean }) {
   return (
     <div className="p-4 bg-card border border-border rounded-lg">
-      <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">{label}</p>
+      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={`text-2xl font-mono font-bold tabular-nums mt-1 ${warn ? 'text-[#FF1E42]' : 'text-foreground'}`}>{value}</p>
-      {sub && <p className="text-[10px] font-mono text-zinc-500 mt-1">{sub}</p>}
+      {sub && <p className="text-[10px] font-mono text-muted-foreground mt-1">{sub}</p>}
     </div>
   );
 }
