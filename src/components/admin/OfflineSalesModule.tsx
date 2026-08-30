@@ -88,7 +88,7 @@ export function OfflineSalesModule() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 bg-[#050507] text-[#FFFFFF] min-h-screen space-y-8">
+    <div className="max-w-7xl mx-auto p-6 bg-background text-foreground min-h-screen space-y-8">
       
       {/* Header Admin */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
