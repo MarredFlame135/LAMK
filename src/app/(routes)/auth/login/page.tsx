@@ -2,13 +2,25 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 
+// Fix: `useSearchParams()` (para `?next=`, ver WishlistButton.tsx) obliga
+// a un límite de Suspense en build estático — mismo caso que
+// /auth/link-account/page.tsx.
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
   const { refresh } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,7 +51,8 @@ export default function LoginPage() {
       }
 
       await refresh();
-      router.push('/vault');
+      const next = params.get('next');
+      router.push(next && next.startsWith('/') ? next : '/vault'); // startsWith('/') evita un open-redirect a otro dominio
     } catch (err) {
       console.error(err);
       setError('Error de red. Intenta de nuevo.');

@@ -9,8 +9,14 @@ export interface CollectionItem {
   sneakerTitle: string;
   sku: string;
   serialNumber: string;       // ej. "#004/15"
-  purchaseDate: string;
+  purchaseDate: string;       // ISO real (order.processedAt) — antes siempre '', ver Fase B
   imageUrl: string;
+  category: string;           // productType real de Shopify — '' si Shopify no lo trae para ese producto
+  // Real, no un índice de compra arbitrario (ver Fase B, "rareza falsa"
+  // corregida): LEGENDARY = agotado hoy (isSoldOut), RARE = quedan ≤2
+  // unidades o Hype Score ≥70 ahora mismo, COMMON = todo lo demás,
+  // incluido un producto que ya no existe en el catálogo (no se puede
+  // verificar su escasez, así que no se le asume rara).
   rarity: 'COMMON' | 'RARE' | 'LEGENDARY';
 }
 

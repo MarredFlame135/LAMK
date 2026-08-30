@@ -14,7 +14,7 @@ import {
   GET_CUSTOMER_QUERY,
 } from './queries';
 import { UserProfile, CollectionItem, OrderSummary } from '@/types/user';
-import { calculateGamificationTier, calculateHypeXp } from '@/utils/gamification';
+import { calculateGamificationTier, calculateHypeXp, deriveRealRarity } from '@/utils/gamification';
 import { normalizeMexicanPhoneE164 } from '@/lib/validators';
 import { getCatalogLive } from '@/lib/catalog-source';
 
@@ -119,35 +119,48 @@ export async function getCustomerProfile(accessToken: string): Promise<UserProfi
   const orderEdges = customer.orders?.edges || [];
   const totalSpent = orderEdges.reduce((acc: number, e: any) => acc + parseFloat(e.node.currentTotalPrice?.amount || '0'), 0);
 
-  const lineItems = orderEdges.flatMap((e: any) => e.node.lineItems?.edges || []);
+  // Fix (Fase B): antes se aplanaban los lineItems de todas las órdenes
+  // perdiendo de qué orden venía cada uno — hacía falta `processedAt` real
+  // para poder poner una fecha de adquisición real en cada pieza (antes
+  // siempre ''), no solo para el resumen de pedidos.
+  const lineItems = orderEdges.flatMap((e: any) =>
+    (e.node.lineItems?.edges || []).map((li: any) => ({ ...li, orderProcessedAt: e.node.processedAt }))
+  );
   const totalPieces = lineItems.length;
 
-  const collection: CollectionItem[] = lineItems.slice(0, 24).map((li: any, idx: number) => ({
-    id: `${customer.id}-item-${idx}`,
-    sneakerTitle: li.node.title,
-    sku: '',
-    serialNumber: `#${String(idx + 1).padStart(3, '0')}/${String(totalPieces).padStart(3, '0')}`,
-    purchaseDate: '',
-    imageUrl: li.node.variant?.image?.url || '/placeholder-sneaker.svg',
-    rarity: idx === 0 ? 'LEGENDARY' : idx < 3 ? 'RARE' : 'COMMON',
-  }));
-
-  // Hype Score vigente de cada producto (no el que tenía al momento de la
-  // compra — no lo guardamos histórico — pero sirve de buena aproximación y
-  // sigue premiando los drops que YA demostraron ser calientes). Productos
-  // descontinuados o que ya no están en catálogo caen a factor 1.0 (sin bono).
-  let hypeById = new Map<string, number>();
+  // Estado VIGENTE de cada producto (score/stock/agotado) — antes solo se
+  // traía el score para el bono de XP; ahora también alimenta la rareza
+  // real de cada pieza (ver deriveRealRarity en utils/gamification.ts,
+  // corrige el hallazgo de "rarity" inventado por posición en el array).
+  let productInfoById = new Map<string, { hypeScore: number; stockRemaining: number; isSoldOut: boolean }>();
   try {
     const { products } = await getCatalogLive();
-    hypeById = new Map(products.map((p) => [p.id, p.hypeMeter.score]));
+    productInfoById = new Map(
+      products.map((p) => [p.id, { hypeScore: p.hypeMeter.score, stockRemaining: p.hypeMeter.stockRemaining, isSoldOut: p.isSoldOut }])
+    );
   } catch (err) {
-    console.error('No se pudo cargar el catálogo para ponderar XP por Hype, usando factor 1.0:', err);
+    console.error('No se pudo cargar el catálogo para ponderar XP/rareza por Hype, usando valores neutros:', err);
   }
+
+  const collection: CollectionItem[] = lineItems.slice(0, 24).map((li: any, idx: number) => {
+    const productId = li.node.variant?.product?.id;
+    const info = productId ? productInfoById.get(productId) ?? null : null;
+    return {
+      id: `${customer.id}-item-${idx}`,
+      sneakerTitle: li.node.title,
+      sku: li.node.variant?.sku || '',
+      serialNumber: `#${String(idx + 1).padStart(3, '0')}/${String(totalPieces).padStart(3, '0')}`,
+      purchaseDate: li.orderProcessedAt || '',
+      imageUrl: li.node.variant?.image?.url || '/placeholder-sneaker.svg',
+      category: li.node.variant?.product?.productType || '',
+      rarity: deriveRealRarity(info),
+    };
+  });
 
   const xp = lineItems.reduce((acc: number, li: any) => {
     const price = parseFloat(li.node.originalTotalPrice?.amount || '0');
     const productId = li.node.variant?.product?.id;
-    const hypeScore = productId ? (hypeById.get(productId) ?? 0) : 0;
+    const hypeScore = productId ? (productInfoById.get(productId)?.hypeScore ?? 0) : 0;
     return acc + calculateHypeXp(price, hypeScore);
   }, 0);
   const tier = calculateGamificationTier(xp).currentTier;

@@ -12,7 +12,7 @@
 // proyecto vía getCustomerProfile()). Así no se duplica ni se desincroniza
 // la identidad real del cliente.
 
-import { pgTable, text, timestamp, boolean, integer, date, primaryKey, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, date, primaryKey, index, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // Perfil social — uno por cliente que haya activado alguna función social.
 // No existe fila = la persona nunca activó nada social, tratar como
@@ -165,6 +165,23 @@ export const productEvents = pgTable('product_events', {
 // puente, y la reusemos para volver a autenticar en cada login futuro —
 // nunca en texto plano, cifrada con AES-256-GCM (ver crypto.ts), y nunca
 // expuesta al cliente ni mostrada al usuario.
+// Most Wanted (Fase B, brief B.3 punto 5) — lista real de deseos, distinta
+// de vaultItems (que es lo que YA se posee y se eligió mostrar). Doble
+// propósito: al coleccionista le sirve de wishlist; agrupado por
+// `productId` (COUNT) es la señal de demanda de inventario no satisfecha
+// que el brief pide para el admin (Fase D, todavía sin construir) — el
+// schema ya queda listo para esa consulta sin tener que migrar nada.
+export const wishlistItems = pgTable('wishlist_items', {
+  id: text('id').primaryKey(), // uuid generado en la app
+  customerId: text('customer_id').notNull(),
+  productId: text('product_id').notNull(), // GID real de Shopify Product
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  customerIdx: index('wishlist_items_customer_idx').on(table.customerId),
+  productIdx: index('wishlist_items_product_idx').on(table.productId), // para el futuro GROUP BY de demanda (Fase D)
+  uniquePair: uniqueIndex('wishlist_items_customer_product_idx').on(table.customerId, table.productId),
+}));
+
 export const linkedAccounts = pgTable('linked_accounts', {
   id: text('id').primaryKey(), // uuid generado en la app
   customerId: text('customer_id').notNull(), // GID de Shopify Customer al que quedó vinculada

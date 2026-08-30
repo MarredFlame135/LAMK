@@ -16,6 +16,7 @@ import { haptics } from '@/lib/haptics';
 import { isValidMexicanPhone } from '@/lib/validators';
 import { CountUp } from '@/components/ui/count-up';
 import { AuthenticitySeal } from '@/components/ui/AuthenticitySeal';
+import { WishlistButton } from '@/components/product/WishlistButton';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { fadeUp, staggerContainer } from '@/lib/motion';
 import { track } from '@/lib/analytics';
@@ -259,6 +260,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 </button>
               </Magnetic>
             )}
+          </div>
+
+          {/* Most Wanted (Fase B) — debajo del CTA principal, nunca compite con él */}
+          <div className="pt-2">
+            <WishlistButton productId={product.id} />
           </div>
 
         </motion.div>

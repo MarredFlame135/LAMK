@@ -68,14 +68,19 @@ describe('computeHypeIndexFromCounts', () => {
     expect(sampleSize).toBeLessThan(MIN_SAMPLE_SIZE);
   });
 
-  it('vistas y carrito al tope de su cap: score = 0.30*100 + 0.25*100 = 55 (wishlist/velocidad en 0, términos sin fuente de datos real todavía)', () => {
+  it('vistas y carrito al tope de su cap, sin wishlist: score = 0.30*100 + 0.25*100 = 55', () => {
     const { score } = computeHypeIndexFromCounts({ views7d: 150, cart7d: 20 });
     expect(score).toBe(55);
   });
 
-  it('el score nunca pasa de 55 hoy (wishlist y velocidad están reservados en 0 a propósito, ver comentario en hype.ts)', () => {
+  it('vistas, carrito y wishlist al tope: score = 0.30*100 + 0.25*100 + 0.25*100 = 80 (velocidad sigue en 0, sin fuente de datos real todavía)', () => {
+    const { score } = computeHypeIndexFromCounts({ views7d: 150, cart7d: 20, wishlist7d: 30 });
+    expect(score).toBe(80);
+  });
+
+  it('el score nunca pasa de 80 hoy (velocidad de venta sigue reservada en 0, ver comentario en hype.ts)', () => {
     const { score } = computeHypeIndexFromCounts({ views7d: 99999, cart7d: 99999, wishlist7d: 99999, velocity30d: 99999 });
-    expect(score).toBeLessThanOrEqual(55);
+    expect(score).toBeLessThanOrEqual(80);
   });
 
   it('el score nunca es negativo', () => {

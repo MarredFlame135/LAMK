@@ -30,7 +30,10 @@ import { randomUUID } from 'crypto';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-async function recordEvent(productId: string, type: 'view' | 'cart' | 'wishlist' | 'sale'): Promise<void> {
+// Exportada (no solo interna) porque lib/wishlist.ts también la necesita
+// para registrar el evento 'wishlist' — un solo lugar que escribe en
+// product_events, nunca un insert duplicado a mano en otro archivo.
+export async function recordEvent(productId: string, type: 'view' | 'cart' | 'wishlist' | 'sale'): Promise<void> {
   try {
     await getDb().insert(productEvents).values({ id: randomUUID(), productId, type });
   } catch (err) {
@@ -118,22 +121,28 @@ export const MIN_SAMPLE_SIZE = 50;
 // documentados y fáciles de ajustar cuando haya volumen real que revisar.
 const VIEWS_7D_CAP = 150; // ~21/día
 const CART_7D_CAP = 20;
+// Fix (Fase B, 2026-08-30): Most Wanted ya existe (lib/wishlist.ts) — el
+// término de wishlist deja de estar reservado en 0, tal como avisaba el
+// comentario anterior. Cap más bajo que carrito a propósito: agregar algo
+// a la wishlist es una acción más barata/impulsiva que meterlo al carrito,
+// así que hacen falta más eventos para decir lo mismo sobre la demanda.
+const WISHLIST_7D_CAP = 30;
 
 // Función pura — separada de la IO de arriba a propósito, mismo patrón que
 // computeHypeMeter, para poder probarla sin una base de datos real.
 export function computeHypeIndexFromCounts(counts: {
   views7d: number;
   cart7d: number;
-  wishlist7d?: number; // siempre 0 hasta que exista Most Wanted (Fase B)
-  velocity30d?: number; // siempre 0 hasta que exista el webhook de Shopify
+  wishlist7d?: number;
+  velocity30d?: number; // siempre 0 hasta que exista el webhook de Shopify (deuda técnica documentada en CLAUDE.md)
 }): { score: number; sampleSize: number } {
   const { views7d, cart7d, wishlist7d = 0, velocity30d = 0 } = counts;
   const sampleSize = views7d + cart7d + wishlist7d + velocity30d;
 
   const viewsScore = Math.min(100, (views7d / VIEWS_7D_CAP) * 100);
   const cartScore = Math.min(100, (cart7d / CART_7D_CAP) * 100);
-  const wishlistScore = 0; // términos reservados — ver comentario de arriba
-  const velocityScore = 0;
+  const wishlistScore = Math.min(100, (wishlist7d / WISHLIST_7D_CAP) * 100);
+  const velocityScore = 0; // reservado — ver comentario arriba
 
   const score = 0.3 * viewsScore + 0.25 * cartScore + 0.25 * wishlistScore + 0.2 * velocityScore;
 
@@ -142,9 +151,10 @@ export function computeHypeIndexFromCounts(counts: {
 
 export async function computeHypeIndex(productId: string): Promise<{ score: number; sampleSize: number }> {
   const WEEK_MS = 7 * DAY_MS;
-  const [views7d, cart7d] = await Promise.all([
+  const [views7d, cart7d, wishlist7d] = await Promise.all([
     countEvents(productId, 'view', WEEK_MS),
     countEvents(productId, 'cart', WEEK_MS),
+    countEvents(productId, 'wishlist', WEEK_MS),
   ]);
-  return computeHypeIndexFromCounts({ views7d, cart7d });
+  return computeHypeIndexFromCounts({ views7d, cart7d, wishlist7d });
 }

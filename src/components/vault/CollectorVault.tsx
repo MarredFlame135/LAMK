@@ -12,7 +12,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile, CollectionItem } from '@/types/user';
-import { calculateGamificationTier } from '@/utils/gamification';
+import { Product } from '@/types/product';
+import { MostWantedSection } from './MostWantedSection';
+import { calculateGamificationTier, computeCollectionIndex } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
 import { HolographicCard } from '@/components/ui/holographic-card';
 import { Magnetic } from '@/components/ui/Magnetic';
@@ -20,6 +22,7 @@ import { ReviewForm } from './ReviewForm';
 import { CollectorPlaque } from './CollectorPlaque';
 import { RankProgress } from './RankProgress';
 import { RankLadder } from './RankLadder';
+import { CollectionIndexPanel } from './CollectionIndexPanel';
 import { haptics } from '@/lib/haptics';
 import { fadeUp, staggerContainer } from '@/lib/motion';
 
@@ -28,6 +31,7 @@ const LAST_TIER_KEY = 'lamk_last_seen_tier_v1';
 interface CollectorVaultProps {
   user: UserProfile;
   username?: string;
+  wishlist?: Product[]; // Most Wanted — solo se pasa en la propia bóveda, ver vault/page.tsx
   isOwnProfile?: boolean;
 }
 
@@ -65,14 +69,32 @@ async function shareCollectionItem(item: CollectionItem, onFallback: () => void)
   }
 }
 
+// Rareza real (ver deriveRealRarity en utils/gamification.ts) — solo se
+// muestra la insignia para RARE/LEGENDARY; COMMON no necesita etiqueta
+// (es el caso por default, marcarlo todo sería ruido).
+const RARITY_BADGE: Record<CollectionItem['rarity'], { label: string; color: string } | null> = {
+  COMMON: null,
+  RARE: { label: 'RARE', color: '#C5A059' },
+  LEGENDARY: { label: 'LEGENDARY', color: '#FF1E42' },
+};
+
 function CollectionCard({ item, index }: { item: CollectionItem; index: number }) {
   const [copied, setCopied] = useState(false);
+  const badge = RARITY_BADGE[item.rarity];
 
   return (
     <motion.div variants={fadeUp} custom={index}>
       <HolographicCard className="group relative p-3 bg-gradient-to-b from-zinc-800/50 to-zinc-950 border border-zinc-700/80 rounded-xl overflow-hidden hover:border-[#C5A059]/50 transition-colors">
-        <div className="aspect-square bg-black rounded-lg mb-2 overflow-hidden">
+        <div className="relative aspect-square bg-black rounded-lg mb-2 overflow-hidden">
           <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
+          {badge && (
+            <span
+              className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wide text-black"
+              style={{ background: badge.color }}
+            >
+              {badge.label}
+            </span>
+          )}
         </div>
         <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
         <span className="text-[9px] font-mono text-[#C5A059] block mt-0.5">{item.serialNumber}</span>
@@ -101,8 +123,9 @@ function CollectionCard({ item, index }: { item: CollectionItem; index: number }
   );
 }
 
-export function CollectorVault({ user, username, isOwnProfile = true }: CollectorVaultProps) {
+export function CollectorVault({ user, username, wishlist, isOwnProfile = true }: CollectorVaultProps) {
   const tierInfo = calculateGamificationTier(user.xp);
+  const collectionIndex = computeCollectionIndex({ totalSpentMxn: user.totalSpent, collection: user.collection });
   const { t } = useApp();
 
   useEffect(() => {
@@ -171,6 +194,15 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
             )}
           </div>
 
+          </div>
+
+          {/* Most Wanted (solo en tu propia bóveda) — panel aparte, no
+              dentro de la misma card que Colección/Historial, para que
+              quitar/agregar piezas no reordene visualmente lo de arriba. */}
+          {isOwnProfile && wishlist && <MostWantedSection initialItems={wishlist} />}
+
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+
           {/* Historial Real de Pedidos (solo en tu propia bóveda) */}
           {isOwnProfile && (
             <div className="space-y-3">
@@ -221,6 +253,7 @@ export function CollectorVault({ user, username, isOwnProfile = true }: Collecto
             había aquí era 100% inventado (mock-users.ts) — se quitó por
             completo, ver commit 2026-08-27 / nota en mock-users.ts. */}
         <motion.div variants={fadeUp} className="lg:col-span-5 space-y-6">
+          <CollectionIndexPanel breakdown={collectionIndex} />
           <RankLadder currentTier={user.tier} />
         </motion.div>
 

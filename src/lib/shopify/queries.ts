@@ -212,11 +212,13 @@ export const GET_CUSTOMER_QUERY = `
                     amount
                   }
                   variant {
+                    sku
                     image {
                       url
                     }
                     product {
                       id
+                      productType
                     }
                   }
                 }
