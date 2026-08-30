@@ -218,4 +218,16 @@ Segunda ronda de auditoría, brief nuevo (Fases A→B→C→D: Fundamentos → B
 - **Seguir** — botón wired en la bóveda pública, reusa `api/social/follow` (ya existía).
 - **No construido (C.3 parcial):** comparación de índices entre coleccionistas ("tu índice vs el suyo", "piezas en común", "él tiene, tú no"), y el directorio público ordenable por índice.
 
-**No empezado:** Fase D (panel de administración).
+## Fase D (2026-08-30) — Panel de Administración, completa (D.1-D.7)
+
+`/admin` tiene ahora un `page.tsx` propio por primera vez (antes redirigía a `/admin/offline-sales`, que sigue existiendo tal cual como panel operativo, enlazado desde el nuevo Panel de Mando).
+
+- **D.1 (costo real)** — `InventoryItem.unitCost` es el campo nativo de Shopify (verificado contra la doc 2026-01), nunca se inventó uno propio. Requiere el permiso "View product costs" **y** el scope `read_products` en la Admin API — ninguno de los dos está configurado hoy (solo `read_customers`/`read_orders`, ver tabla de env vars). Todo lo que depende de costo real (margen, capital inmovilizado) se degrada a "—" o a precio de venta, explícitamente etiquetado, nunca a un número inventado.
+- **D.3 (`/admin`, Panel de Mando)** — 6 cifras reales vía Admin API en vivo (no hay tabla de Order propia, deuda técnica ya documentada): ventas hoy/mes, ticket promedio, pedidos por surtir (con alerta >48h), margen bruto (condicional a D.1), y "XP en circulación" — **no** "Pasivo XP en pesos" como pedía el brief original: no existe sistema de canje de XP por descuento en este proyecto, convertir a pesos sin esa pieza real sería inventar un número.
+- **D.4 (`/admin/finanzas`)** — margen y valor por categoría, capital inmovilizado, días de inventario, proyección 30 días (extrapolación lineal, etiquetada como tal — no es un forecast estadístico), export CSV. Depende de D.1.
+- **D.5 (`/admin/clientes`)** — segmentación RFM real (`lib/customer-segmentation.ts`, 7 segmentos del brief operacionalizados con umbrales documentados/ajustables — probada, 9 tests), demanda insatisfecha desde Most Wanted (real, ya existía la infraestructura de Fase B), export CSV. **No construido:** cohortes de retención, afinidad de categoría, ficha de cliente 360°.
+- **D.6 (`/admin/inventario`)** — señal real REPONER/DESCONTAR/SIN_ACTIVIDAD por pieza, cruzando catálogo + ventas reales (Admin API, ventana 90d) + vistas reales (30d, `getAllViewsInWindow` en `hype.ts`, no solo el contador de 24h del Hype Meter). `publishedAt` como proxy honesto de antigüedad (no se inventó un campo de "fecha de llegada a inventario").
+- **D.7 (roles)** — `admin` (todo) vs `staff` (sin `/admin/finanzas` ni `/admin/clientes`, gateado en `middleware.ts`, nueva variable `ADMIN_STAFF_EMAILS`). **Bitácora de auditoría no construida** — no tiene sentido todavía porque el panel no tiene ninguna función de editar precios/inventario que auditar.
+- **Bug real encontrado y corregido de paso:** `api/admin/analytics/route.ts` llamaba a `getAllViews24h()` sin `await` desde el refactor async de Fase A — "más deseados" en ese panel llevaba tiempo mostrando 0 en silencio.
+
+**No empezado:** nada — las 4 fases del "Prompt Maestro v4" (A, B, C, D) están completas, cada una con sus límites de datos/permisos documentados explícitamente en vez de rellenados con números inventados.
