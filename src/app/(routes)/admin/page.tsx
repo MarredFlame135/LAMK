@@ -36,6 +36,8 @@ export default async function AdminOverviewPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { href: '/admin/offline-sales', label: 'Operación diaria', desc: 'Ventas offline, clientes, apartados, inventario' },
+          { href: '/admin/inventario', label: 'Inventario y productos', desc: 'Rotación, antigüedad, señal de reposición' },
+          { href: '/admin/clientes', label: 'Clientes', desc: 'Segmentación RFM, cohortes, ficha 360°' },
           { href: '/vault/pass', label: 'Mi Collector Pass', desc: 'QR de admin, mismo sistema que clientes' },
         ].map((link) => (
           <a

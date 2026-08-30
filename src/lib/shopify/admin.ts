@@ -106,9 +106,10 @@ const CUSTOMERS_QUERY = `
           phone
           numberOfOrders
           amountSpent { amount }
-          orders(first: 20) {
+          orders(first: 20, sortKey: PROCESSED_AT, reverse: true) {
             edges {
               node {
+                processedAt
                 lineItems(first: 50) {
                   edges {
                     node {
@@ -168,6 +169,11 @@ export async function getStoreCustomersWithXp(limit = 50): Promise<AdminCustomer
       tier: calculateGamificationTier(xp).currentTier,
       ordersCount: c.numberOfOrders ?? 0,
       totalSpent: parseFloat(c.amountSpent?.amount || '0'),
+      // Fase D.5: fecha real del pedido más reciente — base de la "R" en
+      // segmentación RFM (ver customer-segmentation.ts). `orders` ya viene
+      // ordenado más-reciente-primero (sortKey PROCESSED_AT reverse), así
+      // que edges[0] es el que se necesita, sin otra consulta.
+      lastOrderDate: c.orders?.edges?.[0]?.node?.processedAt ?? null,
       source: 'SHOPIFY',
     };
   });

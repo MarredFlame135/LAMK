@@ -46,6 +46,7 @@ export async function GET() {
     tier: 'ROOKIE',
     ordersCount: 0,
     totalSpent: 0,
+    lastOrderDate: null,
     source: 'LEAD_ONLY',
   }));
 

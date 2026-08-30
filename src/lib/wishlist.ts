@@ -5,7 +5,7 @@
 // api/wishlist/*.
 
 import { randomUUID } from 'crypto';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { wishlistItems } from '@/db/schema';
 import { recordEvent } from './hype';
@@ -48,6 +48,53 @@ export async function getWishlistProductIds(customerId: string): Promise<string[
     .where(eq(wishlistItems.customerId, customerId))
     .orderBy(sql`${wishlistItems.createdAt} desc`);
   return rows.map((r) => r.productId);
+}
+
+// Fase D.5: "demanda insatisfecha desde Most Wanted" — cuántas personas
+// distintas tienen cada producto en su wishlist, cruzado con el stock
+// actual. La fila con más gente esperando un producto agotado/con poco
+// stock es literalmente una orden de compra esperando a que alguien la
+// lea (brief D.5) — el mismo dato ya sirve para esto y para el dashboard
+// de inventario (Fase D.6) sin duplicar nada.
+export interface UnmetDemandRow {
+  productId: string;
+  title: string;
+  handle: string;
+  imageUrl: string;
+  stockRemaining: number;
+  isSoldOut: boolean;
+  wishlistCount: number;
+}
+
+export async function getUnmetDemand(limit = 20): Promise<UnmetDemandRow[]> {
+  const db = getDb();
+  const rows = await db
+    .select({ productId: wishlistItems.productId, count: sql<number>`count(*)::int` })
+    .from(wishlistItems)
+    .groupBy(wishlistItems.productId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(limit);
+
+  if (rows.length === 0) return [];
+
+  const { products } = await getCatalogLive();
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  return rows
+    .map((r) => {
+      const p = byId.get(r.productId);
+      if (!p) return null; // producto ya no existe en catálogo — no se muestra una fila sin datos reales
+      return {
+        productId: r.productId,
+        title: p.title,
+        handle: p.handle,
+        imageUrl: p.images[0] || '/placeholder-sneaker.svg',
+        stockRemaining: p.hypeMeter.stockRemaining,
+        isSoldOut: p.isSoldOut,
+        wishlistCount: r.count,
+      };
+    })
+    .filter((r): r is UnmetDemandRow => r !== null);
 }
 
 // Wishlist ya hidratada con datos reales de producto (imagen, precio,

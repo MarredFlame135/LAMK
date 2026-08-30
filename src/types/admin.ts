@@ -75,6 +75,7 @@ export interface AdminCustomer {
   tier: CollectorTier;
   ordersCount: number;
   totalSpent: number;
+  lastOrderDate: string | null; // ISO real (Fase D.5, base de "Recencia" en RFM) — null si nunca ha comprado o es LEAD_ONLY
   source: 'SHOPIFY' | 'LEAD_ONLY';
 }
 

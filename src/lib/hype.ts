@@ -89,6 +89,27 @@ export async function getAllViews24h(): Promise<Record<string, number>> {
   }
 }
 
+// Fase D.6: "piezas sin vistas ni ventas en N días" necesita una ventana
+// más larga que las 24h del Hype Meter — mismo patrón que
+// getAllViews24h, generalizado. Se usa para detectar productos
+// realmente inactivos, no solo "sin vistas en el último día" (que
+// cualquier producto normal puede tener por simple ruido).
+export async function getAllViewsInWindow(days: number): Promise<Record<string, number>> {
+  try {
+    const db = getDb();
+    const since = new Date(Date.now() - days * DAY_MS);
+    const rows = await db
+      .select({ productId: productEvents.productId, count: sql<number>`count(*)::int` })
+      .from(productEvents)
+      .where(and(eq(productEvents.type, 'view'), gte(productEvents.createdAt, since)))
+      .groupBy(productEvents.productId);
+    return Object.fromEntries(rows.map((r) => [r.productId, r.count]));
+  } catch (err) {
+    console.error(`No se pudo agregar vistas de ${days}d de todo el catálogo:`, err);
+    return {};
+  }
+}
+
 // Hype = Vistas24h / StockRestante (RF-05). Normalizado a 0-100 para la barra
 // visual: una relación de 5 vistas por par restante o más ya se considera
 // "al tope" (100%). Sin stock, el hype es máximo (se agotó = hubo demanda).
