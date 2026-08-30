@@ -34,7 +34,7 @@ export async function registerCustomer(input: {
   firstName: string;
   lastName: string;
   phone?: string;
-}): Promise<CustomerAccessToken> {
+}): Promise<CustomerAccessToken & { customerId: string }> {
   // Shopify exige E.164 (+52XXXXXXXXXX) — un número de 10 dígitos suelto
   // rebota con "Phone is invalid". Si no se puede normalizar, mejor omitirlo
   // que bloquear el registro completo por un campo opcional.
@@ -52,10 +52,15 @@ export async function registerCustomer(input: {
 
   const createErrors = collectUserErrors(createData.customerCreate?.customerUserErrors);
   if (createErrors) throw new Error(createErrors);
-  if (!createData.customerCreate?.customer) throw new Error('No se pudo crear la cuenta.');
+  const customerId = createData.customerCreate?.customer?.id;
+  if (!customerId) throw new Error('No se pudo crear la cuenta.');
 
   // Shopify no regresa un token en customerCreate: hay que pedirlo aparte.
-  return loginCustomer({ email: input.email, password: input.password });
+  // customerId se propaga junto con el token (hallazgo #3 de la auditoría
+  // "Prompt Maestro v4": la ruta de registro lo necesita para escribir la
+  // fila de consentimiento en consent_log, ver api/auth/register/route.ts).
+  const token = await loginCustomer({ email: input.email, password: input.password });
+  return { ...token, customerId };
 }
 
 export async function loginCustomer(input: { email: string; password: string }): Promise<CustomerAccessToken> {

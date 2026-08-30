@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { SAAS_CONFIG } from '@/lib/saas-config';
+import { formatPrivacyNoticeDate } from '@/lib/legal';
 
 export const metadata = { title: `Aviso de Privacidad | ${SAAS_CONFIG.brandName}` };
 
@@ -28,7 +29,10 @@ export default function PrivacyPolicyPage() {
         <div className="border-b border-border pb-6">
           <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// Legal</span>
           <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">Aviso de Privacidad</h1>
-          <p className="text-xs text-zinc-400 mt-2">Última actualización: {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+          {/* Fix (hallazgo #3, Fase A): antes era `new Date()` — mostraba
+              "hoy" en cada carga en vez de una fecha real de publicación.
+              Ver src/lib/legal.ts, misma fuente que consent_log.privacyVersion. */}
+          <p className="text-xs text-zinc-400 mt-2">Última actualización: {formatPrivacyNoticeDate()}</p>
         </div>
 
         <Section title="Responsable de tus datos">
