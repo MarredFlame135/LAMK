@@ -53,7 +53,10 @@ export function DropsCoverflow({ products }: DropsCoverflowProps) {
     image: p.images[0] || '/placeholder-sneaker.svg',
     title: p.title,
     subtitle: `$${p.variants[0]?.price.toLocaleString() || '—'} MXN`,
-    badge: `HEAT ${p.hypeMeter.score.toFixed(0)}`,
+    // Fix (hallazgo #2 de la auditoría "Prompt Maestro v4"): mismo umbral
+    // que ProductCard/HypeMeter — sin suficiente muestra real, "—" en vez
+    // de un HEAT 0 que se lee como roto.
+    badge: `HEAT ${p.hypeMeter.sampleSize >= 50 ? p.hypeMeter.score.toFixed(0) : '—'}`,
     href: `/product/${p.handle}`,
   }));
 

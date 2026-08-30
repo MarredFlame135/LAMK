@@ -84,7 +84,7 @@ export function HypedKicksCarousel({ products }: HypedKicksCarouselProps) {
                     <span className="font-mono font-bold text-[#17130F]">${price.toLocaleString()} MXN</span>
                   )}
                   <span className="font-mono text-[10px] bg-[#17130F] text-[#F6EFDD] px-1.5 py-0.5">
-                    HEAT: {p.hypeMeter.score.toFixed(0)}
+                    HEAT: {p.hypeMeter.sampleSize >= 50 ? p.hypeMeter.score.toFixed(0) : '—'}
                   </span>
                 </div>
               </a>

@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ProductDetail } from '@/components/product/ProductDetail';
 import { getProductByHandleLive } from '@/lib/catalog-source';
-import { recordView, getViews24h, computeHypeMeter } from '@/lib/hype';
+import { recordView, getViews24h, computeHypeMeter, computeHypeIndex } from '@/lib/hype';
 import { getSiteUrl } from '@/lib/site-url';
 import { SAAS_CONFIG } from '@/lib/saas-config';
 import { Product } from '@/types/product';
@@ -107,13 +107,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  // RF-05: cada visita a la ficha cuenta como una vista real para el Hype Meter.
-  recordView(product.id);
-  const views24h = getViews24h(product.id);
-  const { score, label } = computeHypeMeter(views24h, product.hypeMeter.stockRemaining);
+  // RF-05: cada visita a la ficha cuenta como una vista real para el Hype
+  // Meter y para el Índice (hallazgo #2) — se espera el insert (antes era
+  // fs síncrono, ahora es una escritura real a Postgres) para que esta
+  // misma visita ya cuente en el score que se muestra abajo.
+  await recordView(product.id);
+  const [views24h, { score, sampleSize }] = await Promise.all([
+    getViews24h(product.id),
+    computeHypeIndex(product.id),
+  ]);
+  const { label } = computeHypeMeter(views24h, product.hypeMeter.stockRemaining);
   const productWithFreshHype = {
     ...product,
-    hypeMeter: { ...product.hypeMeter, score, label, viewsLast24h: views24h },
+    hypeMeter: { ...product.hypeMeter, score, sampleSize, label, viewsLast24h: views24h },
   };
 
   return (

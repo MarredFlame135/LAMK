@@ -4,12 +4,14 @@
 // cálculo de negocio real: el Hype Meter decide qué aparece primero en los
 // carruseles de home (ver Fase 6 — confirmamos ahí que "hyped" ya es
 // calculado, no curado a mano; esta prueba deja ese cálculo cubierto).
-// Solo se prueba `computeHypeMeter` (función pura) — `recordView`/
-// `getViews24h` tocan el filesystem (`data/views.json`) y no se prueban
-// aquí para no depender de I/O real en la suite.
+// Solo se prueban las funciones puras (`computeHypeMeter`,
+// `computeHypeIndexFromCounts`) — `recordView`/`getViews24h`/
+// `computeHypeIndex` tocan Postgres real (ver Fase A, hallazgo #2 — antes
+// era `data/views.json`) y no se prueban aquí para no depender de I/O real
+// en la suite.
 
 import { describe, it, expect } from 'vitest';
-import { computeHypeMeter } from './hype';
+import { computeHypeMeter, computeHypeIndexFromCounts, MIN_SAMPLE_SIZE } from './hype';
 
 describe('computeHypeMeter', () => {
   it('sin stock y sin vistas: DROPPED, score 0', () => {
@@ -46,5 +48,38 @@ describe('computeHypeMeter', () => {
     const high = computeHypeMeter(10000, 3);
     expect(low.score).toBeGreaterThanOrEqual(0);
     expect(high.score).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('computeHypeIndexFromCounts', () => {
+  it('sin eventos: score 0, sampleSize 0', () => {
+    const { score, sampleSize } = computeHypeIndexFromCounts({ views7d: 0, cart7d: 0 });
+    expect(score).toBe(0);
+    expect(sampleSize).toBe(0);
+  });
+
+  it('sampleSize es la suma real de eventos, no un valor inventado', () => {
+    const { sampleSize } = computeHypeIndexFromCounts({ views7d: 30, cart7d: 12 });
+    expect(sampleSize).toBe(42);
+  });
+
+  it('por debajo de MIN_SAMPLE_SIZE, la UI debe mostrar "—" (no es el trabajo de esta función, pero el umbral debe ser consistente)', () => {
+    const { sampleSize } = computeHypeIndexFromCounts({ views7d: 10, cart7d: 5 });
+    expect(sampleSize).toBeLessThan(MIN_SAMPLE_SIZE);
+  });
+
+  it('vistas y carrito al tope de su cap: score = 0.30*100 + 0.25*100 = 55 (wishlist/velocidad en 0, términos sin fuente de datos real todavía)', () => {
+    const { score } = computeHypeIndexFromCounts({ views7d: 150, cart7d: 20 });
+    expect(score).toBe(55);
+  });
+
+  it('el score nunca pasa de 55 hoy (wishlist y velocidad están reservados en 0 a propósito, ver comentario en hype.ts)', () => {
+    const { score } = computeHypeIndexFromCounts({ views7d: 99999, cart7d: 99999, wishlist7d: 99999, velocity30d: 99999 });
+    expect(score).toBeLessThanOrEqual(55);
+  });
+
+  it('el score nunca es negativo', () => {
+    const { score } = computeHypeIndexFromCounts({ views7d: 0, cart7d: 0 });
+    expect(score).toBeGreaterThanOrEqual(0);
   });
 });

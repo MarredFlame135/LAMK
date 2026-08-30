@@ -155,6 +155,7 @@ function formatShopifyProduct(node: any): Product {
     },
     hypeMeter: {
       score: availableVariants > 0 && availableVariants <= 2 ? 95 : availableVariants === 0 ? 0 : 70,
+      sampleSize: 0, // se completa en tiempo real — ver withRealHype en catalog-source.ts
       viewsLast24h: 0, // se completa en tiempo real — ver src/lib/hype.ts
       stockRemaining: hasInventoryData ? totalStock : availableVariants,
       label: availableVariants === 0 ? 'DROPPED' : availableVariants <= 2 ? 'ULTIMOS PARES' : 'ALTA DEMANDA',

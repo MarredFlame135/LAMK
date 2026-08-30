@@ -34,11 +34,20 @@ function ScarcityDots({ stockRemaining }: { stockRemaining: number }) {
   );
 }
 
+// Fix (hallazgo #2 de la auditoría "Prompt Maestro v4", Fase A): con pocos
+// eventos reales detrás, un score técnicamente real (ej. 0.0 o 2.3) se lee
+// como decoración rota, no como "todavía no hay datos". Mismo umbral que
+// MIN_SAMPLE_SIZE en lib/hype.ts — duplicado a propósito, no importado: ese
+// módulo toca Postgres (server-only) y este es un componente de cliente.
+const MIN_SAMPLE_SIZE = 50;
+
 function HypeBadge({ hypeMeter }: { hypeMeter: HypeMeterData }) {
+  const hasEnoughData = hypeMeter.sampleSize >= MIN_SAMPLE_SIZE;
+
   return (
     <div className="absolute top-2.5 right-2.5 min-w-[7.5rem] px-2.5 py-1.5 rounded-md bg-black/80 backdrop-blur-sm border border-white/10">
       <span className="block text-[11px] font-black font-mono text-white leading-none whitespace-nowrap tracking-wide">
-        INDEX {hypeMeter.score.toFixed(1)}
+        INDEX {hasEnoughData ? hypeMeter.score.toFixed(1) : '—'}
       </span>
       <span className="block text-[7px] font-mono text-[#C5A059] uppercase tracking-[0.2em] mt-0.5 whitespace-nowrap">
         Verified Allocation
@@ -47,7 +56,7 @@ function HypeBadge({ hypeMeter }: { hypeMeter: HypeMeterData }) {
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-[#FF1E42] to-[#C5A059]"
           initial={{ width: 0 }}
-          whileInView={{ width: `${hypeMeter.score}%` }}
+          whileInView={{ width: `${hasEnoughData ? hypeMeter.score : 0}%` }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
         />

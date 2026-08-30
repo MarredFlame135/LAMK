@@ -49,7 +49,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'HALF_SIZE_UP', recommendationNote: 'Recomendamos pedir 0.5 o 1 talla arriba (Corte Japonés).' },
     storytelling: { collaboration: 'BAPE Seoul Store', storySummary: 'Lanzamiento limitado exclusivo de la tienda BAPE Seúl.', colorway: 'Seoul Camo / Shark' },
-    hypeMeter: { score: 98, viewsLast24h: 340, stockRemaining: 3, label: 'ULTIMOS PARES' },
+    hypeMeter: { score: 98, sampleSize: 340, viewsLast24h: 340, stockRemaining: 3, label: 'ULTIMOS PARES' },
     variants: [
       labeledVariant('S', 15500, 1, 'BAPE-SEOUL'),
       labeledVariant('M', 15500, 2, 'BAPE-SEOUL'),
@@ -67,7 +67,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'TRUE_TO_SIZE', recommendationNote: 'Viene exactamente a la talla americana.' },
     storytelling: { storySummary: 'Pieza icónica de la temporada, alta rotación de reventa.', colorway: 'Black' },
-    hypeMeter: { score: 92, viewsLast24h: 210, stockRemaining: 5, label: 'ALTA DEMANDA' },
+    hypeMeter: { score: 92, sampleSize: 210, viewsLast24h: 210, stockRemaining: 5, label: 'ALTA DEMANDA' },
     variants: [
       labeledVariant('M', 8000, 2, 'SUP-SATIN-BLK'),
       labeledVariant('L', 8000, 2, 'SUP-SATIN-BLK'),
@@ -85,7 +85,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'HALF_SIZE_DOWN', recommendationNote: 'Corte oversize; si buscas fit ajustado pide 0.5 talla abajo.' },
     storytelling: { storySummary: 'Pieza statement de Sp5der con pedrería aplicada a mano.', colorway: 'Pink / Rhinestone' },
-    hypeMeter: { score: 95, viewsLast24h: 275, stockRemaining: 4, label: 'ALTA DEMANDA' },
+    hypeMeter: { score: 95, sampleSize: 275, viewsLast24h: 275, stockRemaining: 4, label: 'ALTA DEMANDA' },
     variants: [
       labeledVariant('S', 9000, 1, 'SP5-RHINE-PNK'),
       labeledVariant('L', 9000, 2, 'SP5-RHINE-PNK'),
@@ -103,7 +103,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'TRUE_TO_SIZE', recommendationNote: 'Talla única, accesorio.' },
     storytelling: { storySummary: 'Ícono de la colección 1DR, edición mate blanca.', colorway: 'White Matte' },
-    hypeMeter: { score: 89, viewsLast24h: 150, stockRemaining: 2, label: 'ALTA DEMANDA' },
+    hypeMeter: { score: 89, sampleSize: 150, viewsLast24h: 150, stockRemaining: 2, label: 'ALTA DEMANDA' },
     variants: [labeledVariant('ÚNICA', 5000, 2, 'DIESEL-1DR-XS')],
   },
   {
@@ -117,7 +117,7 @@ export const CATALOG: Product[] = [
     isSoldOut: true,
     fitAdvisor: { fitType: 'TRUE_TO_SIZE', recommendationNote: 'Talla única, accesorio.' },
     storytelling: { storySummary: 'La bolsa más buscada del momento, restock incierto por proveedor.', colorway: 'Tan Leather' },
-    hypeMeter: { score: 90, viewsLast24h: 260, stockRemaining: 0, label: 'DROPPED' },
+    hypeMeter: { score: 90, sampleSize: 260, viewsLast24h: 260, stockRemaining: 0, label: 'DROPPED' },
     variants: [labeledVariant('ÚNICA', 4200, 0, 'MJ-TOTE-MINI')],
   },
   {
@@ -131,7 +131,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'TRUE_TO_SIZE', recommendationNote: 'Ajustable con broche trasero, una talla para todos.' },
     storytelling: { collaboration: 'Báez x Shifu', storySummary: 'Colaboración local de edición limitada, drop numerado.', colorway: 'Astro Blue' },
-    hypeMeter: { score: 94, viewsLast24h: 300, stockRemaining: 6, label: 'ALTA DEMANDA' },
+    hypeMeter: { score: 94, sampleSize: 300, viewsLast24h: 300, stockRemaining: 6, label: 'ALTA DEMANDA' },
     variants: [labeledVariant('AJUSTABLE', 2800, 6, 'BAEZ-SHIFU-ASTRO')],
   },
   {
@@ -145,7 +145,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'TRUE_TO_SIZE', recommendationNote: 'Talla única, coleccionable.' },
     storytelling: { storySummary: 'Importación directa, stock muy limitado por par de maleta.', colorway: 'Orange / Original' },
-    hypeMeter: { score: 85, viewsLast24h: 95, stockRemaining: 5, label: 'ALTA DEMANDA' },
+    hypeMeter: { score: 85, sampleSize: 95, viewsLast24h: 95, stockRemaining: 5, label: 'ALTA DEMANDA' },
     variants: [labeledVariant('ÚNICA', 1200, 5, 'POKE-CHARMANDER')],
   },
   {
@@ -159,7 +159,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'TRUE_TO_SIZE', recommendationNote: 'Viene exactamente a la talla.' },
     storytelling: { collaboration: 'Pharrell Williams', storySummary: 'Diseño exclusivo enfocado en la cultura streetwear.', colorway: 'Multi' },
-    hypeMeter: { score: 88, viewsLast24h: 190, stockRemaining: 6, label: 'ALTA DEMANDA' },
+    hypeMeter: { score: 88, sampleSize: 190, viewsLast24h: 190, stockRemaining: 6, label: 'ALTA DEMANDA' },
     variants: [
       shoeVariant(25, 10000, 2, 'ADI-PHAR'),
       shoeVariant(26, 10000, 2, 'ADI-PHAR'),
@@ -178,7 +178,7 @@ export const CATALOG: Product[] = [
     isSoldOut: false,
     fitAdvisor: { fitType: 'HALF_SIZE_DOWN', recommendationNote: 'Este modelo viene grande; pide 0.5 talla abajo.' },
     storytelling: { collaboration: 'Jordan Brand', releaseYear: 2022, storySummary: 'Réplica del acabado envejecido y caja especial del par original.', colorway: 'Chicago Vintage' },
-    hypeMeter: { score: 99, viewsLast24h: 410, stockRemaining: 1, label: 'ULTIMOS PARES' },
+    hypeMeter: { score: 99, sampleSize: 410, viewsLast24h: 410, stockRemaining: 1, label: 'ULTIMOS PARES' },
     variants: [
       shoeVariant(24, 9200, 0, 'AJ1-LNF'),
       shoeVariant(25, 9200, 0, 'AJ1-LNF'),

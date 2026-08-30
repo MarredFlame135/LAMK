@@ -118,9 +118,9 @@ export function VolumetricStudio({ product, standType, className }: VolumetricSt
         </div>
       </motion.div>
 
-      {/* Hype Score */}
+      {/* Hype Score — mismo umbral de muestra mínima que ProductCard/HypeMeter */}
       <span className="absolute top-3 right-3 px-2 py-1 rounded-full text-[10px] font-black font-mono uppercase tracking-wide bg-[#FF1E42] text-white">
-        Index {product.hypeMeter.score.toFixed(1)}
+        Index {product.hypeMeter.sampleSize >= 50 ? product.hypeMeter.score.toFixed(1) : '—'}
       </span>
 
       {/* Ficha — overlay funcional para legibilidad del texto sobre la foto */}

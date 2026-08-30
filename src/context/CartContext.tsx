@@ -96,6 +96,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ];
     });
     setIsOpen(true);
+    // Fix (hallazgo #2 de la auditoría "Prompt Maestro v4", Fase A): además
+    // de Vercel Analytics (abajo), registra el evento en nuestra propia
+    // base de datos — es la señal "carrito" del Índice ponderado (ver
+    // lib/hype.ts). Fire-and-forget: si falla, no debe afectar agregar al
+    // carrito, por eso el .catch() silencioso (el servidor ya loggea el error).
+    fetch('/api/track/cart-add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId }),
+    }).catch(() => {});
+
     // Fix (hallazgo #2 de la auditoría de Fase 5): un solo punto de entrada
     // cubre todo el sitio (ficha de producto, carruseles de home, catálogo)
     // sin tener que instrumentar cada call-site por separado.

@@ -16,7 +16,8 @@ export interface FitAdvisor {
 }
 
 export interface HypeMeterData {
-  score: number;             // 0 a 100%
+  score: number;             // 0 a 100% — fórmula ponderada real, ver computeHypeIndex (hype.ts)
+  sampleSize: number;        // total de eventos reales detrás del score — <50 = "sin muestra suficiente" (ver MIN_SAMPLE_SIZE)
   viewsLast24h: number;
   stockRemaining: number;
   label: 'NORMAL' | 'ALTA DEMANDA' | 'DROPPED' | 'ULTIMOS PARES';
