@@ -156,9 +156,14 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
           </h1>
         </div>
         {isOwnProfile && (
-          <a href="/vault/settings" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition mb-1">
-            Configuración →
-          </a>
+          <div className="flex items-center gap-4 mb-1">
+            <a href="/vault/pass" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition">
+              Mi Pass →
+            </a>
+            <a href="/vault/settings" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition">
+              Configuración →
+            </a>
+          </div>
         )}
       </motion.div>
 
