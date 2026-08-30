@@ -12,7 +12,7 @@
 // reimportar el módulo entre tests para que recoja cambios de env.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { signAdminSession, verifyAdminSession } from './session';
+import { signAdminSession, verifyAdminSession, getEffectiveRole } from './session';
 
 const ORIGINAL_SECRET = process.env.ADMIN_SESSION_SECRET;
 
@@ -72,5 +72,32 @@ describe('signAdminSession / verifyAdminSession', () => {
     delete process.env.ADMIN_SESSION_SECRET;
     vi.stubEnv('NODE_ENV', 'production');
     await expect(signAdminSession({ email: 'admin@lamk.mx', issuedAt: Date.now() })).rejects.toThrow();
+  });
+
+  // Fase D.7 — rol staff. getEffectiveRole() nunca debe interpretar
+  // "sin rol en el payload" como staff (degradaría por accidente el
+  // acceso de cuentas admin ya emitidas antes de este cambio).
+  describe('getEffectiveRole (Fase D.7)', () => {
+    it('payload con role explícito: se respeta tal cual', () => {
+      expect(getEffectiveRole({ email: 'a@lamk.mx', issuedAt: Date.now(), role: 'staff' })).toBe('staff');
+      expect(getEffectiveRole({ email: 'a@lamk.mx', issuedAt: Date.now(), role: 'admin' })).toBe('admin');
+    });
+
+    it('payload sin role (sesión emitida antes de Fase D.7): admin, nunca staff', () => {
+      expect(getEffectiveRole({ email: 'a@lamk.mx', issuedAt: Date.now() })).toBe('admin');
+    });
+
+    it('roundtrip real: firmar sin role y verificar conserva el fallback a admin', async () => {
+      const token = await signAdminSession({ email: 'legacy@lamk.mx', issuedAt: Date.now() });
+      const payload = await verifyAdminSession(token);
+      expect(payload).not.toBeNull();
+      expect(getEffectiveRole(payload!)).toBe('admin');
+    });
+
+    it('roundtrip real: firmar con role staff y verificar lo conserva', async () => {
+      const token = await signAdminSession({ email: 'staff@lamk.mx', issuedAt: Date.now(), role: 'staff' });
+      const payload = await verifyAdminSession(token);
+      expect(getEffectiveRole(payload!)).toBe('staff');
+    });
   });
 });

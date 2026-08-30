@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { signAdminSession } from '@/lib/session';
-import { isAllowlistedAdminEmail } from '@/lib/admin-access';
+import { getAdminRole } from '@/lib/admin-access';
 import { loginCustomer } from '@/lib/shopify/customer';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -44,17 +44,19 @@ export async function POST(request: Request) {
     const isRootAdmin = normalizedEmail === normalizedAdminEmail && password === adminPassword;
 
     if (isRootAdmin) {
-      return issueAdminSession(normalizedEmail);
+      return issueAdminSession(normalizedEmail, 'admin');
     }
 
-    // Admin por permiso otorgado (ADMIN_EMAILS, ver lib/admin-access.ts):
-    // no tiene una contraseña de admin propia — se autentica con SU cuenta
-    // de cliente normal (la misma de /auth/login). Si ese correo está en la
-    // lista Y su contraseña de cliente es correcta, entra como admin.
-    if (isAllowlistedAdminEmail(normalizedEmail)) {
+    // Admin/staff por permiso otorgado (ADMIN_EMAILS / ADMIN_STAFF_EMAILS,
+    // ver lib/admin-access.ts): ninguno tiene una contraseña de admin
+    // propia — se autentican con SU cuenta de cliente normal (la misma de
+    // /auth/login). El rol real (Fase D.7) sale de getAdminRole(), nunca
+    // se confía en nada que venga en el body de la request.
+    const role = getAdminRole(normalizedEmail);
+    if (role) {
       try {
         await loginCustomer({ email: normalizedEmail, password });
-        return issueAdminSession(normalizedEmail);
+        return issueAdminSession(normalizedEmail, role);
       } catch {
         return NextResponse.json({ error: 'Credenciales inválidas.' }, { status: 401 });
       }
@@ -67,8 +69,8 @@ export async function POST(request: Request) {
   }
 }
 
-async function issueAdminSession(email: string) {
-  const token = await signAdminSession({ email, issuedAt: Date.now() });
+async function issueAdminSession(email: string, role: 'admin' | 'staff') {
+  const token = await signAdminSession({ email, issuedAt: Date.now(), role });
   const response = NextResponse.json({ success: true });
   response.cookies.set('lamk_admin_session', token, {
     httpOnly: true,

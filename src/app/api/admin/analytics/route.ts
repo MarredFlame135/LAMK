@@ -12,7 +12,15 @@ import { getAllViews24h } from '@/lib/hype';
 
 export async function GET() {
   const { products } = await getCatalogLive();
-  const viewsById = getAllViews24h();
+  // Fix (bug real encontrado en Fase D, arrastrado desde el hallazgo #2 de
+  // Fase A): getAllViews24h() pasó de síncrona a asíncrona (fs -> Postgres)
+  // en esa auditoría — este call site se quedó sin el `await`. `tsc` no lo
+  // marcó porque el tsconfig no tiene noImplicitAny estricto sobre índices
+  // computados; en runtime, `viewsById[p.id]` siempre daba `undefined`
+  // (indexar un objeto Promise por string no lanza, solo no encuentra
+  // nada) — "más deseados" en este panel llevaba tiempo mostrando 0 vistas
+  // para todo, silenciosamente.
+  const viewsById = await getAllViews24h();
 
   const topViewed = [...products]
     .map((p) => ({

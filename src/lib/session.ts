@@ -57,6 +57,17 @@ async function hmac(data: string): Promise<string> {
 export interface AdminSessionPayload {
   email: string;
   issuedAt: number;
+  // Fase D.7 — opcional para no romper la verificación de sesiones ya
+  // emitidas antes de este cambio (duran hasta 12h, se vencen solas). Sin
+  // rol en el payload, se trata como 'admin' (comportamiento de siempre,
+  // ver getEffectiveRole abajo) — nunca al revés: una sesión sin rol
+  // JAMÁS debe interpretarse como 'staff' (eso degradaría acceso de
+  // alguien que ya lo tenía, no elevaría a alguien sin derecho).
+  role?: 'admin' | 'staff';
+}
+
+export function getEffectiveRole(payload: AdminSessionPayload): 'admin' | 'staff' {
+  return payload.role ?? 'admin';
 }
 
 export async function signAdminSession(payload: AdminSessionPayload): Promise<string> {
