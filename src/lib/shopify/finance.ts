@@ -85,6 +85,104 @@ function startOfMonthUTC(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
 }
 
+const PRODUCT_VARIANTS_VALUATION_QUERY = `
+  query ProductVariantsValuation($first: Int!, $after: String) {
+    productVariants(first: $first, after: $after) {
+      pageInfo { hasNextPage endCursor }
+      edges {
+        node {
+          id
+          price
+          inventoryQuantity
+          inventoryItem { unitCost { amount } }
+          product { id title productType }
+        }
+      }
+    }
+  }
+`;
+
+export interface CategoryValuation {
+  category: string;
+  unitsInStock: number;
+  retailValue: number; // precio de venta × stock — siempre disponible
+  costValue: number | null; // costo real × stock — null si falta el permiso "View product costs"
+  marginPct: number | null;
+}
+
+export interface InventoryValuation {
+  categories: CategoryValuation[];
+  totalRetailValue: number;
+  totalCostValue: number | null; // "capital inmovilizado" real — null si no hay costos
+  costDataAvailable: boolean;
+}
+
+// D.4: "capital inmovilizado en inventario" — el brief lo pide en costo,
+// no en precio de venta (son números muy distintos: el costo es lo que
+// de verdad tienes atado, el precio de venta es lo que esperas recuperar
+// SI se vende). Requiere el mismo permiso "View product costs" que el
+// margen del Panel de Mando, MÁS el scope `read_products` en la Admin
+// API (que CLAUDE.md documenta que hoy solo tiene read_customers +
+// read_orders) — si cualquiera de los dos falta, se reporta
+// `costDataAvailable: false` y se muestra el valor a precio de venta
+// como lo único disponible, nunca como si fuera lo mismo.
+export async function getInventoryValuation(): Promise<InventoryValuation | null> {
+  if (!isAdminApiConfigured()) return null;
+
+  const byCategory = new Map<string, { units: number; retail: number; cost: number; costKnown: boolean }>();
+  let costDataAvailable = false;
+  let after: string | null = null;
+  let pages = 0;
+
+  // Pagina de verdad (a diferencia de finance.ts/inventory-analytics.ts,
+  // que se quedan en una sola página de 250 — un catálogo completo SÍ
+  // puede pasar de 250 variantes y subvaluar "capital inmovilizado" en
+  // silencio sería peor que en ventas/vistas, que son estimaciones por
+  // naturaleza). Tope de 10 páginas (2,500 variantes) como salvaguarda.
+  do {
+    const { data, errors }: { data: any; errors?: any[] } = await adminFetch(PRODUCT_VARIANTS_VALUATION_QUERY, { first: 250, after });
+    if (!data?.productVariants) {
+      console.error('No se pudo cargar la valuación de inventario (revisa el scope read_products):', errors);
+      return { categories: [], totalRetailValue: 0, totalCostValue: null, costDataAvailable: false };
+    }
+
+    for (const edge of data.productVariants.edges) {
+      const v = edge.node;
+      const category = v.product?.productType || 'Sin categoría';
+      const qty = Math.max(0, v.inventoryQuantity || 0);
+      const price = parseFloat(v.price || '0');
+      const unitCostRaw = v.inventoryItem?.unitCost?.amount;
+
+      const entry = byCategory.get(category) || { units: 0, retail: 0, cost: 0, costKnown: true };
+      entry.units += qty;
+      entry.retail += price * qty;
+      if (unitCostRaw != null) {
+        costDataAvailable = true;
+        entry.cost += parseFloat(unitCostRaw) * qty;
+      } else {
+        entry.costKnown = false;
+      }
+      byCategory.set(category, entry);
+    }
+
+    after = data.productVariants.pageInfo?.hasNextPage ? data.productVariants.pageInfo.endCursor : null;
+    pages++;
+  } while (after && pages < 10);
+
+  const categories: CategoryValuation[] = Array.from(byCategory.entries()).map(([category, v]) => ({
+    category,
+    unitsInStock: v.units,
+    retailValue: v.retail,
+    costValue: costDataAvailable && v.costKnown ? v.cost : null,
+    marginPct: costDataAvailable && v.costKnown && v.retail > 0 ? Math.round(((v.retail - v.cost) / v.retail) * 1000) / 10 : null,
+  }));
+
+  const totalRetailValue = categories.reduce((sum, c) => sum + c.retailValue, 0);
+  const totalCostValue = costDataAvailable ? categories.reduce((sum, c) => sum + (c.costValue ?? 0), 0) : null;
+
+  return { categories: categories.sort((a, b) => b.retailValue - a.retailValue), totalRetailValue, totalCostValue, costDataAvailable };
+}
+
 export async function getDashboardFinance(): Promise<DashboardFinance | null> {
   if (!isAdminApiConfigured()) return null;
 
