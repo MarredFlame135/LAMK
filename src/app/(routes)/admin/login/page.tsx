@@ -42,7 +42,9 @@ function AdminLoginForm() {
         return;
       }
 
-      const redirectTo = searchParams.get('redirect') || '/admin/offline-sales';
+      // Fix (Fase D): /admin ya es el Panel de Mando real (antes no tenía
+      // page.tsx propio, por eso el default apuntaba a /admin/offline-sales).
+      const redirectTo = searchParams.get('redirect') || '/admin';
       router.push(redirectTo);
       router.refresh();
     } catch (err) {

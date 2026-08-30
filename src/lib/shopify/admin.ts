@@ -141,7 +141,11 @@ export async function getStoreCustomersWithXp(limit = 50): Promise<AdminCustomer
     console.error('No se pudo cargar el catálogo para ponderar XP de clientes por Hype:', err);
   }
 
-  const data = await adminGraphqlFetch<any>(CUSTOMERS_QUERY, { first: Math.min(limit, 100) });
+  // Fix (Fase D): el tope real de Shopify Admin API para `first` es 250,
+  // no 100 — varios callers ya pedían 500 asumiendo que servía de algo
+  // (profile/[username]/route.ts, api/vault/pass/story-image), pero se
+  // recortaba en silencio a 100 sin que nadie se enterara.
+  const data = await adminGraphqlFetch<any>(CUSTOMERS_QUERY, { first: Math.min(limit, 250) });
   const edges = data?.customers?.edges || [];
 
   return edges.map((edge: any): AdminCustomer => {
