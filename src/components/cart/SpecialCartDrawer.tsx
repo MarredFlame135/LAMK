@@ -41,6 +41,11 @@ export function SpecialCartDrawer() {
   const { user } = useAuth();
 
   const [step, setStep] = useState<'review' | 'checkout'>('review');
+  // Fix (reportado): "Double Check" (cross-sell) ya no se queda pegado
+  // después de que el usuario agrega algo, ni reaparece cada vez que
+  // entra/sale del paso de checkout dentro de la misma sesión de carrito
+  // abierto — se resetea solo al cerrar el drawer (mismo efecto que `step`).
+  const [crossSellDismissed, setCrossSellDismissed] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -100,7 +105,10 @@ export function SpecialCartDrawer() {
   // Vuelve a la vista de carrito cada vez que se cierra el drawer — evita
   // que la próxima apertura arranque a medio checkout por sorpresa.
   React.useEffect(() => {
-    if (!isOpen) setStep('review');
+    if (!isOpen) {
+      setStep('review');
+      setCrossSellDismissed(false);
+    }
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -279,8 +287,26 @@ export function SpecialCartDrawer() {
               Volver al carrito
             </button>
 
-            {/* "Double Check" — cross-sell antes del checkout (RF Smart Cart) */}
-            <CrossSellModule items={items} />
+            {/* Fix real (reportado): el paso de checkout (cross-sell +
+                dirección/OTP) es contenido de altura variable dentro de un
+                drawer de altura fija — antes no tenía scroll propio, así
+                que cuando crecía (formulario de dirección + el modal de
+                OTP a la vez) el contenido se salía del drawer sin ninguna
+                forma de alcanzarlo ("se queda de un tamaño fijo, no puedo
+                deslizar"). Ahora esta sección tiene su propio scroll
+                acotado — el resumen de totales de arriba y el botón
+                "Volver al carrito" siguen siempre visibles. */}
+            <div className="max-h-[42vh] overflow-y-auto pr-1 -mr-1 space-y-3">
+            {/* "Double Check" — cross-sell antes del checkout (RF Smart
+                Cart). Fix (reportado): antes se quedaba visible aunque ya
+                hubieras agregado algo, y volvía a aparecer cada vez que
+                entrabas/salías del paso de checkout. Ahora se oculta en
+                cuanto agregas UNA sugerencia o la descartas explícitamente
+                — una sola vez por sesión de carrito abierto, no una
+                invitación permanente. */}
+            {!crossSellDismissed && (
+              <CrossSellModule items={items} onDismiss={() => setCrossSellDismissed(true)} onAdded={() => setCrossSellDismissed(true)} />
+            )}
 
             {/* Paso 1: Dirección de envío con validación de CP mexicano (RF-07) */}
             {!shippingAddress?.isNormalized ? (
@@ -453,6 +479,7 @@ export function SpecialCartDrawer() {
             <p className="text-[10px] text-center text-zinc-400 uppercase tracking-widest">
               {t.cart.encryptedFooter}
             </p>
+            </div>
             </motion.div>
             )}
           </div>

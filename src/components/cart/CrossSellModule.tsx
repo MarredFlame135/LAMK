@@ -18,9 +18,16 @@ import { haptics } from '@/lib/haptics';
 
 interface CrossSellModuleProps {
   items: CartItem[];
+  // Fix (reportado): antes este módulo no tenía forma de "terminar" — se
+  // quedaba mostrando sugerencias restantes indefinidamente aunque ya se
+  // hubiera agregado algo, y el padre no tenía manera de saber cuándo
+  // ocultarlo. onAdded/onDismiss le devuelven el control al padre
+  // (SpecialCartDrawer), que es quien decide dejar de renderizarlo.
+  onAdded: () => void;
+  onDismiss: () => void;
 }
 
-export function CrossSellModule({ items }: CrossSellModuleProps) {
+export function CrossSellModule({ items, onAdded, onDismiss }: CrossSellModuleProps) {
   const { addItem } = useCart();
   const [suggestions, setSuggestions] = useState<CrossSellSuggestion[]>([]);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
@@ -57,6 +64,10 @@ export function CrossSellModule({ items }: CrossSellModuleProps) {
     });
     haptics.success();
     setAddedIds((prev) => new Set(prev).add(s.productId));
+    // Fix (reportado): una sugerencia agregada es suficiente — ya no se
+    // queda invitando a agregar el resto. El padre deja de renderizar el
+    // módulo por completo.
+    onAdded();
   };
 
   return (
@@ -68,10 +79,18 @@ export function CrossSellModule({ items }: CrossSellModuleProps) {
     >
       <motion.div variants={fadeUp} className="flex items-center gap-2">
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FF1E42]/15 text-[#FF1E42] text-xs font-black shrink-0">✓</span>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-xs font-black uppercase tracking-wide text-white">Double Check</p>
           <p className="text-[10px] text-zinc-400">¿Es todo lo que buscas? Esto combina con lo que ya llevas.</p>
         </div>
+        {/* Fix (reportado): antes no había forma de decir "no gracias" —
+            el módulo se quedaba ahí sin más opción que ignorarlo. */}
+        <button
+          onClick={onDismiss}
+          className="shrink-0 text-[10px] text-zinc-500 hover:text-zinc-300 uppercase tracking-wide font-bold px-2 py-1"
+        >
+          Ahora no
+        </button>
       </motion.div>
 
       <div className="space-y-2.5">
