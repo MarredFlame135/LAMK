@@ -178,7 +178,7 @@ Las 7 fases del brief de auditoría, con hallazgos y fixes detallados, viven en 
 
 - `FASE-0-INVENTARIO.md` *(nota: el archivo real de esta fase es este mismo `CLAUDE.md`, generado como su entregable)*
 - `FASE-1-SEGURIDAD.md` — 5 hallazgos, todos corregidos.
-- `FASE-2-PRIVACIDAD.md` — modelo de privacidad completo para QR/seguir/bóveda, diseño acordado, sin implementar todavía.
+- `FASE-2-PRIVACIDAD.md` — modelo de privacidad completo para QR/seguir/bóveda, diseño acordado. **Implementado desde el 2026-08-29/30** (schema + endpoints + UI en `/vault/settings`) — ver sección "Auditoría Prompt Maestro v4" abajo.
 - `FASE-3-RENDIMIENTO.md` — 6 hallazgos, todos corregidos (LCP/peso de página mejorados ~10× en la corrida de Lighthouse antes/después).
 - `FASE-4-SEO.md` — 7 hallazgos, todos corregidos.
 - `FASE-5-ANALITICA.md` — 2 hallazgos, todos corregidos. Backend: Vercel Analytics.
@@ -199,4 +199,14 @@ Segunda ronda de auditoría, brief nuevo (Fases A→B→C→D: Fundamentos → B
 
 **Bóveda (adelanto de Fase B, no pedido por el brief todavía pero sí por Dante directamente):** `CollectorPlaque.tsx`, `RankProgress.tsx`, `RankLadder.tsx` — rediseño de `/vault` con estética de "nivel de videojuego" (checkpoints reales en la barra de XP, escalera de rango con línea conectora). Reusa `TIER_LADDER`/`getNextUnlockPerk()` (nuevo, en `utils/gamification.ts`) como fuente única entre los dos componentes. Corrigió de paso que `CollectorVault.tsx` usaba colores genéricos de Tailwind (`amber-500`) en vez de los tokens reales de marca.
 
-**No tocado de Fase A:** nada — los 5 hallazgos están cerrados. **No empezado:** Fase B más allá de la Bóveda visual de arriba (Most Wanted, Índice de Colección, `/vault/settings`, privacidad de bóveda pública), Fase C (Collector Pass/QR — el backend ya existe, ver `qr_tokens`/`api/social/qr`, falta la UI), Fase D (admin).
+**No tocado de Fase A:** nada — los 5 hallazgos están cerrados.
+
+## Fase B (2026-08-30) — completa
+
+- **Rareza real** (`deriveRealRarity` en `utils/gamification.ts`) — corrige que `CollectionItem.rarity` se asignaba por posición en el array (100% inventado). Ahora cruza cada pieza contra el estado vigente del producto en catálogo.
+- **Índice de Colección** (`computeCollectionIndex`) — 4 señales reales (valor acumulado, rareza promedio, diversidad de categoría, antigüedad), sin términos en 0 (a diferencia del Índice de producto de Fase A).
+- **Most Wanted** — wishlist real (`wishlist_items`, `lib/wishlist.ts`, `api/wishlist/*`), botón en ficha de producto, sección en `/vault`. Activó el término "wishlist" del Índice de producto (hallazgo #2, Fase A) que estaba reservado en 0.
+- **`/vault/settings`** — identidad+privacidad (reusa `api/social/profile` de la Fase 2), notificaciones (reescribe `consent_log`), y derechos ARCO: exportar datos (JSON) y eliminar cuenta (ventana de 14 días, `lib/account-deletion.ts`). Límite real de Shopify verificado: no se puede borrar un customer con pedidos — se conserva por obligación fiscal en ese caso, documentado en el propio código.
+- **Deliberadamente fuera de alcance, con razón:** ciudad/ubicación en el perfil (el brief B.4 la pedía opcional, pero `FASE-2-PRIVACIDAD.md` ya había decidido con razón de seguridad física que nunca es un campo visible — se respetó la decisión anterior).
+
+**No empezado:** Fase C (Collector Pass/QR — el backend ya existe, ver `qr_tokens`/`api/social/qr`, falta la UI de presentación y escaneo), Fase D (admin).
