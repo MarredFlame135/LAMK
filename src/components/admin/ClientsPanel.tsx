@@ -76,7 +76,7 @@ export function ClientsPanel() {
   return (
     <div className="p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-4">
       <div className="flex items-center justify-between border-b border-border pb-2">
-        <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 flex items-center gap-2">
+        <h3 className="font-display text-sm font-black uppercase tracking-wider text-foreground flex items-center gap-2">
           CLIENTES & ADELANTO DE PAGOS / APARTADOS
         </h3>
         <span className="text-[10px] font-mono text-muted-foreground">{customers.length} cliente(s)</span>

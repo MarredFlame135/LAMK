@@ -18,6 +18,13 @@ export interface CollectionItem {
   // incluido un producto que ya no existe en el catálogo (no se puede
   // verificar su escasez, así que no se le asume rara).
   rarity: 'COMMON' | 'RARE' | 'LEGENDARY';
+  // 'manual' = pieza declarada por el cliente (compra anterior/fuera de
+  // Shopify) y aprobada por un admin — ver lib/vault-claims.ts. Ausente o
+  // 'shopify' = pieza real derivada de un pedido de Shopify (el caso de
+  // siempre). Nunca inferir 'shopify' por default en un lugar que muestre
+  // esta pieza como si viniera de un pedido verificable — la UI debe
+  // distinguir visualmente ambos casos (ver CollectionCard).
+  source?: 'shopify' | 'manual';
 }
 
 export interface UserPreferences {

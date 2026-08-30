@@ -19,6 +19,7 @@ import { useApp } from '@/context/AppContext';
 import { HolographicCard } from '@/components/ui/holographic-card';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { ReviewForm } from './ReviewForm';
+import { PurchaseClaimForm } from './PurchaseClaimForm';
 import { CollectorPlaque } from './CollectorPlaque';
 import { RankProgress } from './RankProgress';
 import { RankLadder } from './RankLadder';
@@ -39,7 +40,9 @@ interface CollectorVaultProps {
 // navegador no lo soporta (la mayoría de desktop), cae a copiar el texto al
 // portapapeles — nunca falla en silencio.
 async function shareCollectionItem(item: CollectionItem, onFallback: () => void) {
-  const text = `I just copped ${item.sneakerTitle} at LAMK — Serial ${item.serialNumber}.`;
+  const text = item.serialNumber
+    ? `I just copped ${item.sneakerTitle} at LAMK — Serial ${item.serialNumber}.`
+    : `I just copped ${item.sneakerTitle} at LAMK.`;
   const url = typeof window !== 'undefined' ? window.location.origin : undefined;
 
   if (typeof navigator === 'undefined' || !navigator.share) {
@@ -80,7 +83,13 @@ const RARITY_BADGE: Record<CollectionItem['rarity'], { label: string; color: str
 
 function CollectionCard({ item, index }: { item: CollectionItem; index: number }) {
   const [copied, setCopied] = useState(false);
-  const badge = RARITY_BADGE[item.rarity];
+  const isManual = item.source === 'manual';
+  // Pieza verificada manualmente (ver PurchaseClaimForm/lib/vault-claims.ts):
+  // nunca se le asigna una insignia de rareza real (no hay forma de
+  // verificar escasez sin pedido/catálogo detrás) — en su lugar, una
+  // insignia distinta y honesta que deja claro que un admin la confirmó a
+  // mano, no que viene de un pedido en este sitio.
+  const badge = isManual ? { label: 'VERIFICADA', color: '#C5A059' } : RARITY_BADGE[item.rarity];
 
   return (
     <motion.div variants={fadeUp} custom={index}>
@@ -97,7 +106,9 @@ function CollectionCard({ item, index }: { item: CollectionItem; index: number }
           )}
         </div>
         <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
-        <span className="text-[9px] font-mono text-[#C5A059] block mt-0.5">{item.serialNumber}</span>
+        <span className="text-[9px] font-mono text-[#C5A059] block mt-0.5">
+          {isManual ? 'Verificada por LAMK' : item.serialNumber}
+        </span>
 
         <Magnetic className="absolute top-2 right-2" strength={0.25}>
           <button
@@ -212,6 +223,12 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
           </div>
 
           </div>
+
+          {/* "¿Ya has comprado antes? Registrar compra" (pedido directo de
+              Dante, 2026-08-30) — solo en tu propia bóveda, panel aparte
+              por la misma razón que Most Wanted: aprobar/rechazar no debe
+              reordenar visualmente la colección de arriba. */}
+          {isOwnProfile && <PurchaseClaimForm />}
 
           {/* Most Wanted (solo en tu propia bóveda) — panel aparte, no
               dentro de la misma card que Colección/Historial, para que

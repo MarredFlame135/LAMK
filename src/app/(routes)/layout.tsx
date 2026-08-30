@@ -160,16 +160,16 @@ export default function RootLayout({
                   se sienta plana frente al resto del sitio con fotografía real.
                   Se quitó el AuthenticitySeal compact (pedido del cliente,
                   2026-08-27) — sigue disponible en la ficha de producto. */}
-              <footer className="relative overflow-hidden border-t border-border bg-background py-8 text-zinc-400 text-xs text-center space-y-4">
+              <footer className="relative overflow-hidden border-t border-border bg-background py-8 text-muted-foreground text-xs text-center space-y-4">
                 <div
                   className="absolute inset-0 opacity-[0.06] dark:opacity-[0.1] mix-blend-overlay pointer-events-none"
                   style={{ backgroundImage: "url('/assets/hero/obsidian-texture.webp')", backgroundSize: 'cover', backgroundPosition: 'center' }}
                   aria-hidden
                 />
                 <p className="relative">
-                  © {new Date().getFullYear()} {SAAS_CONFIG.brandName}. Diseñado por BDM Soluciones Digitales.
+                  © {new Date().getFullYear()} {SAAS_CONFIG.brandName}. Desarrollado por BDM Soluciones Digitales.
                   {' · '}
-                  <a href="/aviso-de-privacidad" className="hover:text-white transition">Aviso de Privacidad</a>
+                  <a href="/aviso-de-privacidad" className="hover:text-foreground transition">Aviso de Privacidad</a>
                 </p>
               </footer>
             </ThemeVariantProvider>

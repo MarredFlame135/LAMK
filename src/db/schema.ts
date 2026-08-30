@@ -216,3 +216,40 @@ export const linkedAccounts = pgTable('linked_accounts', {
   providerAccountIdx: index('linked_accounts_provider_account_idx').on(table.provider, table.providerAccountId),
   customerIdx: index('linked_accounts_customer_idx').on(table.customerId),
 }));
+
+// --- Añadido 2026-08-30, pedido directo de Dante (no del brief) ---
+// Reclamos de compra manual — un cliente puede tener piezas de LAMK que
+// compró antes de que existiera esta app, o fuera de Shopify (tienda
+// física, reventa, etc.): no hay pedido real detrás, así que no pueden
+// entrar a `collection` como el resto de piezas (que salen 100% de
+// pedidos reales vía getCustomerProfile()). En vez de inventar un pedido
+// falso o dejar que cualquiera se autoasigne piezas, el cliente declara
+// la pieza (modelo + foto) y un admin la aprueba o rechaza a mano —
+// instrucción explícita de Dante: "solo él sabe quiénes son sus clientes
+// reales". Solo al aprobarse aparece en la Bóveda (ver
+// getApprovedClaimsAsCollectionItems en lib/vault-claims.ts), siempre
+// marcada como verificada manualmente — nunca mezclada en silencio con
+// las piezas que sí vienen de un pedido real.
+//
+// customerEmail/customerName son una copia (snapshot) tomada al momento
+// del envío, no una referencia viva — así el panel de admin puede mostrar
+// quién envió cada reclamo sin depender de la Admin API de Shopify (que
+// hoy no está configurada, ver CLAUDE.md). Foto guardada como data URL
+// (mismo patrón ya usado por ReviewForm/reviews-store, con límite de
+// tamaño validado en la API — ver api/vault/claims/route.ts).
+export const vaultPurchaseClaims = pgTable('vault_purchase_claims', {
+  id: text('id').primaryKey(), // uuid generado en la app
+  customerId: text('customer_id').notNull(), // GID de Shopify Customer
+  customerEmail: text('customer_email').notNull(),
+  customerName: text('customer_name').notNull(),
+  productTitle: text('product_title').notNull(), // modelo exacto, texto libre del cliente
+  imageUrl: text('image_url').notNull(), // foto de la pieza subida por el cliente
+  note: text('note'), // contexto opcional ("comprado en 2023 en tienda física", etc.)
+  status: text('status', { enum: ['pending', 'approved', 'rejected'] }).notNull().default('pending'),
+  reviewNote: text('review_note'), // motivo del admin si rechaza — opcional
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  customerIdx: index('vault_purchase_claims_customer_idx').on(table.customerId),
+  statusIdx: index('vault_purchase_claims_status_idx').on(table.status),
+}));

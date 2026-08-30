@@ -130,7 +130,7 @@ export function OfflineSalesModule() {
         
         {/* Formulario para Registrar Nueva Venta Físicas */}
         <div className="lg:col-span-1 p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-4">
-          <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 border-b border-border pb-2">
+          <h3 className="font-display text-sm font-black uppercase tracking-wider text-foreground border-b border-border pb-2">
             REGISTRAR VENTA EN TIENDA / DROP
           </h3>
           <form onSubmit={handleCreateSale} className="space-y-3 text-xs">
@@ -216,7 +216,7 @@ export function OfflineSalesModule() {
 
         {/* Tabla / Lista de Registro de Deudas */}
         <div className="lg:col-span-2 p-5 bg-card border border-border rounded-xl shadow-lg shadow-black/20 space-y-4">
-          <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100 border-b border-border pb-2">
+          <h3 className="font-display text-sm font-black uppercase tracking-wider text-foreground border-b border-border pb-2">
             LIBRO DE SALDOS PENDIENTES & CLIENTES
           </h3>
 

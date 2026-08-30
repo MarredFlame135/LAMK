@@ -238,7 +238,7 @@ export function AnalyticsPanel() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100">DASHBOARD DE OPERACIÓN E INTELIGENCIA</h3>
+        <h3 className="font-display text-sm font-black uppercase tracking-wider text-foreground">DASHBOARD DE OPERACIÓN E INTELIGENCIA</h3>
         <span className="text-[9px] font-mono text-muted-foreground uppercase">Datos reales — sin cifras simuladas</span>
       </div>
 

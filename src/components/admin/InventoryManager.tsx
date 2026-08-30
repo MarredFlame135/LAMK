@@ -115,7 +115,7 @@ export function InventoryManager() {
 
   return (
     <div className="space-y-6">
-      <h3 className="font-display text-sm font-black uppercase tracking-wider text-zinc-100">GESTIÓN DE INVENTARIO</h3>
+      <h3 className="font-display text-sm font-black uppercase tracking-wider text-foreground">GESTIÓN DE INVENTARIO</h3>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
