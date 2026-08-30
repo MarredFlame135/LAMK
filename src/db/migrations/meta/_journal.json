@@ -8,6 +8,13 @@
       "when": 1788046811806,
       "tag": "0000_late_slapstick",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788064928296,
+      "tag": "0001_foamy_legion",
+      "breakpoints": true
     }
   ]
 }

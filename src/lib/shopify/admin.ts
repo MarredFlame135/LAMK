@@ -50,6 +50,26 @@ async function adminGraphqlFetch<T>(query: string, variables: Record<string, unk
   return body.data as T;
 }
 
+const CUSTOMER_BY_EMAIL_QUERY = `
+  query CustomerByEmail($query: String!) {
+    customers(first: 1, query: $query) {
+      edges { node { id } }
+    }
+  }
+`;
+
+// Usado por el puente de login social (src/lib/social-auth/bridge.ts,
+// hallazgo #4): antes de crear una cuenta nueva para un login de
+// Google/Apple, hay que saber si YA existe un customer de Shopify con ese
+// correo (alguien que se registró antes con contraseña) — si existe, no se
+// vincula automáticamente sin más (ver nota larga en db/schema.ts sobre
+// por qué la Admin API no permite fusionar sin fricción en plan estándar).
+export async function findCustomerIdByEmail(email: string): Promise<string | null> {
+  if (!isAdminApiConfigured()) return null;
+  const data = await adminGraphqlFetch<any>(CUSTOMER_BY_EMAIL_QUERY, { query: `email:${email}` });
+  return data?.customers?.edges?.[0]?.node?.id ?? null;
+}
+
 const CUSTOMERS_QUERY = `
   query AdminCustomers($first: Int!, $after: String) {
     customers(first: $first, after: $after, sortKey: UPDATED_AT, reverse: true) {

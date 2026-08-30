@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 
 // Fix (hallazgo #5 de la auditoría "Prompt Maestro v4", Fase A): sin señal
 // de fortaleza ni confirmación, un typo en la contraseña producía una
@@ -218,6 +219,8 @@ export default function RegisterPage() {
             {isLoading ? 'CREANDO CUENTA...' : 'CREAR CUENTA'}
           </button>
         </form>
+
+        <SocialAuthButtons privacyAccepted={privacyAccepted} marketingOptIn={marketingOptIn} />
 
         <p className="text-center text-xs text-zinc-400">
           ¿Ya tienes cuenta?{' '}

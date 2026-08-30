@@ -154,12 +154,24 @@ export const productEvents = pgTable('product_events', {
 // proveedor confirma `email_verified: true` — si no, se trata como cuenta
 // nueva y se le pide confirmar su correo, para no fusionar dos personas
 // distintas que comparten un correo no verificado.
+//
+// `encryptedPassword` (añadido 2026-08-29, ver src/lib/social-auth/): la
+// Admin API de Shopify (verificado contra la doc 2026-01) ya no expone un
+// campo para fijar/resetear la contraseña de un customer existente — y
+// Multipass (que sí resolvería esto de forma nativa) es exclusivo de
+// Shopify Plus, y LAMK MX está en plan estándar (confirmado con Dante).
+// La única forma de mantener una sesión real de Storefront API para un
+// login social es que NOSOTROS generemos la contraseña al crear la cuenta
+// puente, y la reusemos para volver a autenticar en cada login futuro —
+// nunca en texto plano, cifrada con AES-256-GCM (ver crypto.ts), y nunca
+// expuesta al cliente ni mostrada al usuario.
 export const linkedAccounts = pgTable('linked_accounts', {
   id: text('id').primaryKey(), // uuid generado en la app
   customerId: text('customer_id').notNull(), // GID de Shopify Customer al que quedó vinculada
   provider: text('provider', { enum: ['google', 'apple'] }).notNull(),
   providerAccountId: text('provider_account_id').notNull(), // "sub" del proveedor OAuth
   email: text('email').notNull(),
+  encryptedPassword: text('encrypted_password').notNull(), // ver nota arriba — AES-256-GCM, formato iv:authTag:ciphertext (base64)
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   providerAccountIdx: index('linked_accounts_provider_account_idx').on(table.provider, table.providerAccountId),

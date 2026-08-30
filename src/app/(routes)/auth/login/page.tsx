@@ -5,12 +5,18 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 
 export default function LoginPage() {
   const router = useRouter();
   const { refresh } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // El login con contraseña no necesita consentimiento (ya lo dio al
+  // registrarse) — pero entrar con Google/Apple por primera vez SÍ puede
+  // crear una cuenta nueva (ver bridge.ts), así que este checkbox gatea
+  // solo los botones sociales, no el formulario de correo/contraseña.
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -91,6 +97,23 @@ export default function LoginPage() {
             {isLoading ? 'ENTRANDO...' : 'INICIAR SESIÓN'}
           </button>
         </form>
+
+        <SocialAuthButtons privacyAccepted={privacyAccepted} />
+        {!privacyAccepted && (
+          <label className="flex items-start gap-2 text-[11px] text-zinc-500 cursor-pointer -mt-2">
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={(e) => setPrivacyAccepted(e.target.checked)}
+              className="mt-0.5 h-3 w-3 shrink-0 accent-[#FF1E42]"
+            />
+            <span>
+              Acepto el{' '}
+              <a href="/aviso-de-privacidad" target="_blank" className="text-[#FF1E42] hover:underline">Aviso de Privacidad</a>
+              {' '}(necesario para entrar con Google o Apple)
+            </span>
+          </label>
+        )}
 
         <p className="text-center text-xs text-zinc-400">
           ¿Aún no tienes cuenta?{' '}
