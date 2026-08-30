@@ -25,9 +25,17 @@ export async function createShopifyCheckout(
 ): Promise<string> {
   if (items.length === 0) throw new Error('El carrito está vacío.');
 
+  // Fix (auditoría de seguridad 2026-08-30): el precio nunca viene del
+  // cliente (Shopify lo resuelve server-side a partir de merchandiseId,
+  // ver comentario del archivo — no es un hallazgo, es lo que ya hacía
+  // bien), pero `quantity` no tenía ningún límite antes de reenviarse tal
+  // cual a Shopify. Un valor absurdo (negativo, cero, o desproporcionado)
+  // no compromete el precio, pero no hay razón para no acotarlo aquí antes
+  // de gastar una llamada a la API con algo que Shopify va a rechazar de
+  // todos modos.
   const lines = items.map((item) => ({
     merchandiseId: item.variant.id,
-    quantity: item.quantity,
+    quantity: Math.min(99, Math.max(1, Math.round(item.quantity) || 1)),
   }));
 
   const input: Record<string, unknown> = { lines };

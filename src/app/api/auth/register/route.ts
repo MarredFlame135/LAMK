@@ -5,11 +5,27 @@ import { registerCustomer } from '@/lib/shopify/customer';
 import { getDb } from '@/db';
 import { consentLog } from '@/db/schema';
 import { PRIVACY_NOTICE_VERSION } from '@/lib/legal';
-import { getClientIp } from '@/lib/rate-limit';
+import { getClientIp, checkRateLimit } from '@/lib/rate-limit';
 import { randomUUID } from 'crypto';
 
 export async function POST(request: Request) {
   try {
+    // Fix (encontrado en la auditoría de seguridad 2026-08-30): esta ruta
+    // no tenía ningún límite de intentos — a diferencia de /api/auth/login,
+    // /api/admin/login y /api/otp (Fase 1), que sí lo tienen. Sin esto,
+    // cualquiera podía crear cuentas de Shopify sin límite desde una sola
+    // IP (spam de registros, o tantear qué correos ya existen leyendo el
+    // mensaje de error de registerCustomer). Mismo patrón que el resto:
+    // 5 intentos / 10 min por IP.
+    const limitKey = `register:${getClientIp(request)}`;
+    const { allowed, retryAfterMs } = checkRateLimit(limitKey, 5, 10 * 60 * 1000);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: `Demasiados intentos de registro. Intenta de nuevo en ${Math.ceil(retryAfterMs / 60000)} minuto(s).` },
+        { status: 429 }
+      );
+    }
+
     const { email, password, firstName, lastName, phone, privacyAccepted, marketingOptIn } = await request.json();
 
     if (!email || !password || !firstName || !lastName) {

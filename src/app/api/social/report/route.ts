@@ -12,10 +12,23 @@ import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { reports, socialProfiles } from '@/db/schema';
 import { requireCustomer } from '@/lib/social/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   const user = await requireCustomer(request);
   if (!user) return NextResponse.json({ error: 'Debes iniciar sesión.' }, { status: 401 });
+
+  // Fix (auditoría de seguridad 2026-08-30): sin límite, una cuenta podía
+  // usar "reportar" como herramienta de hostigamiento — mandar decenas de
+  // reportes contra el mismo perfil (o varios) sin costo.
+  const limitKey = `report:${user.id}`;
+  const { allowed, retryAfterMs } = checkRateLimit(limitKey, 10, 60 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Demasiados reportes enviados. Intenta de nuevo en ${Math.ceil(retryAfterMs / 60000)} minuto(s).` },
+      { status: 429 }
+    );
+  }
 
   const { targetUsername, reason } = await request.json();
   if (!reason || String(reason).trim().length === 0) {

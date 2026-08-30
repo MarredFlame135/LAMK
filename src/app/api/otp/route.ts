@@ -15,8 +15,13 @@ export async function POST(request: Request) {
   try {
     const { phone } = await request.json();
 
-    if (!phone) {
-      return NextResponse.json({ error: 'Teléfono es obligatorio' }, { status: 400 });
+    // Fix (auditoría de seguridad 2026-08-30): antes cualquier string no
+    // vacío pasaba — un valor arbitrario (o larguísimo) llegaba tal cual
+    // al límite de intentos (como parte de la clave) y, con credenciales
+    // reales de WhatsApp configuradas, se habría reenviado tal cual al
+    // "to" de la API de Meta. Un teléfono mexicano son 10 dígitos.
+    if (typeof phone !== 'string' || !/^\d{10}$/.test(phone)) {
+      return NextResponse.json({ error: 'Teléfono inválido — deben ser 10 dígitos.' }, { status: 400 });
     }
 
     const limitKey = `otp:${getClientIp(request)}:${phone}`;
