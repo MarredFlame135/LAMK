@@ -148,11 +148,18 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
     >
 
       {/* Header de la Bóveda */}
-      <motion.div variants={fadeUp} className="border-b border-border pb-4">
-        <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// THE COLLECTOR VAULT</span>
-        <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">
-          {isOwnProfile ? t.vault.title : `PERFIL DE ${user.firstName.toUpperCase()} ${user.lastName.toUpperCase()}`}
-        </h1>
+      <motion.div variants={fadeUp} className="border-b border-border pb-4 flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <span className="text-xs font-mono text-[#FF1E42] uppercase tracking-widest">// THE COLLECTOR VAULT</span>
+          <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">
+            {isOwnProfile ? t.vault.title : `PERFIL DE ${user.firstName.toUpperCase()} ${user.lastName.toUpperCase()}`}
+          </h1>
+        </div>
+        {isOwnProfile && (
+          <a href="/vault/settings" className="text-[10px] font-mono uppercase tracking-widest text-zinc-400 hover:text-white transition mb-1">
+            Configuración →
+          </a>
+        )}
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

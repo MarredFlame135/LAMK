@@ -182,6 +182,28 @@ export const wishlistItems = pgTable('wishlist_items', {
   uniquePair: uniqueIndex('wishlist_items_customer_product_idx').on(table.customerId, table.productId),
 }));
 
+// Borrado de cuenta (Fase B, brief B.4 + ventana de arrepentimiento
+// propuesta en docs/audit/FASE-2-PRIVACIDAD.md sección 7) — una fila =
+// una solicitud pendiente. Cancelar es simplemente borrar la fila (nunca
+// se ejecutó nada todavía). `processDueDeletions()` en
+// lib/account-deletion.ts es lo único que borra de verdad, cuando
+// `scheduledFor` ya pasó.
+//
+// Límite real verificado contra la Admin API (doc 2026-01, campo
+// `Customer.canDelete`): Shopify NO permite borrar un customer que ya
+// tiene pedidos — que es el caso normal de alguien con una Bóveda real.
+// Por eso "eliminar cuenta" no puede prometer borrar el registro de
+// Shopify en todos los casos: si tiene pedidos, se borra todo lo propio
+// de este proyecto (perfil social, bóveda, wishlist, QR, vínculos OAuth,
+// consentimiento de marketing) y el historial de compra se conserva en
+// Shopify por obligación fiscal — excepción estándar y razonable de la
+// LFPDPPP para registros contables, no un incumplimiento del derecho ARCO.
+export const accountDeletionRequests = pgTable('account_deletion_requests', {
+  customerId: text('customer_id').primaryKey(),
+  requestedAt: timestamp('requested_at').notNull().defaultNow(),
+  scheduledFor: timestamp('scheduled_for').notNull(),
+});
+
 export const linkedAccounts = pgTable('linked_accounts', {
   id: text('id').primaryKey(), // uuid generado en la app
   customerId: text('customer_id').notNull(), // GID de Shopify Customer al que quedó vinculada

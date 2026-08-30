@@ -70,6 +70,29 @@ export async function findCustomerIdByEmail(email: string): Promise<string | nul
   return data?.customers?.edges?.[0]?.node?.id ?? null;
 }
 
+const CUSTOMER_DELETE_MUTATION = `
+  mutation CustomerDelete($id: ID!) {
+    customerDelete(input: { id: $id }) {
+      deletedCustomerId
+      userErrors { field message }
+    }
+  }
+`;
+
+// Usado por lib/account-deletion.ts. Límite real de la plataforma
+// (verificado contra la doc 2026-01, `Customer.canDelete`): Shopify
+// rechaza borrar un customer que ya tiene pedidos — devuelve `false` en
+// ese caso en vez de lanzar, para que el caller decida qué hacer (en
+// nuestro caso: borrar todo lo propio igual y conservar el registro de
+// Shopify por obligación fiscal, ver nota larga en db/schema.ts).
+export async function deleteShopifyCustomer(customerId: string): Promise<{ deleted: boolean; reason?: string }> {
+  if (!isAdminApiConfigured()) return { deleted: false, reason: 'Admin API no configurada' };
+  const data = await adminGraphqlFetch<any>(CUSTOMER_DELETE_MUTATION, { id: customerId });
+  const errors = data?.customerDelete?.userErrors;
+  if (errors?.length) return { deleted: false, reason: errors.map((e: any) => e.message).join(' ') };
+  return { deleted: Boolean(data?.customerDelete?.deletedCustomerId) };
+}
+
 const CUSTOMERS_QUERY = `
   query AdminCustomers($first: Int!, $after: String) {
     customers(first: $first, after: $after, sortKey: UPDATED_AT, reverse: true) {
