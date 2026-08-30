@@ -209,4 +209,13 @@ Segunda ronda de auditoría, brief nuevo (Fases A→B→C→D: Fundamentos → B
 - **`/vault/settings`** — identidad+privacidad (reusa `api/social/profile` de la Fase 2), notificaciones (reescribe `consent_log`), y derechos ARCO: exportar datos (JSON) y eliminar cuenta (ventana de 14 días, `lib/account-deletion.ts`). Límite real de Shopify verificado: no se puede borrar un customer con pedidos — se conserva por obligación fiscal en ese caso, documentado en el propio código.
 - **Deliberadamente fuera de alcance, con razón:** ciudad/ubicación en el perfil (el brief B.4 la pedía opcional, pero `FASE-2-PRIVACIDAD.md` ya había decidido con razón de seguridad física que nunca es un campo visible — se respetó la decisión anterior).
 
-**No empezado:** Fase C (Collector Pass/QR — el backend ya existe, ver `qr_tokens`/`api/social/qr`, falta la UI de presentación y escaneo), Fase D (admin).
+## Fase C (2026-08-30) — Collector Pass + QR, completa salvo C.3
+
+- **`/vault/pass`** (`PassManager.tsx`) — genera/revoca el QR (paquete `qrcode`, cliente), modo presentación (pantalla blanca, QR grande), exportar imagen para stories (`api/vault/pass/story-image`, `ImageResponse` 1080×1920).
+- **`/vault/[handle]`** y **`/vault/pass/[token]`** — la bóveda pública real, con la secuencia de "reveal" épica del brief C.2 (`PublicVaultReveal.tsx`: autenticando → placa → colección en cascada → grail, ≤2.5s, saltable, una vez por sesión, respeta `prefers-reduced-motion`). Comparten componente pero difieren en reglas de visibilidad: `[handle]` respeta la configuración real (público/seguidores/privado); `pass/[token]` siempre fuerza la vista más conservadora (es un desconocido escaneando en persona, mayor riesgo — Fase 2 sección 3).
+  - Nota de ruta: la carpeta se llama `[handle]`, no `@[handle]` — Next.js reserva nombres de carpeta que empiezan con `@` para rutas paralelas. La URL real `/vault/@usuario` funciona igual; el `@` vive en el valor capturado, no en el nombre de archivo.
+- **`/vault/scan`** — `BarcodeDetector` nativo (Chrome/Edge/Android; sin Safari/iOS todavía) + búsqueda por handle como alternativa siempre visible, sin librería nueva de respaldo.
+- **Seguir** — botón wired en la bóveda pública, reusa `api/social/follow` (ya existía).
+- **No construido (C.3 parcial):** comparación de índices entre coleccionistas ("tu índice vs el suyo", "piezas en común", "él tiene, tú no"), y el directorio público ordenable por índice.
+
+**No empezado:** Fase D (panel de administración).
