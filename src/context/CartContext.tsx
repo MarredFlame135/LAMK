@@ -18,7 +18,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, ShippingAddress, VerificationStatus } from '@/types/cart';
+import { CartItem, VerificationStatus } from '@/types/cart';
 import { ProductVariant } from '@/types/product';
 import { track } from '@/lib/analytics';
 import { computeCartTotals } from '@/lib/cart-math';
@@ -33,8 +33,6 @@ interface CartContextType {
   total: number;
   remainingForFreeShipping: number;
   progressPercentage: number;
-  shippingAddress: ShippingAddress | null;
-  setShippingAddress: (a: ShippingAddress | null) => void;
   verificationStatus: VerificationStatus;
   otpDevHint: string | null;
   addItem: (productTitle: string, productId: string, productImage: string, variant: ProductVariant) => void;
@@ -50,7 +48,6 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('NOT_REQUIRED');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [otpTicket, setOtpTicket] = useState<string | null>(null);
@@ -64,7 +61,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         setItems(parsed.items || []);
-        setShippingAddress(parsed.shippingAddress || null);
       }
     } catch (e) {
       console.error('Error al restaurar carrito offline:', e);
@@ -76,9 +72,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // 2. Guardar automáticamente cada cambio en localStorage
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ items, shippingAddress }));
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ items }));
     }
-  }, [items, shippingAddress, isLoaded]);
+  }, [items, isLoaded]);
 
   const { subtotal, shippingCost, total, remainingForFreeShipping, progressPercentage } = computeCartTotals(items);
 
@@ -127,7 +123,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setItems([]);
-    setShippingAddress(null);
     setVerificationStatus('NOT_REQUIRED');
     localStorage.removeItem(LOCAL_STORAGE_KEY);
   };
@@ -200,7 +195,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     <CartContext.Provider
       value={{
         items, isOpen, setIsOpen, subtotal, shippingCost, total, remainingForFreeShipping, progressPercentage,
-        shippingAddress, setShippingAddress, verificationStatus, otpDevHint,
+        verificationStatus, otpDevHint,
         addItem, removeItem, updateQuantity, clearCart, triggerWhatsAppVerification, verifyOtpCode,
       }}
     >
