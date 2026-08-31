@@ -7,7 +7,7 @@
 // metadata.openGraph.images para /product/[handle], sin tocar
 // generateMetadata() a mano.
 //
-// Mismo lenguaje visual que ProductCard.tsx (INDEX/Verified Allocation,
+// Mismo lenguaje visual que ProductCard.tsx (HYPE/Verified Allocation,
 // mono uppercase, acentos Laser Crimson / Muted Gold) — la tarjeta que se
 // comparte tiene que sentirse como la misma marca que la página que abre.
 

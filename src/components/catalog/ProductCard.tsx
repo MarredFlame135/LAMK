@@ -3,7 +3,7 @@
 // Tarjeta "Vitrina de Museo" (Haute-Tech Luxury Vault) — sin emojis
 // informales, vocabulario HUD técnico. Cada señal mostrada sigue siendo un
 // dato real del producto, solo cambió el ropaje:
-//   - INDEX {score} // VERIFIED ALLOCATION: product.hypeMeter.score (RF-05)
+//   - HYPE {score} // VERIFIED ALLOCATION: product.hypeMeter.score (RF-05)
 //   - EDITION.../DEADSTOCK (+ puntos ●●○○○, no son emoji): stockRemaining
 //   - TERMINAL ACTIVE · N VIEWING: product.hypeMeter.viewsLast24h (real)
 // No hay un contador de "vendidos hoy": no existe una señal real por
@@ -47,7 +47,7 @@ function HypeBadge({ hypeMeter }: { hypeMeter: HypeMeterData }) {
   return (
     <div className="absolute top-2.5 right-2.5 min-w-[7.5rem] px-2.5 py-1.5 rounded-md bg-black/80 backdrop-blur-sm border border-white/10">
       <span className="block text-[11px] font-black font-mono text-white leading-none whitespace-nowrap tracking-wide">
-        INDEX {hasEnoughData ? hypeMeter.score.toFixed(1) : '—'}
+        HYPE {hasEnoughData ? hypeMeter.score.toFixed(1) : '—'}
       </span>
       <span className="block text-[7px] font-mono text-[#C5A059] uppercase tracking-[0.2em] mt-0.5 whitespace-nowrap">
         Verified Allocation

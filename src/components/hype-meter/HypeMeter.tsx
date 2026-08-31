@@ -27,7 +27,7 @@ export function HypeMeter({ data }: HypeMeterProps) {
     <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-lg space-y-2 my-4">
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-1.5 font-bold tracking-[0.15em] text-[#FF1E42] uppercase font-mono">
-          <span>{t.product.hypeMeter}: INDEX {displayScore} · {label}</span>
+          <span>{t.product.hypeMeter} {displayScore} · {label}</span>
         </div>
         {viewsLast24h > 0 && (
           <span className="text-zinc-400 text-[10px] font-mono uppercase tracking-[0.15em]">

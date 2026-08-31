@@ -118,8 +118,19 @@ export default function RootLayout({
             <ThemeVariantProvider>
               <PwaRegister />
 
-              {/* Header Navbar Principal */}
-              <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-md border-b border-border">
+              {/* Header Navbar Principal.
+                  Fix (reportado 2026-08-30, mismo hilo que el menú mobile):
+                  `bg-background/90` computaba `rgba(0,0,0,0)` — el
+                  modificador de opacidad de Tailwind necesita un color en
+                  canales, y `--background` es un hex, así que la clase se
+                  generaba inválida y el header quedaba SIN fondo: el
+                  contenido de la página se leía a través de él al hacer
+                  scroll, solo desenfocado. Fondo opaco real. Se retira
+                  también `backdrop-blur-md`: ya no desenfoca nada útil (no
+                  hay translucidez que acompañar) y era lo que atrapaba al
+                  panel del menú mobile dentro de los 64px del header — ver
+                  MobileMenu.tsx. */}
+              <header className="sticky top-0 z-40 bg-background border-b border-border">
                 <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
 
                   {/* Logo de la Marca */}
