@@ -708,7 +708,7 @@ como bug, simplemente hace que nadie vuelva a creerle al número. El archivo est
 separado de `vault-reactions.ts` a propósito: ese importa `getDb()`, y el botón
 es un componente de cliente.
 
-### Carruseles: se mueven solos y tienen profundidad real
+### Carruseles: profundidad 3D real, recorridos a mano
 
 **`DepthStrip.tsx`** — una tira horizontal con deriva automática y 3D de verdad
 (`perspective` + `rotateY` + `translateZ` + caída de brillo), no una imitación
@@ -767,3 +767,33 @@ tema, no lo que ve la mayoría. Queda como decisión abierta, no como olvido.
 ### Estado
 
 `npm run test`: **127 pruebas en 14 archivos**. Build de producción limpio.
+
+### Corrección el mismo día: los carruseles se quedan manuales
+
+El cliente vio la deriva automática y pidió lo contrario: **"mejor deja los
+carruseles manual, pero sí me gustó ese diseño"**. Se retiró el movimiento
+automático y se conservó la profundidad 3D, que era lo que le gustaba.
+
+- **`DepthStrip` pasó de 264 a 153 líneas.** Quitar el autoplay se llevó por
+  delante todo el andamiaje que existía SOLO para que un carrusel automático no
+  fuera hostil: el bucle de `requestAnimationFrame`, el botón de pausa, las
+  pausas por hover/foco/arrastre, el opt-in de `prefers-reduced-motion` y el
+  flotante de posición que hacía falta por el redondeo de `scrollLeft`. Nada de
+  lo que se veía se perdió.
+- **Volvió el `snap`**, ahora como `snap-center` dentro del propio `DepthStrip`.
+  Se había quitado porque peleaba con la deriva; sin deriva no hay con qué
+  pelearse. Es `center` y no `start` porque en una tira con profundidad la pieza
+  que importa es la del centro: la única de frente y a plena luz.
+- **Con `prefers-reduced-motion` la tira ahora simplemente se queda plana**, sin
+  interruptor para encenderla. Ese interruptor existía porque un fallback
+  silencioso sobre algo que *debía* moverse se lee como "está roto"; una tira
+  que no se inclina no parece rota, parece una tira.
+- **`spotlight-carousel` arranca en pausa** (`userPaused` nace en `true`). Se
+  apagó desde ahí y no borrando el autoplay: el botón "Reproducir" que ya existía
+  lo enciende en un clic y la barra de avance reaparece sola. Volver al
+  comportamiento anterior es cambiar un `true` por `false`.
+
+> **Lo que vale la pena recordar de esto:** el movimiento automático no costaba
+> una línea, costaba ciento diez — casi todas dedicadas a compensar el hecho de
+> que la página se mueva sin que nadie se lo pida. La versión manual es más
+> corta, más accesible y es la que el cliente quería.

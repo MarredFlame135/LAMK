@@ -51,16 +51,12 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
           <span className="text-xs font-mono text-zinc-400 uppercase tracking-[0.15em]">Live Index</span>
         </div>
 
-        {/* La repisa. Se mueve sola con profundidad 3D real — ver DepthStrip.tsx
-            para el porqué del efecto y del vaivén.
-
-            Nota sobre el `snap-x snap-mandatory` que había aquí (fix del
-            hallazgo #4 de la Fase 6): se retiró. El enganche por CSS y una
-            deriva continua se pelean — el navegador corrige la posición hacia
-            el punto de anclaje mientras el bucle la mueve, y el resultado es
-            un tirón por cada frame. El scroll sigue siendo nativo (se arrastra,
-            rueda y se recorre con teclado); lo único que se fue es el imán. */}
-        <DepthStrip label="el carrusel de drops en tendencia">
+        {/* La repisa: profundidad 3D real, recorrida a mano — ver
+            DepthStrip.tsx. El enganche por CSS del hallazgo #4 de la Fase 6
+            sigue vivo, ahora como `snap-center` dentro del propio DepthStrip
+            (en una tira con profundidad la pieza que importa es la del centro,
+            que es la única de frente y a plena luz). */}
+        <DepthStrip>
           {trendingProducts.map((product, idx) => (
             <CarouselItemTracker
               key={product.id}

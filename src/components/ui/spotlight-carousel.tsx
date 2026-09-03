@@ -109,7 +109,15 @@ interface SpotlightCarouselProps {
 
 export function SpotlightCarousel({ items, onActiveChange, onItemClick }: SpotlightCarouselProps) {
   const [active, setActive] = useState(0);
-  const [userPaused, setUserPaused] = useState(false);
+  // Arranca EN PAUSA (2026-09-02, decisión del cliente: "mejor deja los
+  // carruseles manual"). Antes avanzaba solo cada 6.5 s.
+  //
+  // Se apaga desde aquí y no borrando el autoplay entero a propósito: el
+  // botón "Reproducir" que ya existe lo enciende en un clic, y la barra de
+  // avance vuelve a aparecer sola cuando está encendido. Si algún día se
+  // quiere de vuelta por defecto, es cambiar este `true` por `false` — no
+  // reconstruir la función.
+  const [userPaused, setUserPaused] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const headingId = useId();
