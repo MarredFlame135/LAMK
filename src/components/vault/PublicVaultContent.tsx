@@ -12,6 +12,7 @@ import { fadeUp, staggerContainer } from '@/lib/motion';
 import { haptics } from '@/lib/haptics';
 import { VaultZones } from './VaultZones';
 import { CollectionItem } from '@/types/user';
+import type { ReactionSummary } from '@/lib/vault-reactions';
 
 const GOLD = '#C5A059';
 const CRIMSON = '#FF1E42';
@@ -33,9 +34,13 @@ interface PublicVaultContentProps {
   }[];
   isOwner: boolean;
   viewerLoggedIn: boolean;
+  // Totales por pieza, calculados en el servidor. `mine` solo trae la
+  // reacción de quien mira; nunca la de terceros.
+  reactions?: Record<string, ReactionSummary>;
+  canReact?: boolean;
 }
 
-export function PublicVaultContent({ handle, serial, tier, bio, followerCount, vault, isOwner, viewerLoggedIn }: PublicVaultContentProps) {
+export function PublicVaultContent({ handle, serial, tier, bio, followerCount, vault, isOwner, viewerLoggedIn, reactions, canReact = false }: PublicVaultContentProps) {
   const [followState, setFollowState] = useState<'idle' | 'following' | 'pending'>('idle');
   const [followBusy, setFollowBusy] = useState(false);
 
@@ -124,7 +129,7 @@ export function PublicVaultContent({ handle, serial, tier, bio, followerCount, v
             <p className="text-muted-foreground text-xs">Esta bóveda todavía no tiene piezas públicas.</p>
           </div>
         ) : (
-          <VaultZones collection={publicCollection} />
+          <VaultZones collection={publicCollection} reactions={reactions} canReact={canReact} />
         )}
         {notes.length > 0 && (
           <div className="pt-1 space-y-1.5 border-t border-border/60">

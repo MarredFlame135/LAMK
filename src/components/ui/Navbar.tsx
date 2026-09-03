@@ -20,13 +20,20 @@ import { HeaderAuthLink } from '@/components/ui/HeaderAuthLink';
 
 export function Navbar() {
   const { t } = useApp();
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   return (
     <nav className="hidden md:flex items-center gap-6 text-xs font-bold tracking-widest uppercase text-zinc-400">
       <a href="/" className="hover:text-[#FF1E42] transition">{t.nav.home}</a>
       <a href="/catalog" className="hover:text-foreground transition">{t.nav.catalog}</a>
       <a href="/vault" className="hover:text-foreground transition">{t.nav.vault}</a>
+      {/* El Collector Pass nunca fue una función de admin —/vault/pass solo
+          pide sesión de cliente— pero el único enlace prominente que existía
+          estaba en el panel de administración, así que se leía como si lo
+          fuera. Aquí lo ve cualquiera que haya iniciado sesión. */}
+      {user && (
+        <a href="/vault/pass" className="hover:text-foreground transition">Mi Pass</a>
+      )}
       {isAdmin && (
         <a href="/admin/login" className="text-[#C5A059] hover:text-white transition">
           Admin

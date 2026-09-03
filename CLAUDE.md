@@ -630,3 +630,140 @@ aquí. Las piezas aprobadas se marcan `source: 'manual'` y **no reciben número
 de serie ni insignia de rareza** — sin pedido real detrás no se puede verificar
 ni escasez ni autenticidad, así que llevan una insignia distinta ("Aprobada por
 admin") que no se debe confundir con "Autenticidad verificada".
+
+## Pass abierto a todos, reacciones por pieza y carruseles 3D (2026-09-02, ronda 2)
+
+### El Collector Pass nunca fue de admins — pero era inalcanzable
+
+Se reportó como "solo aparece en el panel del admin". Verificado: `/vault/pass`
+**solo pide sesión de cliente**, nunca sesión de admin. El problema era otro, y
+peor, porque era un callejón sin salida en dos tramos:
+
+1. Quien no tuviera username y visibilidad pública se topaba con un muro que lo
+   mandaba a `/vault/settings` — otra pantalla, con seis secciones, donde había
+   que adivinar cuáles tres campos importaban.
+2. Y aunque los llenara: **`isMinor(null)` devuelve `true`**. Sin fecha de
+   nacimiento declarada, el servidor fuerza la visibilidad a `'private'`
+   (protección anti mass-assignment de la Fase 2, correcta). El formulario de
+   ajustes respondía **"Guardado."** de todas formas, ignorando el `isMinor`
+   que la propia API devolvía. Así que la persona creía haber hecho pública su
+   bóveda, volvía al Pass, y encontraba el mismo muro sin ninguna pista.
+
+Evidencia de que nadie lo logró: **un (1) perfil social en toda la base de
+datos**, el de pruebas.
+
+Qué se hizo:
+
+- **`PassActivation.tsx`** — el muro se convierte en activación de un paso, en
+  la misma pantalla: usuario, fecha de nacimiento y visibilidad, cada campo con
+  la razón por la que se pide. Si el servidor termina forzando privado por
+  edad, se dice explícitamente; nunca se responde "listo" a algo bloqueado.
+- **`VaultSettingsForm` deja de mentir**: ahora lee `isMinor` de la respuesta y
+  distingue "guardado como privado porque eres menor" de "guardado como privado
+  porque falta tu fecha de nacimiento".
+- **Descubribilidad**: enlace "Mi Pass" en `Navbar` y `MobileMenu` para
+  cualquier sesión iniciada, y una tarjeta real en `/vault` junto a la placa de
+  coleccionista, en vez del link de 10 px que había.
+- El copy del panel admin decía "QR de admin, mismo sistema que clientes" — que
+  es justo lo que hacía pensar que era una función de administrador.
+
+### Reacciones por pieza (`vault_item_reactions`)
+
+Me gusta / no me gusta sobre cada pieza de una bóveda pública.
+
+- **Llave primaria `(vault_item_id, customer_id)`**: una reacción por persona
+  por pieza. Pulsar lo mismo dos veces la retira.
+- **Exige sesión.** Sin cuenta no hay reacción: es la diferencia entre un
+  contador y una máquina de brigading.
+- **Hacia afuera solo salen totales.** Nunca se expone quién reaccionó, ni
+  siquiera al dueño de la bóveda. Lo único personal que se devuelve es la
+  reacción de quien pregunta.
+- **Nadie reacciona a lo suyo**, y la pieza tiene que existir y ser visible para
+  quien reacciona — esto último se resuelve reusando `getProfileView()`, la
+  misma función que decide qué se ve en `/vault/[handle]`, en vez de escribir
+  una segunda versión de las reglas de privacidad. Si no puedes VER la pieza no
+  puedes opinar sobre ella, y eso cubre de un golpe perfiles privados, bloqueos
+  y menores.
+- **Desde un escaneo de QR se ven los totales pero no se puede reaccionar**: esa
+  pantalla trata a quien llega como un desconocido por diseño, y dejarlo opinar
+  contradiría esa postura.
+- El borrado de cuenta barre también las reacciones **recibidas** por sus
+  piezas, y lo hace ANTES de borrar `vault_items` — después ya no habría forma
+  de saber cuáles eran suyas.
+
+**Dónde NO están:** en la bóveda propia (`/vault`). Ahí las piezas vienen de los
+pedidos de Shopify y no tienen id de `vault_items`, que es a lo que cuelgan las
+reacciones. El dueño las ve entrando a su propia bóveda pública.
+
+**Nota de producto, no de código:** un botón de "no me gusta" sobre las
+pertenencias de una persona es un vector de acoso, y este proyecto ya tiene
+reglas explícitas para cuentas de menores. Se construyó como se pidió, con las
+cuatro barreras de arriba; si algún día se ve usado para molestar, la palanca
+más barata es quitar el `-1` y dejar solo el "me gusta".
+
+**Aritmética probada aparte** (`vault-reactions-shared.ts`): el cálculo optimista
+del botón vive en un módulo sin dependencias, con 10 pruebas. Importa porque
+cambiar de bando mueve DOS contadores, no uno — y un error ahí no se reporta
+como bug, simplemente hace que nadie vuelva a creerle al número. El archivo está
+separado de `vault-reactions.ts` a propósito: ese importa `getDb()`, y el botón
+es un componente de cliente.
+
+### Carruseles: se mueven solos y tienen profundidad real
+
+**`DepthStrip.tsx`** — una tira horizontal con deriva automática y 3D de verdad
+(`perspective` + `rotateY` + `translateZ` + caída de brillo), no una imitación
+con escala.
+
+- **La metáfora no es un coverflow** (el efecto de iTunes 2005, que no dice nada
+  sobre este negocio) sino **el muro de una sneaker store**: una repisa vista de
+  lado, donde las piezas del centro te miran de frente y las de las orillas se
+  giran hacia la pared y se hunden. Y funciona aquí por una razón práctica: las
+  fotos son rectángulos opacos sin canal alfa, y un rectángulo girado en Y con
+  perspectiva se lee como un panel de una pared curva — el efecto trabaja CON la
+  restricción en vez de pelearse con ella.
+- **Va y vuelve en vez de dar un bucle infinito.** Lo obvio habría sido duplicar
+  la lista, pero eso duplicaría las impresiones que mide `CarouselItemTracker`
+  (la analítica de posición de la Fase 5 dejaría de ser comparable) y obligaría
+  a marcar la copia como `aria-hidden`.
+- **Ni un frame pasa por React.** El bucle de `requestAnimationFrame` escribe
+  `scrollLeft` y los `transform` directo al DOM.
+- Pausa visible (regla del repo para cualquier avance automático), pausa
+  temporal con el puntero encima / el foco dentro / al arrastrar, y con
+  `prefers-reduced-motion` arranca quieta y plana con opción de encenderla.
+
+> **Dos trampas que costaron tiempo y conviene no repetir:**
+>
+> 1. **`scrollLeft` redondea a entero al leerlo.** A 16 px/s cada frame avanza
+>    ~0.26 px, así que leer-sumar-escribir contra la propiedad se queda
+>    atrapado en el mismo entero **para siempre**. La tira se veía congelada sin
+>    un solo error en consola. La posición real tiene que vivir en un flotante
+>    aparte y `scrollLeft` ser solo el destino.
+> 2. **`snap-x snap-mandatory` y una deriva continua se pelean.** El navegador
+>    corrige hacia el punto de anclaje mientras el bucle mueve, y sale un tirón
+>    por frame. Se retiró el imán de `HypeCarousel`; el scroll sigue siendo
+>    nativo (arrastre, rueda, teclado).
+> 3. **`offsetLeft` se mide contra el ancestro POSICIONADO**, no contra el
+>    contenedor de scroll. Por eso `DepthStrip` envuelve él mismo a cada hijo y
+>    el scroller lleva `relative`: confiar en que cada consumidor ponga el
+>    atributo en el sitio correcto es pedir un bug silencioso en el que la tira
+>    se ve casi bien, con la profundidad calculada contra el origen equivocado.
+
+**`spotlight-carousel`** (la vitrina insignia de la home) ya avanzaba solo, pero
+con `rotate` PLANO — un giro en el plano de la pantalla, como una foto ladeada
+sobre una mesa. Ahora usa `rotateY` + `z` con `perspective` real en el
+escenario: la pieza que entra llega de canto desde el fondo y se endereza.
+
+> Detalle que parece obvio y no lo es: **sin `perspective` en el contenedor,
+> `rotateY` y `translateZ` no producen ningún efecto visible.** Se aplican, pero
+> la proyección es ortográfica y la pieza girada se ve igual de ancha que de
+> frente. Es el error clásico de "puse rotateY y no pasa nada".
+
+**No se tocaron los tres carruseles de los temas alternos** (`theme1`, `theme2`,
+`theme3`). Cada uno tiene su propia dirección de arte y su propia lógica de
+"pieza activa" atada al scroll; meterles la misma repisa 3D aplanaría justo lo
+que hace que sean tres temas distintos, y son variantes detrás del selector de
+tema, no lo que ve la mayoría. Queda como decisión abierta, no como olvido.
+
+### Estado
+
+`npm run test`: **127 pruebas en 14 archivos**. Build de producción limpio.

@@ -78,7 +78,22 @@ export function VaultSettingsForm({ email, profile, linkedProviders, pendingDele
         body: JSON.stringify({ username: username || undefined, bio, dateOfBirth: dateOfBirth || undefined, profileVisibility, vaultVisibility }),
       });
       const data = await res.json();
-      setIdentityStatus(res.ok ? 'Guardado.' : data.error || 'No se pudo guardar.');
+      if (!res.ok) {
+        setIdentityStatus(data.error || 'No se pudo guardar.');
+      } else if (data.isMinor) {
+        // Fix (2026-09-02): el servidor fuerza visibilidad privada cuando no
+        // hay fecha de nacimiento declarada (isMinor(null) es true) o cuando
+        // la declarada es de un menor. Esta pantalla respondía "Guardado." de
+        // todas formas, así que la persona creía haber hecho pública su
+        // bóveda y no entendía por qué el Collector Pass seguía rechazándola.
+        setIdentityStatus(
+          dateOfBirth
+            ? 'Guardado como PRIVADO: las cuentas de menores de edad no pueden hacerse públicas.'
+            : 'Guardado como PRIVADO: falta tu fecha de nacimiento. Sin ella no se puede activar la visibilidad pública ni el Collector Pass.'
+        );
+      } else {
+        setIdentityStatus('Guardado.');
+      }
     } catch {
       setIdentityStatus('Error de red.');
     } finally {

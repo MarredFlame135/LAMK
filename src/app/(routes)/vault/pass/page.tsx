@@ -10,6 +10,7 @@ import { getCustomerProfile } from '@/lib/shopify/customer';
 import { deriveCollectorSerial } from '@/lib/utils';
 import { getSiteUrl } from '@/lib/site-url';
 import { PassManager } from '@/components/vault/PassManager';
+import { PassActivation } from '@/components/vault/PassActivation';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,20 +24,16 @@ export default async function VaultPassPage() {
   const db = getDb();
   const [profile] = await db.select().from(socialProfiles).where(eq(socialProfiles.customerId, user.id)).limit(1);
 
-  // Sin username público, no hay nada que compartir por QR — se manda a
-  // configurarlo primero en vez de dejar que el botón "generar" falle con
-  // un error de API que no explica por qué (ver api/social/qr/route.ts).
+  // Sin username público no hay nada que compartir por QR. Antes esto era un
+  // muro que mandaba a /vault/settings —otra pantalla, seis secciones, adivina
+  // cuáles tres campos importan— y encima el de allá respondía "Guardado."
+  // aunque el servidor hubiera forzado 'private' por no tener fecha de
+  // nacimiento declarada. Resultado: el Pass era inalcanzable en la práctica.
+  // Ahora se activa aquí mismo, en un paso. Ver PassActivation.tsx.
   if (!profile?.username || profile.profileVisibility === 'private') {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center px-4 text-center">
-        <div className="max-w-sm space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Necesitas un usuario público y visibilidad distinta a "Privado" antes de generar tu Collector Pass.
-          </p>
-          <a href="/vault/settings" className="inline-block px-5 py-2.5 bg-[#FF1E42] hover:bg-red-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition">
-            Configurar mi perfil →
-          </a>
-        </div>
+      <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
+        <PassActivation currentUsername={profile?.username ?? null} />
       </div>
     );
   }

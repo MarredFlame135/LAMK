@@ -57,6 +57,13 @@
       "when": 1788395779307,
       "tag": "0007_handy_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788407171104,
+      "tag": "0008_chief_purple_man",
+      "breakpoints": true
     }
   ]
 }

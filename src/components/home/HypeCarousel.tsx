@@ -17,6 +17,7 @@ import { Product, ProductVariant } from '@/types/product';
 import { useCart } from '@/hooks/useCart';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { CarouselItemTracker } from '@/components/analytics/CarouselItemTracker';
+import { DepthStrip } from '@/components/ui/DepthStrip';
 
 const CAROUSEL_NAME = 'hype_carousel';
 
@@ -50,17 +51,27 @@ export function HypeCarousel({ products }: HypeCarouselProps) {
           <span className="text-xs font-mono text-zinc-400 uppercase tracking-[0.15em]">Live Index</span>
         </div>
 
-        {/* Carrusel Deslizable — Fix (hallazgo #4 de la auditoría de Fase
-            6): `snap-x snap-mandatory` + `snap-start` por tarjeta en vez de
-            depender de JS para el "enganche" — scroll nativo del navegador,
-            mejor sensación táctil en móvil, cero cálculo de posiciones. */}
-        <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-zinc-800">
+        {/* La repisa. Se mueve sola con profundidad 3D real — ver DepthStrip.tsx
+            para el porqué del efecto y del vaivén.
+
+            Nota sobre el `snap-x snap-mandatory` que había aquí (fix del
+            hallazgo #4 de la Fase 6): se retiró. El enganche por CSS y una
+            deriva continua se pelean — el navegador corrige la posición hacia
+            el punto de anclaje mientras el bucle la mueve, y el resultado es
+            un tirón por cada frame. El scroll sigue siendo nativo (se arrastra,
+            rueda y se recorre con teclado); lo único que se fue es el imán. */}
+        <DepthStrip label="el carrusel de drops en tendencia">
           {trendingProducts.map((product, idx) => (
-            <CarouselItemTracker key={product.id} carouselName={CAROUSEL_NAME} position={idx} className="flex-none w-72 snap-start">
+            <CarouselItemTracker
+              key={product.id}
+              carouselName={CAROUSEL_NAME}
+              position={idx}
+              className="flex-none w-72"
+            >
               <ProductCard product={product} index={idx} onAddToCart={handleAddToCart} />
             </CarouselItemTracker>
           ))}
-        </div>
+        </DepthStrip>
 
       </div>
     </section>

@@ -295,6 +295,11 @@ export function SpotlightCarousel({ items, onActiveChange, onItemClick }: Spotli
         tabIndex={0}
         onKeyDown={onKeyDown}
         className="relative mt-4 h-[24rem] w-full outline-none focus-visible:ring-2 focus-visible:ring-[#FF1E42] sm:mt-2 sm:h-[40rem]"
+        // Perspectiva del escenario. Sin esto, rotateY y z no producen
+        // NINGÚN efecto visible: se aplican, pero sin punto de fuga la
+        // proyección es ortográfica y la pieza girada se ve igual de ancha
+        // que de frente. Es el error clásico de "puse rotateY y no pasa nada".
+        style={{ perspective: 1400, transformStyle: "preserve-3d" }}
       >
         {/* Nombre gigante DETRÁS de la pieza. aria-hidden porque el nombre ya
             se anuncia en el enlace de la pieza activa — leerlo dos veces solo
@@ -369,7 +374,11 @@ export function SpotlightCarousel({ items, onActiveChange, onItemClick }: Spotli
                   x: `${direction * 120}%`,
                   scale: 0.45,
                   opacity: 0,
-                  rotate: direction * 8,
+                  // Giro en Y y no `rotate` plano: la pieza entra de canto,
+                  // como un panel que se abre hacia ti, en vez de patinar de
+                  // lado como una calcomanía.
+                  rotateY: direction * 42,
+                  z: -320,
                 }}
                 animate={{
                   // 55% y no más: a 64% el vecino, ya reducido al 60%, quedaba
@@ -377,10 +386,14 @@ export function SpotlightCarousel({ items, onActiveChange, onItemClick }: Spotli
                   x: `${offset * 55}%`,
                   scale: isActive ? 1 : 0.6,
                   opacity: isActive ? 1 : 0.85,
-                  // Las vecinas quedan ligeramente giradas hacia afuera: es lo
-                  // que da la sensación de estar viendo un carrusel físico
-                  // desde el centro y no tres fotos alineadas.
-                  rotate: offset * 5,
+                  // Las vecinas se giran hacia la pared y se hunden hacia el
+                  // fondo. Antes era un `rotate` plano (giro en el plano de la
+                  // pantalla, como una foto ladeada sobre una mesa); ahora es
+                  // `rotateY` + `z` con perspectiva real en el escenario, que es
+                  // la diferencia entre una pieza inclinada y una pieza que de
+                  // verdad está más lejos.
+                  rotateY: offset * -34,
+                  z: isActive ? 0 : -260,
                   // Profundidad de campo real, como en la foto macro: solo la
                   // pieza activa está enfocada. Es un valor fijo por estado, no
                   // un filtro animándose cada cuadro — el navegador lo resuelve
@@ -388,7 +401,7 @@ export function SpotlightCarousel({ items, onActiveChange, onItemClick }: Spotli
                   filter: isActive ? 'blur(0px)' : 'blur(3px)',
                 }}
                 transition={{ duration: reduced ? 0 : 0.75, ease: EASE_LUXURY }}
-                style={{ zIndex: isActive ? 20 : 10 }}
+                style={{ zIndex: isActive ? 20 : 10, transformStyle: 'preserve-3d' }}
                 // Los vecinos se ocultan en celular: en 390 px de ancho no "se
                 // asoman", se encaraman sobre la pieza activa. Es CSS y no una
                 // condición en JS para no arriesgar otro desajuste de

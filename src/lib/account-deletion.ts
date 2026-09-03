@@ -5,7 +5,7 @@
 // db/schema.ts (accountDeletionRequests) para el límite real de Shopify
 // que hace que esto NO siempre borre el customer de Shopify.
 
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { getDb } from '@/db';
 import {
   accountDeletionRequests,
@@ -15,6 +15,7 @@ import {
   reports,
   qrTokens,
   vaultItems,
+  vaultItemReactions,
   wishlistItems,
   linkedAccounts,
 } from '@/db/schema';
@@ -53,7 +54,25 @@ export async function getPendingDeletion(customerId: string): Promise<{ schedule
 // qué hacer con eso.
 async function purgeOwnData(customerId: string): Promise<void> {
   const db = getDb();
-  const tables = [socialProfiles, vaultItems, wishlistItems, linkedAccounts, qrTokens];
+
+  // ANTES de borrar vault_items: las reacciones cuelgan del id de la pieza, no
+  // del dueño, así que una vez borradas las piezas ya no habría forma de saber
+  // cuáles eran suyas y quedarían para siempre apuntando a la nada.
+  try {
+    const items = await db
+      .select({ id: vaultItems.id })
+      .from(vaultItems)
+      .where(eq(vaultItems.customerId, customerId));
+    if (items.length > 0) {
+      await db.delete(vaultItemReactions).where(
+        inArray(vaultItemReactions.vaultItemId, items.map((i) => i.id))
+      );
+    }
+  } catch (err) {
+    console.error(`Error borrando reacciones recibidas de ${customerId} (borrado de cuenta):`, err);
+  }
+
+  const tables = [socialProfiles, vaultItems, wishlistItems, linkedAccounts, qrTokens, vaultItemReactions];
   for (const table of tables) {
     try {
       await db.delete(table).where(eq((table as any).customerId, customerId));

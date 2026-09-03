@@ -103,6 +103,36 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
           <CollectorPlaque user={user} displayName={`@${username || user.email.split('@')[0]}`} />
           <RankProgress tierInfo={tierInfo} />
 
+          {/* Collector Pass. Antes su único acceso desde aquí era un link de
+              10px en la cabecera, junto a "Configuración" — y el enlace más
+              visible de todo el sitio estaba en el panel de admin, así que la
+              función parecía de administradores. Es de cualquier cliente. */}
+          {isOwnProfile && (
+            <a
+              href="/vault/pass"
+              className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition hover:border-[#C5A059]/60"
+            >
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-[#C5A059]/40 text-[#C5A059]"
+                aria-hidden
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <path d="M14 14h3v3h-3zM18 18h3v3h-3zM14 21h3M21 14v3" />
+                </svg>
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-black uppercase tracking-wide">Mi Collector Pass</span>
+                <span className="block text-[11px] text-muted-foreground leading-snug">
+                  Un QR para enseñar en persona: quien lo escanea ve tu colección y puede seguirte.
+                </span>
+              </span>
+              <span className="ml-auto text-[#C5A059] transition group-hover:translate-x-0.5" aria-hidden>→</span>
+            </a>
+          )}
+
           {/* Colección + historial + reseña — un solo panel, como antes */}
           <div className="bg-card border border-border rounded-xl p-6 space-y-6">
 

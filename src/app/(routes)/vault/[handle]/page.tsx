@@ -22,6 +22,7 @@ import { getProfileView } from '@/lib/social/profile-view';
 import { getCustomerProfile } from '@/lib/shopify/customer';
 import { getStoreCustomersWithXp } from '@/lib/shopify/admin';
 import { deriveCollectorSerial } from '@/lib/utils';
+import { getReactionSummaries } from '@/lib/vault-reactions';
 import { PublicVaultReveal } from '@/components/vault/PublicVaultReveal';
 import { PublicVaultContent } from '@/components/vault/PublicVaultContent';
 
@@ -54,6 +55,12 @@ export default async function PublicVaultPage({ params }: PageProps) {
     }
   }
 
+  // Totales de me gusta / no me gusta, más la reacción propia del visitante
+  // (solo la suya: quién más reaccionó no sale nunca de la base).
+  const reactions = Object.fromEntries(
+    await getReactionSummaries(view.vault.map((v) => v.id), viewer?.id ?? null)
+  );
+
   const serial = deriveCollectorSerial(profile.customerId).replace('LK-C-', '');
 
   return (
@@ -67,6 +74,11 @@ export default async function PublicVaultPage({ params }: PageProps) {
         bio={view.bio}
         followerCount={view.followerCount}
         vault={view.vault}
+        reactions={reactions}
+        // Se puede reaccionar con sesión iniciada y sin ser el dueño. El
+        // servidor lo revalida igual (api/vault/reactions): esto solo evita
+        // enseñar un botón que iba a rebotar.
+        canReact={Boolean(viewer) && !view.isOwner}
         isOwner={view.isOwner}
         viewerLoggedIn={Boolean(viewer)}
       />

@@ -37,7 +37,7 @@ export default async function AdminOverviewPage({ searchParams }: { searchParams
     { href: '/admin/finanzas', label: 'Finanzas', desc: 'Margen por categoría, capital inmovilizado, proyección', adminOnly: true },
     { href: '/admin/inventario', label: 'Inventario y productos', desc: 'Rotación, antigüedad, señal de reposición', adminOnly: false },
     { href: '/admin/clientes', label: 'Clientes', desc: 'Segmentación RFM, cohortes, ficha 360°', adminOnly: true },
-    { href: '/vault/pass', label: 'Mi Collector Pass', desc: 'QR de admin, mismo sistema que clientes', adminOnly: false },
+    { href: '/vault/pass', label: 'Mi Collector Pass', desc: 'Tu QR de coleccionista — el mismo que cualquier cliente', adminOnly: false },
   ].filter((link) => role === 'admin' || !link.adminOnly);
 
   return (

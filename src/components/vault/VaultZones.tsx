@@ -40,6 +40,8 @@ import { HolographicCard } from '@/components/ui/holographic-card';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { haptics } from '@/lib/haptics';
 import { fadeUp, staggerContainer } from '@/lib/motion';
+import { applyReaction } from '@/lib/vault-reactions-shared';
+import type { ReactionSummary, ReactionValue } from '@/lib/vault-reactions-shared';
 
 // Tono del nicho iluminado. Mismo criterio (y mismo rango medido) que
 // BAND_BG en spotlight-carousel.tsx: los fondos de estudio del catálogo van
@@ -180,9 +182,136 @@ function LitNiche({ item, rounded = 'rounded-lg' }: { item: CollectionItem; roun
   );
 }
 
+// Me gusta / no me gusta de una pieza.
+//
+// Tres decisiones de comportamiento:
+//
+//  1. **Optimista, con reversión.** El contador se mueve en el momento del
+//     clic y se corrige con lo que responda el servidor. Esperar el ida y
+//     vuelta hace que el botón se sienta roto en una conexión lenta; no
+//     revertir cuando falla hace que muestre un número que no es cierto.
+//  2. **Pulsar lo mismo dos veces retira la reacción.** Es lo que espera
+//     cualquiera que haya usado un botón de "me gusta", y evita quedarse
+//     atrapado en una opinión que ya no sostienes.
+//  3. **Solo totales.** Nunca se muestra quién reaccionó — ni al dueño de la
+//     bóveda. Un "no me gusta" con nombre sobre las pertenencias de alguien es
+//     acoso con otro nombre; el número agregado no lo es.
+//
+// Cuando no se puede reaccionar (visitante sin sesión, el propio dueño, o un
+// escaneo de QR) los totales se siguen viendo, pero como texto, no como
+// botones muertos.
+function ReactionBar({
+  itemId,
+  title,
+  summary,
+  canReact,
+}: {
+  itemId: string;
+  title: string;
+  summary: ReactionSummary;
+  canReact: boolean;
+}) {
+  const [state, setState] = useState(summary);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const react = async (value: ReactionValue) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    haptics.tap();
+
+    const previous = state;
+    // Cálculo optimista con la MISMA función que usa el servidor de referencia
+    // (vault-reactions-shared.ts, probada): retira si repites, cambia de bando
+    // moviendo los dos contadores, o suma si no habías reaccionado.
+    setState(applyReaction(previous, value));
+
+    try {
+      const res = await fetch('/api/vault/reactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vaultItemId: itemId, value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setState(previous);
+        setError(data.error || 'No se pudo registrar.');
+        return;
+      }
+      setState({ likes: data.likes ?? 0, dislikes: data.dislikes ?? 0, mine: data.mine ?? null });
+    } catch {
+      setState(previous);
+      setError('Sin conexión.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!canReact) {
+    if (state.likes === 0 && state.dislikes === 0) return null;
+    return (
+      <span className="flex items-center gap-3 font-mono text-[10px] text-muted-foreground">
+        <span>▲ {state.likes}</span>
+        <span>▼ {state.dislikes}</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex items-center gap-1.5">
+      <button
+        type="button"
+        onClick={() => react(1)}
+        disabled={busy}
+        aria-pressed={state.mine === 1}
+        aria-label={`Me gusta ${title}`}
+        className={`flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-[10px] transition disabled:opacity-60 ${
+          state.mine === 1
+            ? 'border-emerald-500/60 text-emerald-500 dark:text-emerald-400'
+            : 'border-border text-muted-foreground hover:border-zinc-500 hover:text-foreground'
+        }`}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <path d="M7 22V11l5-9a2.5 2.5 0 0 1 2.4 3.2L13 10h5.5a2.5 2.5 0 0 1 2.4 3.1l-1.6 6.5A3 3 0 0 1 16.4 22H7Z" />
+        </svg>
+        {state.likes}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => react(-1)}
+        disabled={busy}
+        aria-pressed={state.mine === -1}
+        aria-label={`No me gusta ${title}`}
+        className={`flex items-center gap-1 rounded-full border px-2 py-1 font-mono text-[10px] transition disabled:opacity-60 ${
+          state.mine === -1
+            ? 'border-[#FF1E42]/60 text-[#FF1E42]'
+            : 'border-border text-muted-foreground hover:border-zinc-500 hover:text-foreground'
+        }`}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <path d="M17 2v11l-5 9a2.5 2.5 0 0 1-2.4-3.2L11 14H5.5a2.5 2.5 0 0 1-2.4-3.1l1.6-6.5A3 3 0 0 1 7.6 2H17Z" />
+        </svg>
+        {state.dislikes}
+      </button>
+
+      {error && <span role="alert" className="font-mono text-[9px] text-[#FF1E42]">{error}</span>}
+    </span>
+  );
+}
+
 // Placa cromada: serie, año de adquisición y sello. El año es de ADQUISICIÓN
 // y no de lanzamiento a propósito — ver acquisitionYear() en lib/vault-zones.
-function ChromePlate({ item }: { item: CollectionItem }) {
+function ChromePlate({
+  item,
+  reaction,
+  canReact,
+}: {
+  item: CollectionItem;
+  reaction?: ReactionSummary;
+  canReact?: boolean;
+}) {
   const year = acquisitionYear(item);
   const isManual = item.source === 'manual';
 
@@ -211,18 +340,31 @@ function ChromePlate({ item }: { item: CollectionItem }) {
           respaldo real (el webhook orders/paid le puso su número de serie);
           una declarada a mano la aprobó un admin. Se distinguen a propósito:
           no significan lo mismo y no deben verse igual. */}
-      <span className="flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest text-emerald-500 dark:text-emerald-400">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
-        {isManual ? 'Aprobada por admin' : 'Autenticidad verificada'}
-      </span>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="flex items-center gap-1 text-[8px] font-mono uppercase tracking-widest text-emerald-500 dark:text-emerald-400">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden>
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+          {isManual ? 'Aprobada por admin' : 'Autenticidad verificada'}
+        </span>
+
+        {reaction && (
+          <ReactionBar itemId={item.id} title={item.sneakerTitle} summary={reaction} canReact={Boolean(canReact)} />
+        )}
+      </div>
     </div>
   );
 }
 
+interface PieceProps {
+  item: CollectionItem;
+  index: number;
+  reaction?: ReactionSummary;
+  canReact?: boolean;
+}
+
 // --- ZONA A · pedestal de museo -------------------------------------------
-function PedestalPiece({ item, index }: { item: CollectionItem; index: number }) {
+function PedestalPiece({ item, index, reaction, canReact }: PieceProps) {
   return (
     <motion.div variants={fadeUp} custom={index} className="group">
       <HolographicCard className="relative">
@@ -256,13 +398,13 @@ function PedestalPiece({ item, index }: { item: CollectionItem; index: number })
           />
         </div>
       </HolographicCard>
-      <ChromePlate item={item} />
+      <ChromePlate item={item} reaction={reaction} canReact={canReact} />
     </motion.div>
   );
 }
 
 // --- ZONA B · perchero suspendido -----------------------------------------
-function HangingPiece({ item, index }: { item: CollectionItem; index: number }) {
+function HangingPiece({ item, index, reaction, canReact }: PieceProps) {
   return (
     <motion.div variants={fadeUp} custom={index} className="group relative pt-7">
       {/* Gancho: el tramo que baja del riel y engancha la prenda. El riel en
@@ -282,13 +424,13 @@ function HangingPiece({ item, index }: { item: CollectionItem; index: number }) 
         <LitNiche item={item} rounded="rounded-lg" />
         <ShareButton item={item} />
       </HolographicCard>
-      <ChromePlate item={item} />
+      <ChromePlate item={item} reaction={reaction} canReact={canReact} />
     </motion.div>
   );
 }
 
 // --- ZONA C · vitrina de cristal ahumado ----------------------------------
-function VitrinePiece({ item, index }: { item: CollectionItem; index: number }) {
+function VitrinePiece({ item, index, reaction, canReact }: PieceProps) {
   return (
     <motion.div variants={fadeUp} custom={index} className="group">
       {/* Marco de la vitrina, en oro apagado de marca. El grosor del marco es
@@ -328,12 +470,20 @@ function VitrinePiece({ item, index }: { item: CollectionItem; index: number }) 
         </div>
         <ShareButton item={item} />
       </div>
-      <ChromePlate item={item} />
+      <ChromePlate item={item} reaction={reaction} canReact={canReact} />
     </motion.div>
   );
 }
 
-function ZoneSection({ zone }: { zone: VaultZone }) {
+function ZoneSection({
+  zone,
+  reactions,
+  canReact,
+}: {
+  zone: VaultZone;
+  reactions?: Record<string, ReactionSummary>;
+  canReact: boolean;
+}) {
   const isWardrobe = zone.id === 'APPAREL_WARDROBE';
 
   return (
@@ -379,29 +529,42 @@ function ZoneSection({ zone }: { zone: VaultZone }) {
           animate="show"
           className={`grid grid-cols-2 sm:grid-cols-3 gap-4 ${isWardrobe ? 'pt-2' : ''}`}
         >
-          {zone.items.map((item, i) =>
-            zone.id === 'SNEAKER_VAULT' ? (
-              <PedestalPiece key={item.id} item={item} index={i} />
+          {zone.items.map((item, i) => {
+            const props = { item, index: i, reaction: reactions?.[item.id], canReact };
+            return zone.id === 'SNEAKER_VAULT' ? (
+              <PedestalPiece key={item.id} {...props} />
             ) : zone.id === 'APPAREL_WARDROBE' ? (
-              <HangingPiece key={item.id} item={item} index={i} />
+              <HangingPiece key={item.id} {...props} />
             ) : (
-              <VitrinePiece key={item.id} item={item} index={i} />
-            )
-          )}
+              <VitrinePiece key={item.id} {...props} />
+            );
+          })}
         </motion.div>
       </div>
     </section>
   );
 }
 
-export function VaultZones({ collection }: { collection: CollectionItem[] }) {
+export function VaultZones({
+  collection,
+  reactions,
+  canReact = false,
+}: {
+  collection: CollectionItem[];
+  // Solo llega en la bóveda PÚBLICA. En la propia (/vault) no hay reacciones
+  // porque ahí las piezas vienen de los pedidos de Shopify y no tienen id de
+  // `vault_items`, que es a lo que cuelgan las reacciones — y porque nadie
+  // reacciona a su propia colección.
+  reactions?: Record<string, ReactionSummary>;
+  canReact?: boolean;
+}) {
   const zones = groupIntoZones(collection);
   if (zones.length === 0) return null;
 
   return (
     <div className="space-y-6">
       {zones.map((zone) => (
-        <ZoneSection key={zone.id} zone={zone} />
+        <ZoneSection key={zone.id} zone={zone} reactions={reactions} canReact={canReact} />
       ))}
     </div>
   );

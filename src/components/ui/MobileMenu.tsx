@@ -83,6 +83,9 @@ export function MobileMenu() {
                 <a href="/" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">{t.nav.home}</a>
                 <a href="/catalog" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">{t.nav.catalog}</a>
                 <a href="/vault" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">{t.nav.vault}</a>
+                {user && (
+                  <a href="/vault/pass" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">Mi Pass</a>
+                )}
                 <a href="/tracking" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border hover:text-[#FF1E42] transition">Rastreo</a>
                 {isAdmin && (
                   <a href="/admin/login" onClick={() => setIsOpen(false)} className="py-3.5 border-b border-border text-[#C5A059] hover:text-foreground transition">Admin</a>

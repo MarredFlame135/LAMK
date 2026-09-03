@@ -17,6 +17,7 @@ import { scanQrToken } from '@/lib/social/qr';
 import { getProfileView } from '@/lib/social/profile-view';
 import { getStoreCustomersWithXp } from '@/lib/shopify/admin';
 import { deriveCollectorSerial } from '@/lib/utils';
+import { getReactionSummaries } from '@/lib/vault-reactions';
 import { PublicVaultReveal } from '@/components/vault/PublicVaultReveal';
 import { PublicVaultContent } from '@/components/vault/PublicVaultContent';
 
@@ -45,6 +46,11 @@ export default async function PassScanPage({ params }: { params: { token: string
     }
   }
 
+  // Los totales se muestran, pero desde un escaneo NO se puede reaccionar:
+  // esta pantalla trata a quien llega como un desconocido por diseño (arriba,
+  // isQrScan), y dejarlo opinar contradiría esa misma postura.
+  const reactions = Object.fromEntries(await getReactionSummaries(view.vault.map((v) => v.id), null));
+
   const serial = deriveCollectorSerial(result.customerId).replace('LK-C-', '');
   const handle = profile.username || 'coleccionista';
 
@@ -57,6 +63,8 @@ export default async function PassScanPage({ params }: { params: { token: string
         bio={view.bio}
         followerCount={view.followerCount}
         vault={view.vault}
+        reactions={reactions}
+        canReact={false}
         isOwner={false} // un escaneo siempre es de un desconocido, por definición
         viewerLoggedIn={false} // no hay sesión de por medio en un escaneo anónimo
       />

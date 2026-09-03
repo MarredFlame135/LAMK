@@ -392,3 +392,32 @@ export const productDrafts = pgTable('product_drafts', {
   imageUrl: text('image_url').notNull().default(''),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// Reacciones a las piezas de una bóveda PÚBLICA (2026-09-02, pedido de Dante:
+// "un botón de like y dislike por cada prenda o tenis de su colección").
+//
+// Cuatro decisiones que son de seguridad, no de producto:
+//
+//  1. La llave primaria es (vault_item_id, customer_id): UNA reacción por
+//     persona por pieza. Sin eso, el mismo visitante puede pulsar mil veces y
+//     el contador deja de significar nada.
+//  2. Exige sesión de cliente — no hay reacción anónima. Es la diferencia
+//     entre un contador y una máquina de brigading.
+//  3. NUNCA se expone quién reaccionó, solo el total. Un "no me gusta" con
+//     nombre y apellido sobre las pertenencias de alguien es acoso con otro
+//     nombre; el número agregado no lo es.
+//  4. Cuelga de `vault_items`, no de `product_id`: se reacciona al PAR
+//     CONCRETO que esta persona tiene en su bóveda, no al modelo en abstracto
+//     (para eso ya está la wishlist). Al borrar la cuenta, sus piezas se van y
+//     estas filas dejan de tener a qué apuntar — ver account-deletion.ts.
+export const vaultItemReactions = pgTable('vault_item_reactions', {
+  vaultItemId: text('vault_item_id').notNull(),
+  customerId: text('customer_id').notNull(), // quien reacciona
+  // 1 = me gusta, -1 = no me gusta. Entero y no booleano para poder sumar el
+  // saldo en SQL sin dos contadores separados.
+  value: integer('value').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.vaultItemId, table.customerId] }),
+  itemIdx: index('vault_item_reactions_item_idx').on(table.vaultItemId),
+}));
