@@ -50,14 +50,33 @@ function useHoverPoseCycle() {
 // ahí. Ese es el gesto, y por eso el movimiento se justifica (regla de
 // CLAUDE.md: una animación nueva tiene que decir algo).
 //
-// Cómo está hecho, y por qué NO con AnimatedText (el brillo diagonal que
-// usaba el titular anterior): AnimatedText pinta un gradiente sobre el
-// contenedor y lo recorta con `background-clip: text`. Cualquier descendiente
-// con `transform` —que es exactamente lo que necesita cada letra para
-// entrar— crea su propio contexto de composición y deja de recibir ese fondo
-// recortado: las letras animadas saldrían invisibles. Así que el degradado
-// crimson→oro de la última palabra se hace con un color SÓLIDO distinto por
-// letra, interpolado a mano. Se ve igual y no pelea con el movimiento.
+// **Segunda versión (misma tarde).** La primera giraba cada letra 85° en X, la
+// escalaba a 1.3 y remataba con un destello blanco cruzando el titular. El
+// cliente lo vio y dijo que se podía "hacer más profesional", y tenía razón:
+// mucho recorrido por letra + un barrido de brillo es la firma de una
+// animación de plantilla. Lo que se cambió, y por qué:
+//
+//   - **La letra solo SUBE, detrás de una máscara.** Cada palabra vive dentro
+//     de un `overflow-hidden`; lo que revela la letra es el borde de esa
+//     máscara, no un cambio de opacidad ni un giro. Es el gesto de una placa
+//     que se levanta — el recurso de las portadas editoriales — y se ve caro
+//     justo porque el movimiento es corto.
+//   - **Sin desvanecido.** Con máscara, la opacidad sobra: una letra que
+//     además se transparenta se ve borrosa a mitad de camino, no revelada.
+//   - **El destello se fue.** En su lugar, una línea fina crimson→oro que se
+//     traza bajo el titular cuando aterriza la última letra. Dice lo mismo
+//     ("ya terminó de escribirse") sin encender la pantalla.
+//   - **Cadencia más rápida y arranque más suave**: 0.028s entre letras en vez
+//     de 0.045 y un recorrido más largo por letra. La palabra se lee como una
+//     unidad que sube, no como letras contándose una por una.
+//
+// Y por qué NO se usa AnimatedText (el brillo diagonal que traía el titular
+// original): pinta un gradiente en el contenedor y lo recorta con
+// `background-clip: text`. Cualquier descendiente con `transform` —que es
+// exactamente lo que necesita cada letra— crea su propio contexto de
+// composición y deja de recibir ese fondo recortado: las letras animadas
+// saldrían invisibles. El degradado crimson→oro de la última palabra se hace
+// con un color SÓLIDO distinto por letra, interpolado a mano.
 
 const CRIMSON = [255, 30, 66];
 const GOLD = [197, 160, 89];
@@ -70,14 +89,12 @@ function rampColor(i: number, total: number): string {
   return `rgb(${ch.join(',')})`;
 }
 
-// `transformPerspective` y no un `perspective` en el contenedor: la propiedad
-// CSS `perspective` solo afecta a los hijos DIRECTOS, y aquí las letras
-// cuelgan de un <span> de palabra (necesario para que una palabra nunca se
-// parta a mitad de renglón). Sin esto el rotateX se aplica sin proyección y la
-// letra se ve aplastada en vez de girando hacia el frente.
+// 115% y no 100%: con 100% el borde inferior de la letra queda justo en el
+// borde de la máscara y en pantallas con subpíxeles se alcanza a ver una raya
+// del glifo antes de tiempo.
 const LETTER = {
-  hidden: { opacity: 0, y: '0.6em', rotateX: -85, scale: 1.3, transformPerspective: 800 },
-  show: { opacity: 1, y: 0, rotateX: 0, scale: 1, transformPerspective: 800 },
+  hidden: { y: '115%' },
+  show: { y: '0%' },
 };
 
 function AnimatedHeadline({ text }: { text: string }) {
@@ -86,61 +103,68 @@ function AnimatedHeadline({ text }: { text: string }) {
   // Mismo patrón obligatorio del repo (ver AnatomySequence): los EFECTOS
   // pueden leer la media query, el JSX nunca — el servidor no puede saberla y
   // ramificar el marcado con ella tumba la hidratación de toda la página.
-  // Aquí el marcado es idéntico en los dos casos; lo único que cambia con
-  // `reducedUI` es la duración (0) y el destello final, que se monta un frame
-  // después de montar.
+  // Aquí el marcado es IDÉNTICO en los dos casos: lo único que cambia con
+  // `reducedUI` son las duraciones, así que ni siquiera hay marcado que
+  // pueda desalinearse.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const reducedUI = mounted && Boolean(prefersReducedMotion);
 
   const words = text.split(' ').filter(Boolean);
   const lastIndex = words.length - 1;
+  const letterCount = text.replace(/ /g, '').length;
+
+  const stagger = reducedUI ? 0 : 0.028;
+  const lead = reducedUI ? 0 : 0.12;
+  // La línea entra cuando ya aterrizó la última letra, no antes: si se cruzan,
+  // se leen como dos animaciones sueltas en vez de una que termina.
+  const ruleDelay = lead + letterCount * stagger + (reducedUI ? 0 : 0.5);
 
   return (
     <motion.h1
       aria-label={text}
       initial="hidden"
       animate="show"
-      transition={{ staggerChildren: reducedUI ? 0 : 0.045, delayChildren: reducedUI ? 0 : 0.15 }}
+      transition={{ staggerChildren: stagger, delayChildren: lead }}
       className="relative font-display text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95]"
     >
-      {words.map((word, w) => (
-        <span key={`${word}-${w}`} className="inline-block whitespace-nowrap" aria-hidden>
-          {[...word].map((char, c) => (
-            <motion.span
-              key={`${char}-${c}`}
-              variants={LETTER}
-              transition={reducedUI ? { duration: 0 } : { duration: 0.75, ease: EASE_LUXURY }}
-              className="inline-block will-change-transform"
-              style={w === lastIndex ? { color: rampColor(c, word.length) } : undefined}
-            >
-              {char}
-            </motion.span>
-          ))}
-          {/* El espacio va FUERA de la palabra: un espacio dentro del
-              inline-block se colapsaría y las palabras quedarían pegadas. */}
-          {w < lastIndex && <span className="inline-block w-[0.28em]" />}
-        </span>
-      ))}
+      {/* `flex` y no texto corrido: cada palabra necesita ser un bloque propio
+          para poder recortarla, y un `inline-block` con `overflow-hidden`
+          cambia su alineación con la línea base (deja de alinearse por el
+          texto de adentro y pasa a alinearse por su borde inferior), lo que
+          desplaza el renglón entero. En flex ese problema no existe. */}
+      <span className="flex flex-wrap gap-x-[0.26em]" aria-hidden>
+        {words.map((word, w) => (
+          // El padding vertical con margen negativo que lo cancela le da a la
+          // máscara un poco de aire por arriba: sin él, `leading-[0.95]` deja
+          // el borde de la máscara justo en el trazo de las mayúsculas y les
+          // recorta la punta cuando ya están quietas.
+          <span key={`${word}-${w}`} className="block overflow-hidden py-[0.1em] -my-[0.1em]">
+            {[...word].map((char, c) => (
+              <motion.span
+                key={`${char}-${c}`}
+                variants={LETTER}
+                transition={reducedUI ? { duration: 0 } : { duration: 0.95, ease: EASE_LUXURY }}
+                className="inline-block will-change-transform"
+                style={w === lastIndex ? { color: rampColor(c, word.length) } : undefined}
+              >
+                {char}
+              </motion.span>
+            ))}
+          </span>
+        ))}
+      </span>
 
-      {/* Destello que cruza el titular una sola vez, justo después de que
-          aterriza la última letra. `mix-blend-overlay` para que ilumine las
-          letras sin taparlas, y `pointer-events-none` porque encima del
-          titular está el resto del hero. */}
-      {/* El recorte va en este envoltorio y NO en el <h1>: con overflow-hidden
-          en el titular, la entrada de las letras (que empiezan 0.6em abajo y a
-          escala 1.3) se vería cortada por arriba y por abajo. */}
-      {!reducedUI && (
-        <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-          <motion.span
-            className="absolute inset-y-0 -left-1/3 w-1/3 mix-blend-overlay"
-            style={{ background: 'linear-gradient(100deg, transparent, rgba(255,255,255,0.55), transparent)' }}
-            initial={{ x: 0, opacity: 0 }}
-            animate={{ x: ['0%', '400%'], opacity: [0, 1, 1, 0] }}
-            transition={{ duration: 1.1, delay: 0.15 + text.replace(/ /g, '').length * 0.045, ease: 'easeOut' }}
-          />
-        </span>
-      )}
+      {/* Remate: una línea que se traza de izquierda a derecha, del ancho del
+          titular. Reemplaza al destello blanco que cruzaba la primera versión. */}
+      <motion.span
+        aria-hidden
+        className="mt-5 block h-px w-full origin-left"
+        style={{ background: `linear-gradient(90deg, rgb(${CRIMSON}) 0%, rgb(${GOLD}) 55%, transparent 100%)` }}
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={reducedUI ? { duration: 0 } : { duration: 1, delay: ruleDelay, ease: EASE_LUXURY }}
+      />
     </motion.h1>
   );
 }

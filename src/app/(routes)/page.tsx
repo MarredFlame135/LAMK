@@ -14,7 +14,6 @@ import React from 'react';
 import { HeroSection } from '@/components/home/HeroSection';
 import { HypeMarquee } from '@/components/home/HypeMarquee';
 import { AnatomySequence } from '@/components/home/AnatomySequence';
-import { GrailSpotlight } from '@/components/home/GrailSpotlight';
 import { VolumetricShowcase } from '@/components/home/VolumetricShowcase';
 import { DropsCoverflow } from '@/components/home/DropsCoverflow';
 import { HypeCarousel } from '@/components/home/HypeCarousel';
@@ -25,7 +24,6 @@ import { IGLiveMonitor } from '@/components/home/IGLiveMonitor';
 import { ScrollMacroBackground } from '@/components/home/ScrollMacroBackground';
 import { TenisinWidgetLoader } from '@/components/ai-concierge/TenisinWidgetLoader';
 import { getCatalogLive } from '@/lib/catalog-source';
-import { pickGrail } from '@/lib/showcase-selection';
 
 // Fix (hallazgo #3 de la auditoría de Fase 3): sin esto, Next trata la
 // página como 100% estática (generada solo en build) — el stock real y el
@@ -46,10 +44,6 @@ export default async function HomePage() {
   // hidratación. Con `revalidate = 60` el valor se refresca solo.
   const daySeed = Math.floor(Date.now() / 86400000);
 
-  // La pieza más cara del catálogo vivo. Se elige AQUÍ, en el servidor: la
-  // sección recibe una sola pieza como prop en vez de las 265 del catálogo.
-  const grail = pickGrail(products);
-
   return (
     <div className="bg-background text-foreground min-h-screen">
       <HeroSection />
@@ -61,10 +55,6 @@ export default async function HomePage() {
           es donde el visitante ya vio producto y todavía no vio por qué
           debería confiar en que es legítimo. */}
       <AnatomySequence />
-
-      {/* Justo después del despiece: primero por qué se puede confiar en una
-          pieza, y luego la pieza en la que más cuesta confiar. */}
-      <GrailSpotlight product={grail} />
 
       <DropsCoverflow products={products} daySeed={daySeed} />
       <HypeCarousel products={products} daySeed={daySeed} />

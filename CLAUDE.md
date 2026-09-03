@@ -1069,7 +1069,7 @@ categoría `COLLECTIBLES` no existía en la práctica. También faltaba `PLAYERA
 Para el Closet Digital no cambia nada: `ZONE_BY_CATEGORY` manda `ACCESSORIES` y
 `COLLECTIBLES` a la misma vitrina.
 
-### El hero: una sola línea, letra por letra
+### El hero: una sola línea, letra por letra (y una segunda versión el mismo día)
 
 Decía "CONSTRUYES UN CLUB / DE COLECCIONISTAS. / Bienvenido al Club LAMK." — la
 tercera línea ya decía lo mismo que las dos primeras, solo que mejor. Se quedó
@@ -1079,59 +1079,93 @@ Se justifica por lo que dice (regla del repo): la frase *es* una bienvenida, y
 una bienvenida que se escribe delante de ti se lee como que alguien te está
 admitiendo, no como un letrero que ya estaba ahí.
 
+**La primera versión no pasó la revisión del cliente** —"se pueden hacer más
+profesionales"— y el diagnóstico es reutilizable, así que queda escrito:
+
+| v1 (rechazada) | v2 (la que está) |
+|---|---|
+| Cada letra giraba 85° en X y escalaba de 1.3 a 1 | La letra solo SUBE, detrás de una máscara (`overflow-hidden` por palabra) |
+| Desvanecido de opacidad además del movimiento | Sin opacidad: lo que revela la letra es el borde de la máscara |
+| Destello blanco cruzando el titular (`mix-blend-overlay`) | Una línea fina crimson→oro que se traza bajo el titular al aterrizar la última letra |
+| 0.045 s entre letras | 0.028 s, recorrido más largo por letra |
+
+> **La lección, que aplica a cualquier animación de texto de aquí en adelante:
+> mucho recorrido por letra es lo que delata a una animación de plantilla.** Un
+> giro 3D por carácter más un barrido de brillo es literalmente el preset que
+> traen las librerías de "text effects"; el recorrido corto detrás de una
+> máscara es el recurso de las portadas editoriales, y se ve caro justo porque
+> el gesto es discreto. Cuando algo "se ve genérico", el arreglo casi nunca es
+> agregar otro efecto: es quitarle amplitud al que ya está.
+
 > **Por qué NO se usó `AnimatedText`** (el brillo diagonal que traía el titular
-> anterior): pinta un gradiente en el contenedor y lo recorta con
+> original): pinta un gradiente en el contenedor y lo recorta con
 > `background-clip: text`. Cualquier descendiente con `transform` —que es
-> exactamente lo que necesita cada letra para entrar— crea su propio contexto
-> de composición y deja de recibir ese fondo recortado: **las letras animadas
+> exactamente lo que necesita cada letra— crea su propio contexto de
+> composición y deja de recibir ese fondo recortado: **las letras animadas
 > saldrían invisibles**. El degradado crimson→oro de la última palabra se hace
 > con un color SÓLIDO distinto por letra, interpolado a mano.
 
-> **Y `transformPerspective` en la letra, no `perspective` en el contenedor:**
-> la propiedad CSS `perspective` solo afecta a los hijos DIRECTOS, y las letras
-> cuelgan de un `span` de palabra (necesario para que una palabra no se parta a
-> mitad de renglón). Sin esto el `rotateX` se ve aplastado, no girando.
+> **Y el contenedor de palabras es `flex`, no texto corrido.** Un
+> `inline-block` con `overflow-hidden` deja de alinearse por el texto de
+> adentro y pasa a alinearse por su borde inferior, lo que desplaza el renglón
+> entero. En flex ese problema no existe. La máscara además lleva
+> `py-[0.1em] -my-[0.1em]`: con `leading-[0.95]` el borde queda justo en el
+> trazo de las mayúsculas y les recorta la punta cuando ya están quietas.
 
-El destello final va dentro de un envoltorio con `overflow-hidden` propio y no
-en el `h1`: recortando el titular, la entrada de las letras (que empiezan
-0.6em abajo y a escala 1.3) se vería cortada.
+### El despiece con los Jordan 4 x Off-White — PENDIENTE, bloqueado por créditos
 
-### `GrailSpotlight` — la pieza más cara, de verdad
+Lo que el cliente quiere es explícito: **la secuencia de despiece del home debe
+ser de los Jordan 4 x Off-White 'Sail'** (la pieza más cara del catálogo,
+$25,000), fotograma a fotograma, con el mismo pipeline de Higgsfield que
+produjo la actual. No una vitrina que los enseñe.
 
-El cliente pidió cambiar la animación del despiece "por el par más caro". Los
-96 fotogramas del despiece son de un tenis genérico ya renderizado y no se
-pueden regenerar por producto (el catálogo son 265 piezas vivas y cuál es la
-más cara cambia sola). Colgarle el cartel de "la pieza más cara" a la foto de
-OTRA pieza es justo lo que este repo se prohíbe. Así que el despiece se queda
-diciendo lo que dice (autenticidad) y el grail es **sección propia con la pieza
-REAL**, justo después: hoy `TENIS JORDAN 4 x OFF-WHITE 'SAIL'`, $25,000.
+> **Se construyó una sección `GrailSpotlight` que enseñaba ese par en un marco,
+> y el cliente la rechazó.** Queda anotado como error de interpretación, no como
+> deuda: "cambia la animación por el par más caro" era literal. La sección se
+> borró (`src/components/home/GrailSpotlight.tsx`, junto con `pickGrail()` y sus
+> pruebas). Si vuelve a hacer falta, está en el commit `1f17a85`.
 
-`pickGrail()` (en `lib/showcase-selection.ts`, con la curaduría del resto):
+**Estado real: no se pudo generar.** La cuenta de Higgsfield tiene **0.26
+créditos** y el pipeline necesita ~**10.75**:
 
-- **Compara precios MÁXIMOS de variante**, no mínimos. El resto del sitio usa
-  el mínimo (es el "desde $X" del comprador); aquí la pregunta es cuál es la
-  pieza más cara que existe, y eso lo define su variante más cara.
-- **Ignora lo agotado.** Coronar algo que no se puede comprar manda a una ficha
-  muerta.
-- **El empate lo rompe el handle, no el orden del arreglo.** Hay dos relojes
-  Laarvee de $16,000 exactos: sin esto, el orden en que Shopify devolviera los
-  productos decidiría cuál sale y la home cambiaría de grail sola.
+| Paso | Modelo | Costo |
+|---|---|---|
+| Imagen de despiece | `nano_banana_pro` | 2 créditos |
+| Video armado→despiezado (5 s) | `kling3_0` | 8.75 créditos |
 
-> **La técnica del nicho iluminado NO sirvió aquí, y se descubrió en el
-> navegador, no leyendo el código.** El nicho claro (que usan la vitrina de la
-> home y el Closet Digital) da por hecho que todas las fotos vienen sobre gris
-> de estudio. La del grail actual está fotografiada **sobre fondo oscuro**: en
-> la banda clara salía una mancha negra con un aro de luz alrededor. Y como el
-> grail lo elige el catálogo vivo, no se puede diseñar para el fondo de una
-> foto concreta.
->
-> La salida que funciona con las dos es el **ENCUADRE**: un marco de canto
-> dorado declara "esto es una fotografía", y el fondo del cuadro —claro u
-> oscuro— deja de leerse como un recorte mal hecho. Precio y marca van en una
-> cartela FUERA de la foto, para que su contraste no dependa de qué foto toque.
-> El cuadro es **cuadrado** porque las fotos de Shopify son 3000×3000: con
-> cualquier otra proporción, `object-contain` deja franjas del marco a los
-> lados, invisibles con una foto oscura y muy visibles con las demás.
+Todo lo demás ya está listo para que sea mecánico en cuanto haya saldo:
+
+1. **La foto de origen ya está subida a Higgsfield**, importada del CDN de
+   Shopify: `media_id = a9f396b8-1358-400a-ba26-299e6fd5089c`
+   (`tenis-jordan-4-x-off-white-sail`, primera imagen, 3000×3000).
+2. **Imagen de despiece** — `generate_image` con `nano_banana_pro`,
+   `aspect_ratio: "16:9"`, esa media con rol `image`, y el prompt: vista de
+   despiece técnico de ESE tenis, capas separadas en el aire de arriba abajo
+   (agujetas, lengüeta, corte, plantilla, entresuela, suela de goma
+   translúcida), conservando colorway y materiales de la referencia, fondo
+   negro sin costura, luz cenital de estudio, sin texto.
+3. **Video** — `generate_video` con `kling3_0`, 5 s, 16:9, la foto del producto
+   como primer fotograma y la imagen del paso 2 como `end_image`, describiendo
+   la separación progresiva de las capas. Es la misma receta con la que se hizo
+   el despiece actual (`nano_banana_pro` + `kling3_0`).
+4. **Fotogramas** — guardar el .mp4 en `docs/assets-source/anatomy-source.mp4`
+   (ignorado por git) y correr:
+   `FFMPEG_BIN=/c/Users/DAN/node_modules/@remotion/compositor-win32-x64-msvc/ffmpeg.exe SHARP_PATH=C:/Users/DAN/ai-video-studio/node_modules/sharp ./scripts/anatomy-frames.sh docs/assets-source/anatomy-source.mp4`
+   (ffmpeg no está en el PATH de esta máquina; ese binario viene de Remotion y
+   sirve. `sharp` no es dependencia de este repo a propósito — ver el propio
+   script.)
+5. **Revisar el recorte móvil.** `anatomy-frames.sh` recorta `1200:1080:288:0`
+   sobre el 1920×1080, y esos números se midieron contra el despiece ACTUAL
+   (la pieza más a la izquierda y la más a la derecha a lo largo de la
+   secuencia). Con otro tenis hay que volver a mirarlos, o el móvil cortará
+   agujetas o talón.
+6. `frameCount` en `src/lib/anatomy-sequence.ts` solo cambia si el video dura
+   distinto y se decide otro número de cuadros.
+
+**Mientras tanto el despiece actual sigue en su lugar**, con el tenis genérico.
+No se sustituyó por nada ni se dejó un hueco: la sección dice lo que siempre
+dijo (autenticidad), y lo único que falta es que el tenis del video sea el
+correcto.
 
 ### Rangos de XP: dos requisitos, no uno
 
@@ -1184,9 +1218,17 @@ tramo de precio del catálogo: un solo número en todo el sitio.
 
 ### Estado
 
-`npm run test`: **152 pruebas en 17 archivos** (antes 137 en 15). Nuevas:
-`product-brand.test.ts` (4), `discovery.test.ts` (4), `pickGrail` en
-`showcase-selection.test.ts` (4) y 3 de regresión en `gamification.test.ts`.
+`npm run test`: **148 pruebas en 17 archivos** (antes 137 en 15). Nuevas:
+`product-brand.test.ts` (4), `discovery.test.ts` (4) y 3 de regresión en
+`gamification.test.ts`. (Las 4 de `pickGrail` se fueron con la sección que el
+cliente rechazó — ver arriba.)
+
+### Pendiente: créditos de Higgsfield
+
+El despiece con los Jordan 4 x Off-White no se pudo generar: la cuenta tiene
+**0.26 créditos** y el pipeline necesita ~**10.75** (2 la imagen, 8.75 el
+video). Todo lo demás ya está preparado — ver la sección del despiece arriba,
+con el `media_id` de la foto ya subida y los cuatro pasos exactos.
 
 ### Pendiente: pausar la tienda anterior (decisión de Dante, no de código)
 
