@@ -30,9 +30,21 @@
 // arrastre, y el interruptor de `prefers-reduced-motion`. El componente pasó de
 // 264 líneas a poco más de 130 sin perder nada de lo que se veía.
 //
-// Lo que queda es scroll nativo: se arrastra, se hace con la rueda, se recorre
-// con el teclado, y el navegador engancha en cada pieza (`scroll-snap`). La
-// profundidad se recalcula al scrollear.
+// Lo que queda es scroll nativo con enganche (`scroll-snap`) MÁS dos flechas.
+//
+// Las flechas no son decoración: sin ellas, en una computadora con ratón la
+// tira era IMPOSIBLE de mover. En móvil se arrastra con el dedo, y por eso ahí
+// siempre funcionó; pero en escritorio la barra de scroll está oculta por
+// estética, la rueda vertical hace scroll de la PÁGINA (no de la tira), y solo
+// quedaban dos gestos que casi nadie conoce: shift+rueda, o el deslizamiento
+// horizontal de un trackpad. Quien usa ratón se quedaba sin nada.
+//
+// Es el costo escondido de ocultar una barra de scroll: la barra no solo se ve,
+// también es el control. Al quitarla hay que reponer el control por otro lado.
+//
+// Las flechas avanzan de pieza en pieza (no de página en página) porque el
+// enganche es `snap-center`: así cada pulsación deja exactamente una pieza
+// centrada, de frente y a plena luz.
 //
 // --- Rendimiento ---
 //
@@ -68,6 +80,31 @@ export function DepthStrip({ children, className = '' }: DepthStripProps) {
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Si se puede avanzar hacia cada lado. Manda deshabilitar la flecha del
+  // extremo en vez de esconderla: un botón que desaparece mueve el resto de la
+  // fila y deja al dedo o al cursor apuntando a otra cosa.
+  const [atStart, setAtStart] = useState(true);
+  const [atEnd, setAtEnd] = useState(false);
+
+  const syncEdges = useCallback((scroller: HTMLDivElement) => {
+    const max = scroller.scrollWidth - scroller.clientWidth;
+    // 2px de margen: los navegadores no siempre llegan al entero exacto al
+    // final de un scroll suave, y sin holgura la flecha derecha se quedaba
+    // habilitada para siempre en el extremo.
+    setAtStart(scroller.scrollLeft <= 2);
+    setAtEnd(scroller.scrollLeft >= max - 2);
+  }, []);
+
+  // Avanza UNA pieza: el ancho del primer elemento más el hueco entre piezas.
+  const step = useCallback((dir: 1 | -1) => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+    const first = scroller.querySelector<HTMLElement>('[data-depth-item]');
+    const gap = parseFloat(getComputedStyle(scroller).columnGap || '0') || 24;
+    const amount = (first?.offsetWidth ?? scroller.clientWidth * 0.8) + gap;
+    scroller.scrollBy({ left: dir * amount, behavior: 'smooth' });
+  }, []);
 
   // El JSX nunca lee la media query cruda (patrón obligatorio del repo): en el
   // primer render del cliente esto vale false, igual que en el servidor.
@@ -113,24 +150,71 @@ export function DepthStrip({ children, className = '' }: DepthStripProps) {
         el.style.filter = '';
         el.style.zIndex = '';
       });
-      return;
+      // Sin profundidad, pero las flechas siguen haciendo falta: con
+      // movimiento reducido la tira es más plana, no menos navegable.
+      syncEdges(scroller);
+      const onEdges = () => syncEdges(scroller);
+      scroller.addEventListener('scroll', onEdges, { passive: true });
+      window.addEventListener('resize', onEdges);
+      return () => {
+        scroller.removeEventListener('scroll', onEdges);
+        window.removeEventListener('resize', onEdges);
+      };
     }
 
     applyDepth(scroller);
-    const onScroll = () => applyDepth(scroller);
+    syncEdges(scroller);
+    const onScroll = () => {
+      applyDepth(scroller);
+      syncEdges(scroller);
+    };
     scroller.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     return () => {
       scroller.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, [applyDepth, reducedUI]);
+  }, [applyDepth, syncEdges, reducedUI]);
+
+  const arrow =
+    'absolute top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full ' +
+    'border border-border bg-background/85 text-foreground shadow-lg backdrop-blur transition ' +
+    'hover:border-[#C5A059]/60 disabled:pointer-events-none disabled:opacity-0 ' +
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF1E42] sm:flex';
 
   return (
+    <div className="relative">
+      {/* Solo desde `sm`: en un teléfono se arrastra con el dedo y dos botones
+          encima de las piezas estorbarían más de lo que ayudan. */}
+      <button
+        type="button"
+        onClick={() => step(-1)}
+        disabled={atStart}
+        aria-label="Ver piezas anteriores"
+        className={`${arrow} left-1`}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+          <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => step(1)}
+        disabled={atEnd}
+        aria-label="Ver más piezas"
+        className={`${arrow} right-1`}
+      >
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+          <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
     <div
       ref={scrollerRef}
-      // `overflow-x-auto` + `snap-x` y no un carrusel con botones: se arrastra,
-      // se hace con la rueda y se recorre con el teclado, gratis y nativo.
+      // Scroll nativo: se arrastra con el dedo, se recorre con el teclado y
+      // acepta shift+rueda o el gesto horizontal del trackpad. Las flechas de
+      // arriba son el control para quien usa ratón — ver la cabecera.
       //
       // El enganche (`snap`) vuelve aquí: se había quitado porque peleaba con la
       // deriva automática —el navegador corregía hacia el punto de anclaje
@@ -148,6 +232,7 @@ export function DepthStrip({ children, className = '' }: DepthStripProps) {
           </div>
         )
       )}
+    </div>
     </div>
   );
 }

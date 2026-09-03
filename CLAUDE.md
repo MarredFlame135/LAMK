@@ -797,3 +797,38 @@ automático y se conservó la profundidad 3D, que era lo que le gustaba.
 > una línea, costaba ciento diez — casi todas dedicadas a compensar el hecho de
 > que la página se mueva sin que nadie se lo pida. La versión manual es más
 > corta, más accesible y es la que el cliente quería.
+
+### La tira 3D no se podía mover en escritorio (reportado y corregido el mismo día)
+
+"En el teléfono sí funcionan los carruseles, pero no en PC."
+
+Cierto, y el fallo era enteramente de la ronda anterior. `DepthStrip` se quedó
+**sin ningún control**:
+
+- La barra de scroll está oculta por estética
+  (`[scrollbar-width:none]` + `[&::-webkit-scrollbar]:hidden`).
+- Al quitar el autoplay se fue también el botón de pausa, que era lo único
+  visible del componente.
+- La rueda vertical hace scroll de la PÁGINA, no de la tira.
+
+En móvil siempre funcionó porque se arrastra con el dedo. En escritorio solo
+quedaban dos gestos que casi nadie conoce —shift+rueda, o el deslizamiento
+horizontal de un trackpad— así que quien usa ratón se quedaba sin nada.
+
+> **La lección, que aplica a cualquier contenedor con scroll oculto:** una barra
+> de scroll no solo se ve, **también es el control**. Al ocultarla hay que
+> reponer el control por otro lado, o el contenedor queda inmóvil para una parte
+> de los usuarios. Y no se nota probando en un teléfono.
+
+**Arreglo:** dos flechas circulares, visibles desde `sm` (en un teléfono se
+arrastra con el dedo y dos botones encima de las piezas estorbarían). Avanzan de
+UNA pieza, no de una página, porque el enganche es `snap-center` y así cada
+pulsación deja exactamente una pieza centrada y de frente. La flecha del extremo
+se **deshabilita**, no se esconde: un botón que desaparece mueve la fila y deja
+al cursor apuntando a otra cosa. Con `prefers-reduced-motion` la tira sigue
+plana pero las flechas siguen funcionando — menos movimiento no es menos
+navegable.
+
+`spotlight-carousel` **no tenía este problema**: sus pastillas de nombre son
+botones reales con `aria-current`, y clicar una cambia de pieza (verificado en
+navegador: 0 → 2). No se tocó.
