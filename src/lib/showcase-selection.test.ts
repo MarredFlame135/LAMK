@@ -5,7 +5,7 @@
 // con otro día podría salir bien por casualidad—, así que se fija aquí.
 
 import { describe, it, expect } from 'vitest';
-import { buildShowcaseSelection, MIN_HYPE_SAMPLE } from './showcase-selection';
+import { buildShowcaseSelection, MIN_HYPE_SAMPLE, pickGrail } from './showcase-selection';
 import { Product } from '@/types/product';
 
 function producto(
@@ -105,5 +105,35 @@ describe('buildShowcaseSelection', () => {
   it('si hay menos piezas que huecos, devuelve las que hay', () => {
     const pocas = [producto('a', 'SNEAKERS', 5), producto('b', 'APPAREL', 4)];
     expect(buildShowcaseSelection(pocas, 0, 6)).toHaveLength(2);
+  });
+});
+
+describe('pickGrail', () => {
+  const pieza = (handle: string, precios: number[], isSoldOut = false): Product =>
+    ({ handle, isSoldOut, variants: precios.map((price) => ({ price })) } as Product);
+
+  it('gana la pieza con la variante más cara, no la del precio "desde" más alto', () => {
+    // A arranca más caro ("desde $9,000") pero su tope es menor que el de B.
+    const a = pieza('a', [9000, 9500]);
+    const b = pieza('b', [3000, 16000]);
+    expect(pickGrail([a, b])!.handle).toBe('b');
+  });
+
+  it('ignora lo agotado — coronar algo que no se puede comprar manda a una ficha muerta', () => {
+    const agotado = pieza('caro-agotado', [25000], true);
+    const disponible = pieza('barato-disponible', [4000]);
+    expect(pickGrail([agotado, disponible])!.handle).toBe('barato-disponible');
+  });
+
+  it('el empate NO lo decide el orden en que Shopify devolvió los productos', () => {
+    // Caso real: dos relojes Laarvee de $16,000 exactos en el catálogo.
+    const uno = pieza('laarvee-black', [16000]);
+    const dos = pieza('laarvee-green', [16000]);
+    expect(pickGrail([uno, dos])!.handle).toBe(pickGrail([dos, uno])!.handle);
+  });
+
+  it('sin piezas disponibles devuelve null, y la sección no se muestra', () => {
+    expect(pickGrail([])).toBeNull();
+    expect(pickGrail([pieza('x', [5000], true)])).toBeNull();
   });
 });

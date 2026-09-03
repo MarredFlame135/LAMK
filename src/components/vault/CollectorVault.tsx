@@ -44,7 +44,7 @@ interface CollectorVaultProps {
 }
 
 export function CollectorVault({ user, username, wishlist, isOwnProfile = true }: CollectorVaultProps) {
-  const tierInfo = calculateGamificationTier(user.xp);
+  const tierInfo = calculateGamificationTier(user.xp, user.collection.length);
   const collectionIndex = computeCollectionIndex({ totalSpentMxn: user.totalSpent, collection: user.collection });
   const { t } = useApp();
 

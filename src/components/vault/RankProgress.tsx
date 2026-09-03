@@ -34,8 +34,13 @@ export function RankProgress({ tierInfo }: RankProgressProps) {
     <div className="rounded-lg border border-border/80 bg-muted p-4 sm:p-5 space-y-4">
       <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.15em]">
         <span className="text-muted-foreground">// Progreso de Rango</span>
-        <span className="font-bold" style={{ color: GOLD }}>
-          {fillPercent.toFixed(0)}%
+        <span className="flex items-center gap-3">
+          <span className="text-muted-foreground">
+            {tierInfo.currentXp.toLocaleString()} XP · {tierInfo.currentPieces} pieza{tierInfo.currentPieces === 1 ? '' : 's'}
+          </span>
+          <span className="font-bold" style={{ color: GOLD }}>
+            {fillPercent.toFixed(0)}%
+          </span>
         </span>
       </div>
 
@@ -104,15 +109,50 @@ export function RankProgress({ tierInfo }: RankProgressProps) {
           Rango máximo alcanzado — eres LEGEND.
         </p>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
+          {/* Los DOS requisitos, no solo el XP. Desde el recálculo de rangos
+              (2026-09-03) subir de nivel pide XP y un mínimo de piezas: si aquí
+              solo se dijera cuánto XP falta, alguien con el XP cumplido vería
+              "0 XP para subir" y no subiría, sin ninguna explicación. */}
           <p className="font-mono text-[11px] text-foreground">
-            <span className="font-bold">{tierInfo.xpRemaining.toLocaleString()} XP</span>{' '}
-            <span className="text-muted-foreground font-normal">para subir a</span>{' '}
+            <span className="text-muted-foreground font-normal">Para subir a</span>{' '}
             <span className="font-bold" style={{ color: CRIMSON }}>{tierInfo.nextTier}</span>
           </p>
-          {nextPerk && <p className="text-[10px] text-muted-foreground">Desbloquea: {nextPerk}</p>}
+          <ul className="space-y-0.5">
+            <Requisito
+              cumplido={tierInfo.xpRemaining === 0}
+              texto={
+                tierInfo.xpRemaining === 0
+                  ? `${tierInfo.nextTierXp.toLocaleString()} XP — cumplido`
+                  : `Te faltan ${tierInfo.xpRemaining.toLocaleString()} XP (de ${tierInfo.nextTierXp.toLocaleString()})`
+              }
+            />
+            <Requisito
+              cumplido={tierInfo.piecesRemaining === 0}
+              texto={
+                tierInfo.piecesRemaining === 0
+                  ? `${tierInfo.nextTierPieces} piezas verificadas — cumplido`
+                  : `Te faltan ${tierInfo.piecesRemaining} pieza${tierInfo.piecesRemaining === 1 ? '' : 's'} (tienes ${tierInfo.currentPieces} de ${tierInfo.nextTierPieces})`
+              }
+            />
+          </ul>
+          {nextPerk && <p className="text-[10px] text-muted-foreground pt-0.5">Desbloquea: {nextPerk}</p>}
         </div>
       )}
     </div>
+  );
+}
+
+// Una línea de requisito, con una marca cuando ya está cumplido. El color no
+// es lo único que distingue cumplido de pendiente (el símbolo también), para
+// que se lea sin depender de percibir el matiz.
+function Requisito({ cumplido, texto }: { cumplido: boolean; texto: string }) {
+  return (
+    <li className="flex items-start gap-1.5 font-mono text-[10px] leading-relaxed">
+      <span aria-hidden style={cumplido ? { color: GOLD } : undefined} className={cumplido ? '' : 'text-muted-foreground'}>
+        {cumplido ? '✓' : '·'}
+      </span>
+      <span className={cumplido ? 'text-muted-foreground' : 'text-foreground'}>{texto}</span>
+    </li>
   );
 }

@@ -21,9 +21,21 @@ const PRODUCT_TYPE_TO_CATEGORY: Record<string, ProductCategory> = {
   CONFORT: 'SNEAKERS',
   RUNNING: 'SNEAKERS',
   ROPA: 'APPAREL',
+  PLAYERAS: 'APPAREL',
   ACCESORIOS: 'ACCESSORIES',
   JOYERÍA: 'JEWELRY',
   JOYERIA: 'JEWELRY',
+  // Fix (2026-09-03): faltaban, así que las 8 piezas reales de peluches y
+  // coleccionables caían en el default ACCESSORIES y NINGÚN producto del
+  // catálogo era nunca 'COLLECTIBLES'. Efecto: la pestaña COLLECTIBLES del
+  // catálogo devolvía cero SIEMPRE — el mismo bug que ya se había corregido
+  // en el menú de TENISIN, pero solo ahí (se parchó el llamador, no la tabla
+  // que los dos comparten).
+  //
+  // Para el Closet Digital no cambia nada: ZONE_BY_CATEGORY manda
+  // ACCESSORIES y COLLECTIBLES a la misma vitrina (ver lib/vault-zones.ts).
+  PELUCHES: 'COLLECTIBLES',
+  COLECCIONABLES: 'COLLECTIBLES',
 };
 
 // Default 'ACCESSORIES' (no 'SNEAKERS'): es la categoría más grande del

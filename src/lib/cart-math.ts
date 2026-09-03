@@ -15,7 +15,10 @@
 
 import { CartItem } from '@/types/cart';
 
-export const FREE_SHIPPING_THRESHOLD = 3000; // $3,000 MXN para envío gratis
+// Subido de 3,000 a 5,000 el 2026-09-03 por decisión del cliente. Es el mismo
+// corte que la pestaña UNDER $5K y el tramo de precio del catálogo (ver
+// lib/discovery.ts): un solo número en todo el sitio, no tres parecidos.
+export const FREE_SHIPPING_THRESHOLD = 5000; // $5,000 MXN para envío gratis
 export const SHIPPING_COST = 180;
 
 export interface CartTotals {

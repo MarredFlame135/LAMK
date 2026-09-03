@@ -87,3 +87,33 @@ export function buildShowcaseSelection(
 
   return Array.from(picked.values()).sort(byScore).slice(0, maxItems);
 }
+
+// La pieza MÁS CARA del catálogo vivo — el "grail" que se presenta en la home
+// (sección GrailSpotlight, 2026-09-03, pedido del cliente).
+//
+// Tres decisiones que no son obvias:
+//
+// 1. **Se comparan precios MÁXIMOS de variante, no mínimos.** El resto del
+//    sitio usa el mínimo (es el "desde $X" que ve el comprador), pero aquí la
+//    pregunta es cuál es la pieza más cara que existe en la tienda, y esa la
+//    define su variante más cara.
+// 2. **Solo entran piezas disponibles.** Coronar como "la pieza más cara" algo
+//    agotado manda a la gente a una ficha donde no puede comprar nada.
+// 3. **Empate resuelto por handle**, no por posición en el arreglo: con dos
+//    piezas de $16,000 (hay dos relojes Laarvee exactamente así en el catálogo
+//    real), el orden en que Shopify devuelva los productos decidiría cuál sale,
+//    y la home cambiaría de grail sin que nadie tocara nada.
+export function pickGrail(products: Product[]): Product | null {
+  const available = products.filter((p) => !p.isSoldOut && maxPrice(p) > 0);
+  if (available.length === 0) return null;
+  return available.reduce((best, p) => {
+    const d = maxPrice(p) - maxPrice(best);
+    if (d !== 0) return d > 0 ? p : best;
+    return p.handle < best.handle ? p : best;
+  });
+}
+
+export function maxPrice(product: Product): number {
+  const prices = product.variants.map((v) => v.price).filter((p) => p > 0);
+  return prices.length > 0 ? Math.max(...prices) : 0;
+}

@@ -11,15 +11,17 @@ export const TRANSLATIONS = {
     },
     hero: {
       badge: 'PLATAFORMA PWA NEXT-GEN',
-      // "NO VENDES TENIS." se retiró (2026-09-03, decisión del cliente): la
-      // primera línea de la página nombraba el producto que MENOS pesa en el
-      // catálogo real. De 265 piezas, 114 son accesorios y solo 75 son
-      // sneakers — el sitio presumía la categoría equivocada.
-      headline1: 'CONSTRUYES UN CLUB',
-      headline2: 'DE COLECCIONISTAS.',
-      headline3: 'Bienvenido al Club LAMK.',
-      subtitleLead: 'Bienvenido a',
-      subtitleTail: 'Sneakers, ropa, gorras, bolsos y joyería. Cada pieza que compras entra a tu Bóveda con número de serie, suma XP y desbloquea rangos y drops antes que a nadie.',
+      // El titular pasó de tres líneas a UNA (2026-09-03, decisión del
+      // cliente). Antes decía "CONSTRUYES UN CLUB / DE COLECCIONISTAS. /
+      // Bienvenido al Club LAMK." — la tercera línea ya decía lo mismo que
+      // las dos primeras, solo que mejor: corta, en segunda persona y con el
+      // nombre de la marca dentro. Se quedó esa y se fueron las otras dos.
+      //
+      // (Antes de esas tres estuvo "NO VENDES TENIS.", retirada porque
+      // nombraba la categoría que MENOS pesa en el catálogo real: de 265
+      // piezas, 114 son accesorios y solo 75 son sneakers.)
+      headline: 'BIENVENIDO AL CLUB LAMK',
+      subtitle: 'Sneakers, ropa, gorras, bolsos y joyería. Cada pieza que compras entra a tu Bóveda con número de serie, suma XP y desbloquea rangos y drops antes que a nadie.',
       ctaCatalog: 'VER CATÁLOGO EXCLUSIVO →',
     },
     anatomy: {
@@ -82,11 +84,8 @@ export const TRANSLATIONS = {
     },
     hero: {
       badge: 'NEXT-GEN PWA PLATFORM',
-      headline1: 'YOU BUILD A CLUB',
-      headline2: 'OF COLLECTORS.',
-      headline3: 'Welcome to Club LAMK.',
-      subtitleLead: 'Welcome to',
-      subtitleTail: 'Sneakers, apparel, caps, bags and jewelry. Every piece you buy enters your Vault with a serial number, earns XP, and unlocks ranks and drops before anyone else.',
+      headline: 'WELCOME TO CLUB LAMK',
+      subtitle: 'Sneakers, apparel, caps, bags and jewelry. Every piece you buy enters your Vault with a serial number, earns XP, and unlocks ranks and drops before anyone else.',
       ctaCatalog: 'SEE EXCLUSIVE CATALOG →',
     },
     anatomy: {

@@ -991,3 +991,220 @@ sistema y "Martínez" se vuelve "MartÃ­nez" en media base de clientes mexicana
 > construir. Es la generación de 265 páginas de producto pegándole a Neon en
 > paralelo desde una conexión doméstica; el build termina en 0 porque el código
 > degrada sin romperse. No aparece en el build de Vercel.
+
+## Catálogo por marcas y precio, hero de una línea, grail y rangos justos (2026-09-03, ronda 2)
+
+Ronda pedida por Dante a partir de comentarios del cliente. Seis cosas, y una
+pregunta de infraestructura que se responde al final.
+
+### El catálogo, "como la página anterior"
+
+La tienda anterior (`lookatmykicksmx.com`, el tema de Shopify) tenía un menú de
+**marcas** colgando de cada categoría: Jordan, Nike, Yeezy, Bape, Adidas,
+Supreme, SP5DER, Bearbrick, Pop Mart… Eso es lo que faltaba aquí.
+
+**`lib/product-brand.ts`** — la marca real de una pieza, por lista ordenada de
+patrones contra el título. **No sirve `guessBrandFromTitle()`** (el que ya
+existía en `lib/shopify/index.ts`): recorta la palabra de categoría y devuelve
+todo lo que queda antes de la primera comilla, así que para
+`TENIS JORDAN 4 x OFF-WHITE 'SAIL'` da `JORDAN 4 x OFF-WHITE`. Sirve para
+pintar una etiqueta en la ficha; para filtrar produciría 200 "marcas" de una
+pieza cada una. Se conservó tal cual para lo suyo.
+
+- **El orden de la lista es la regla, no la lista.** En una colaboración gana
+  la casa: `JORDAN 4 x OFF-WHITE` es Jordan, `FORUM x BAD BUNNY` es Adidas.
+  Por eso las casas de calzado van primero y los colaboradores (Bad Bunny,
+  Travis Scott, Báez x Shifu) al final. La prueba fija ese orden, que es lo
+  que se rompe cuando alguien agregue una marca nueva sin pensarlo.
+- **252 de 265 piezas reconocidas, en 54 marcas** (medido contra el catálogo
+  vivo). Las 13 restantes son gorras con título puramente descriptivo
+  (`GORRA 'CONCRETE JUNGLE'`): devuelven `null` y no salen bajo ninguna marca.
+  No se les inventa una.
+- **Las gorras mexicanas pesan.** 31 Hats (13), Barbas Hats (13), Dandy Hats
+  (7), Star Hats (6), Rude Awakenings (5)… Sin ellas, "filtrar por marca"
+  dejaría fuera a una de cada cuatro piezas de la tienda.
+
+**Cuatro filtros que cruzan**, en `CatalogGrid.tsx`: Categoría (taxonomía) ·
+Marca · Precio · Colección (las pestañas de descubrimiento).
+
+**Los conteos son facetados y eso NO es cosmético.** El número de cada pastilla
+se calcula contra el catálogo ya filtrado por los OTROS tres ejes. Sin eso,
+estando en "Gorras" la pastilla "Jordan" diría 27 y al pulsarla daría 0
+resultados: cada pastilla sería una posible vía muerta. Verificado en
+navegador: en Gorras el eje de marca pasa de 54 a 18 marcas y el de precio de 4
+tramos a 3, y los tramos siguen sumando exactamente el total (29+43+2 = 74).
+
+> Detalle que sí hay que recordar: **la opción ACTIVA se mantiene visible
+> aunque su conteo caiga a 0.** Si la pastilla encendida desaparece, la persona
+> se queda mirando un catálogo vacío sin ninguna pista de cuál de sus filtros
+> lo dejó así. Lo mismo con la marca seleccionada cuando está fuera de las 14
+> que se muestran antes de "Ver todas".
+
+**Rangos de precio** (`PRICE_BANDS` en `lib/discovery.ts`): hasta $2,500 ·
+$2,500–5,000 · $5,000–10,000 · $10,000+. Los cortes salen de la distribución
+real (mínimo $300, mediana $3,500, p75 $5,500, p90 $9,500, máximo $25,000), no
+de números redondos: así los cuatro tramos quedan poblados (60/114/64/27). Los
+tramos son **semiabiertos** —de min inclusive a max exclusive— y hay una prueba
+de que cada precio cae en exactamente uno. El bug de un filtro de precio no es
+una excepción: es una pieza contada dos veces y un total que deja de cuadrar.
+
+**Pestañas renombradas** a lo que pidió el cliente: `HOT RIGHT NOW` → **MOST
+HYPE**, `JUST DROPPED` → **MOST DROPPED**. Se conservan GRAILS, UNDER $5K,
+MEXICAN HEAT y COLLECTIBLES. **Los ids NO cambiaron**: son la clave con la que
+la analítica de Fase 5 ya tiene historia, y renombrarlos partiría la serie.
+
+### Bug de raíz: NINGÚN producto era nunca `COLLECTIBLES`
+
+Al revisar la pestaña se descubrió que devolvía cero **siempre**.
+`PRODUCT_TYPE_TO_CATEGORY` (`lib/product-category.ts`) no tenía `PELUCHES` ni
+`COLECCIONABLES`, así que esas 8 piezas caían en el default `ACCESSORIES` y la
+categoría `COLLECTIBLES` no existía en la práctica. También faltaba `PLAYERAS`
+(caía en accesorios en vez de ropa).
+
+> **Esto ya se había "corregido" el 2026-09-03 por la mañana**, pero solo en el
+> menú de TENISIN: se le quitó el botón PELUCHES al llamador en vez de arreglar
+> la tabla que los dos comparten. La misma causa seguía viva en el catálogo.
+> Cuando un botón "no encuentra nada", revisar la tabla, no el botón.
+
+Para el Closet Digital no cambia nada: `ZONE_BY_CATEGORY` manda `ACCESSORIES` y
+`COLLECTIBLES` a la misma vitrina.
+
+### El hero: una sola línea, letra por letra
+
+Decía "CONSTRUYES UN CLUB / DE COLECCIONISTAS. / Bienvenido al Club LAMK." — la
+tercera línea ya decía lo mismo que las dos primeras, solo que mejor. Se quedó
+esa sola: **BIENVENIDO AL CLUB LAMK**, entrando letra por letra.
+
+Se justifica por lo que dice (regla del repo): la frase *es* una bienvenida, y
+una bienvenida que se escribe delante de ti se lee como que alguien te está
+admitiendo, no como un letrero que ya estaba ahí.
+
+> **Por qué NO se usó `AnimatedText`** (el brillo diagonal que traía el titular
+> anterior): pinta un gradiente en el contenedor y lo recorta con
+> `background-clip: text`. Cualquier descendiente con `transform` —que es
+> exactamente lo que necesita cada letra para entrar— crea su propio contexto
+> de composición y deja de recibir ese fondo recortado: **las letras animadas
+> saldrían invisibles**. El degradado crimson→oro de la última palabra se hace
+> con un color SÓLIDO distinto por letra, interpolado a mano.
+
+> **Y `transformPerspective` en la letra, no `perspective` en el contenedor:**
+> la propiedad CSS `perspective` solo afecta a los hijos DIRECTOS, y las letras
+> cuelgan de un `span` de palabra (necesario para que una palabra no se parta a
+> mitad de renglón). Sin esto el `rotateX` se ve aplastado, no girando.
+
+El destello final va dentro de un envoltorio con `overflow-hidden` propio y no
+en el `h1`: recortando el titular, la entrada de las letras (que empiezan
+0.6em abajo y a escala 1.3) se vería cortada.
+
+### `GrailSpotlight` — la pieza más cara, de verdad
+
+El cliente pidió cambiar la animación del despiece "por el par más caro". Los
+96 fotogramas del despiece son de un tenis genérico ya renderizado y no se
+pueden regenerar por producto (el catálogo son 265 piezas vivas y cuál es la
+más cara cambia sola). Colgarle el cartel de "la pieza más cara" a la foto de
+OTRA pieza es justo lo que este repo se prohíbe. Así que el despiece se queda
+diciendo lo que dice (autenticidad) y el grail es **sección propia con la pieza
+REAL**, justo después: hoy `TENIS JORDAN 4 x OFF-WHITE 'SAIL'`, $25,000.
+
+`pickGrail()` (en `lib/showcase-selection.ts`, con la curaduría del resto):
+
+- **Compara precios MÁXIMOS de variante**, no mínimos. El resto del sitio usa
+  el mínimo (es el "desde $X" del comprador); aquí la pregunta es cuál es la
+  pieza más cara que existe, y eso lo define su variante más cara.
+- **Ignora lo agotado.** Coronar algo que no se puede comprar manda a una ficha
+  muerta.
+- **El empate lo rompe el handle, no el orden del arreglo.** Hay dos relojes
+  Laarvee de $16,000 exactos: sin esto, el orden en que Shopify devolviera los
+  productos decidiría cuál sale y la home cambiaría de grail sola.
+
+> **La técnica del nicho iluminado NO sirvió aquí, y se descubrió en el
+> navegador, no leyendo el código.** El nicho claro (que usan la vitrina de la
+> home y el Closet Digital) da por hecho que todas las fotos vienen sobre gris
+> de estudio. La del grail actual está fotografiada **sobre fondo oscuro**: en
+> la banda clara salía una mancha negra con un aro de luz alrededor. Y como el
+> grail lo elige el catálogo vivo, no se puede diseñar para el fondo de una
+> foto concreta.
+>
+> La salida que funciona con las dos es el **ENCUADRE**: un marco de canto
+> dorado declara "esto es una fotografía", y el fondo del cuadro —claro u
+> oscuro— deja de leerse como un recorte mal hecho. Precio y marca van en una
+> cartela FUERA de la foto, para que su contraste no dependa de qué foto toque.
+> El cuadro es **cuadrado** porque las fotos de Shopify son 3000×3000: con
+> cualquier otra proporción, `object-contain` deja franjas del marco a los
+> lados, invisibles con una foto oscura y muy visibles con las demás.
+
+### Rangos de XP: dos requisitos, no uno
+
+El cliente: *"no queremos que con una sola compra subas de nivel 4… debe haber
+restricciones súper justas, para todos… el nivel 4 sí debería ser complicado,
+arriba de 100,000"*.
+
+Tenía razón y el número era peor de lo que parecía. Los umbrales eran
+0 / 2,000 / 4,600 / 7,980 XP, y el XP es el precio por el Hype (×1 a ×2). Con
+el catálogo real, **una sola compra del par más caro daba hasta 50,000 XP: seis
+veces el rango máximo**. El sistema no medía coleccionar, medía gastar una vez.
+
+Nuevos umbrales, con **mínimo de piezas** además del XP:
+
+| Rango | XP | Piezas |
+|---|---|---|
+| ROOKIE | 0 | 0 |
+| HYPEBEAST | 8,000 | 2 |
+| COLLECTOR | 30,000 | 5 |
+| LEGEND | 100,000 | 12 |
+
+**El mínimo de piezas es la palanca de justicia**, no el XP: ninguna compra,
+por cara que sea, mueve ese contador más de uno, así que la escalera deja de
+poderse saltar con la cartera. Y como el XP sigue contando, tampoco se llega
+solo con volumen de piezas baratas (12 gorras de $900 no se acercan a 100,000).
+Hay una prueba de regresión por cada uno de los dos caminos.
+
+- `calculateGamificationTier(xp, pieces)` — **`pieces` es obligatorio y sin
+  valor por defecto** a propósito: un 0 implícito degradaría en silencio a
+  cualquiera desde un llamador que se olvide de pasarlo, y ese es el tipo de
+  bug que nadie reporta. El compilador obliga a los tres llamadores
+  (`shopify/customer.ts`, `shopify/admin.ts`, `CollectorVault.tsx`).
+- **El avance que se muestra es el del requisito MÁS ATRASADO.** Un 95% que en
+  realidad significa "tienes el XP pero te faltan 7 piezas" es una barra que
+  miente justo donde más importa.
+
+**Las reglas ahora están escritas** (`RankLadder.tsx`, pedido explícito del
+cliente): 1 peso = 1 XP, el Hype multiplica hasta ×2, hacen falta las dos
+cosas, solo cuentan las compras pagadas (los reclamos manuales aprobados por un
+admin salen en el closet pero no suman XP: no hay pedido con el que
+verificarlos), y no se baja de rango. La lista **no repite ningún número** —
+los peldaños de arriba los imprimen desde `TIER_LADDER`, así que no se queda
+vieja cuando los umbrales cambien.
+
+### Envío gratis desde $5,000
+
+`FREE_SHIPPING_THRESHOLD` pasó de 3,000 a 5,000 (`lib/cart-math.ts`) y con él
+la marquesina de la home. Es el mismo corte que la pestaña UNDER $5K y que el
+tramo de precio del catálogo: un solo número en todo el sitio.
+
+### Estado
+
+`npm run test`: **152 pruebas en 17 archivos** (antes 137 en 15). Nuevas:
+`product-brand.test.ts` (4), `discovery.test.ts` (4), `pickGrail` en
+`showcase-selection.test.ts` (4) y 3 de regresión en `gamification.test.ts`.
+
+### Pendiente: pausar la tienda anterior (decisión de Dante, no de código)
+
+El cliente preguntó si se puede pausar `lookatmykicksmx.com` sin perder la API
+de Shopify. Sí, pero **importa cómo**, y hoy ese dominio es literalmente el
+valor de `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN`:
+
+1. **Mover el dominio a Vercel** (lo recomendado). La tienda de Shopify sigue
+   viva en su `*.myshopify.com`, la Storefront API y el Checkout siguen
+   funcionando igual, y el tema anterior deja de tener por dónde entrarle.
+   **Hay que cambiar `NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN` al `.myshopify.com`**
+   antes de mover el DNS, o el sitio nuevo se pediría el catálogo a sí mismo.
+2. **Proteger la tienda con contraseña** (Shopify › Preferencias › Restringir
+   acceso). La Storefront API sobrevive porque este repo ya usa un token
+   PRIVADO de servidor (`SHOPIFY_PRIVATE_STOREFRONT_ACCESS_TOKEN`, ver
+   `lib/shopify/index.ts`), que es justo el que no queda bloqueado. **Pero el
+   Checkout vive en el mismo dominio protegido** y hay que comprobar con una
+   compra real que no se topa con el muro de contraseña antes de dejarlo así.
+
+La opción 1 no tiene ese riesgo. Ninguna de las dos se ejecutó: las dos tocan
+el DNS o la configuración de la tienda, y eso le toca a Dante.

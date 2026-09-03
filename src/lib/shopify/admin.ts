@@ -166,7 +166,9 @@ export async function getStoreCustomersWithXp(limit = 50): Promise<AdminCustomer
       email: c.email || '',
       phone: (c.phone || '').replace(/\D/g, '').slice(-10),
       xp,
-      tier: calculateGamificationTier(xp).currentTier,
+      // Segundo requisito del rango: piezas verificadas. Aquí es una por
+      // línea de pedido, la misma unidad que cuenta la Bóveda del cliente.
+      tier: calculateGamificationTier(xp, lineItems.length).currentTier,
       ordersCount: c.numberOfOrders ?? 0,
       totalSpent: parseFloat(c.amountSpent?.amount || '0'),
       // Fase D.5: fecha real del pedido más reciente — base de la "R" en

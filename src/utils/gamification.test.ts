@@ -6,22 +6,51 @@
 // que ya usa el repo (cart-math.test.ts, hype.test.ts).
 
 import { describe, it, expect } from 'vitest';
-import { calculateGamificationTier, calculateHypeXp, deriveRealRarity, computeCollectionIndex, TIER_THRESHOLDS } from './gamification';
+import { calculateGamificationTier, calculateHypeXp, deriveRealRarity, computeCollectionIndex, TIER_THRESHOLDS, TIER_MIN_PIECES } from './gamification';
 
 describe('calculateGamificationTier', () => {
-  it('0 XP es ROOKIE', () => {
-    expect(calculateGamificationTier(0).currentTier).toBe('ROOKIE');
+  it('0 XP y 0 piezas es ROOKIE', () => {
+    expect(calculateGamificationTier(0, 0).currentTier).toBe('ROOKIE');
   });
 
-  it('en el umbral exacto de un tier, ya cuenta como ese tier', () => {
-    expect(calculateGamificationTier(TIER_THRESHOLDS.HYPEBEAST).currentTier).toBe('HYPEBEAST');
+  it('en el umbral exacto de un tier, con las piezas exigidas, ya cuenta como ese tier', () => {
+    expect(
+      calculateGamificationTier(TIER_THRESHOLDS.HYPEBEAST, TIER_MIN_PIECES.HYPEBEAST).currentTier
+    ).toBe('HYPEBEAST');
   });
 
-  it('en MAX, rango máximo sin siguiente tier', () => {
-    const info = calculateGamificationTier(TIER_THRESHOLDS.MAX);
+  it('en el máximo, rango máximo sin siguiente tier', () => {
+    const info = calculateGamificationTier(TIER_THRESHOLDS.LEGEND, TIER_MIN_PIECES.LEGEND);
     expect(info.currentTier).toBe('LEGEND');
     expect(info.nextTier).toBe('HALL_OF_FAME');
     expect(info.progressPercentage).toBe(100);
+  });
+
+  // La regresión que motivó todo el recálculo (2026-09-03): con los umbrales
+  // anteriores, comprar UNA pieza del par más caro del catálogo ($25,000 con
+  // hype al tope = 50,000 XP) dejaba a esa persona en LEGEND al instante.
+  it('una sola compra, por cara que sea, NO puede llegar a LEGEND', () => {
+    const xpDeUnGrail = calculateHypeXp(25000, 100); // 50,000 XP, el máximo posible en una pieza
+    const info = calculateGamificationTier(xpDeUnGrail, 1);
+    expect(info.currentTier).toBe('ROOKIE');
+    expect(info.nextTier).toBe('HYPEBEAST');
+    expect(info.piecesRemaining).toBe(TIER_MIN_PIECES.HYPEBEAST - 1);
+  });
+
+  it('tampoco se llega solo por volumen de piezas baratas', () => {
+    // 20 gorras de $900 sin nada de hype: piezas de sobra, XP muy lejos.
+    const info = calculateGamificationTier(900 * 20, 20);
+    expect(info.currentTier).toBe('HYPEBEAST');
+    expect(info.xpRemaining).toBe(TIER_THRESHOLDS.COLLECTOR - 18000);
+  });
+
+  it('el avance mostrado es el del requisito más atrasado, no el más adelantado', () => {
+    // XP de sobra para COLLECTOR, pero solo 2 de las 5 piezas: la barra no
+    // puede ir al 100% y luego no subir de rango.
+    const info = calculateGamificationTier(TIER_THRESHOLDS.COLLECTOR, 2);
+    expect(info.currentTier).toBe('HYPEBEAST');
+    expect(info.progressPercentage).toBeLessThan(100);
+    expect(info.piecesRemaining).toBe(3);
   });
 });
 

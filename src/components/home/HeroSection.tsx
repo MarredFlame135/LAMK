@@ -12,11 +12,10 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { SAAS_CONFIG } from '@/lib/saas-config';
 import { ThemeAndLangSwitcher } from '@/components/ui/ThemeAndLangSwitcher';
-import { AnimatedText } from '@/components/ui/animated-shiny-text';
-import { Floating, FloatingElement } from '@/components/ui/parallax-floating';
+import { Floating } from '@/components/ui/parallax-floating';
 import { fadeUp, EASE_LUXURY } from '@/lib/motion';
 import { useApp } from '@/context/AppContext';
 
@@ -40,6 +39,110 @@ function useHoverPoseCycle() {
   }, [isHovering]);
 
   return { pose, onMouseEnter: () => setIsHovering(true), onMouseLeave: () => setIsHovering(false) };
+}
+
+// --- Titular animado -------------------------------------------------------
+//
+// El titular pasó de tres líneas a una sola —"BIENVENIDO AL CLUB LAMK"— y esa
+// línea entra letra por letra (2026-09-03, pedido del cliente). No es adorno:
+// la frase ES una bienvenida, y una bienvenida que se escribe delante de ti se
+// lee como que alguien te está admitiendo, no como un letrero que ya estaba
+// ahí. Ese es el gesto, y por eso el movimiento se justifica (regla de
+// CLAUDE.md: una animación nueva tiene que decir algo).
+//
+// Cómo está hecho, y por qué NO con AnimatedText (el brillo diagonal que
+// usaba el titular anterior): AnimatedText pinta un gradiente sobre el
+// contenedor y lo recorta con `background-clip: text`. Cualquier descendiente
+// con `transform` —que es exactamente lo que necesita cada letra para
+// entrar— crea su propio contexto de composición y deja de recibir ese fondo
+// recortado: las letras animadas saldrían invisibles. Así que el degradado
+// crimson→oro de la última palabra se hace con un color SÓLIDO distinto por
+// letra, interpolado a mano. Se ve igual y no pelea con el movimiento.
+
+const CRIMSON = [255, 30, 66];
+const GOLD = [197, 160, 89];
+
+// Color de la letra `i` de `total` dentro de la última palabra: crimson en la
+// primera y oro en la última, mezclando en medio.
+function rampColor(i: number, total: number): string {
+  const k = total <= 1 ? 0 : i / (total - 1);
+  const ch = CRIMSON.map((c, n) => Math.round(c + (GOLD[n] - c) * k));
+  return `rgb(${ch.join(',')})`;
+}
+
+// `transformPerspective` y no un `perspective` en el contenedor: la propiedad
+// CSS `perspective` solo afecta a los hijos DIRECTOS, y aquí las letras
+// cuelgan de un <span> de palabra (necesario para que una palabra nunca se
+// parta a mitad de renglón). Sin esto el rotateX se aplica sin proyección y la
+// letra se ve aplastada en vez de girando hacia el frente.
+const LETTER = {
+  hidden: { opacity: 0, y: '0.6em', rotateX: -85, scale: 1.3, transformPerspective: 800 },
+  show: { opacity: 1, y: 0, rotateX: 0, scale: 1, transformPerspective: 800 },
+};
+
+function AnimatedHeadline({ text }: { text: string }) {
+  const prefersReducedMotion = useReducedMotion();
+
+  // Mismo patrón obligatorio del repo (ver AnatomySequence): los EFECTOS
+  // pueden leer la media query, el JSX nunca — el servidor no puede saberla y
+  // ramificar el marcado con ella tumba la hidratación de toda la página.
+  // Aquí el marcado es idéntico en los dos casos; lo único que cambia con
+  // `reducedUI` es la duración (0) y el destello final, que se monta un frame
+  // después de montar.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const reducedUI = mounted && Boolean(prefersReducedMotion);
+
+  const words = text.split(' ').filter(Boolean);
+  const lastIndex = words.length - 1;
+
+  return (
+    <motion.h1
+      aria-label={text}
+      initial="hidden"
+      animate="show"
+      transition={{ staggerChildren: reducedUI ? 0 : 0.045, delayChildren: reducedUI ? 0 : 0.15 }}
+      className="relative font-display text-4xl sm:text-6xl lg:text-7xl font-black uppercase tracking-tight leading-[0.95]"
+    >
+      {words.map((word, w) => (
+        <span key={`${word}-${w}`} className="inline-block whitespace-nowrap" aria-hidden>
+          {[...word].map((char, c) => (
+            <motion.span
+              key={`${char}-${c}`}
+              variants={LETTER}
+              transition={reducedUI ? { duration: 0 } : { duration: 0.75, ease: EASE_LUXURY }}
+              className="inline-block will-change-transform"
+              style={w === lastIndex ? { color: rampColor(c, word.length) } : undefined}
+            >
+              {char}
+            </motion.span>
+          ))}
+          {/* El espacio va FUERA de la palabra: un espacio dentro del
+              inline-block se colapsaría y las palabras quedarían pegadas. */}
+          {w < lastIndex && <span className="inline-block w-[0.28em]" />}
+        </span>
+      ))}
+
+      {/* Destello que cruza el titular una sola vez, justo después de que
+          aterriza la última letra. `mix-blend-overlay` para que ilumine las
+          letras sin taparlas, y `pointer-events-none` porque encima del
+          titular está el resto del hero. */}
+      {/* El recorte va en este envoltorio y NO en el <h1>: con overflow-hidden
+          en el titular, la entrada de las letras (que empiezan 0.6em abajo y a
+          escala 1.3) se vería cortada por arriba y por abajo. */}
+      {!reducedUI && (
+        <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <motion.span
+            className="absolute inset-y-0 -left-1/3 w-1/3 mix-blend-overlay"
+            style={{ background: 'linear-gradient(100deg, transparent, rgba(255,255,255,0.55), transparent)' }}
+            initial={{ x: 0, opacity: 0 }}
+            animate={{ x: ['0%', '400%'], opacity: [0, 1, 1, 0] }}
+            transition={{ duration: 1.1, delay: 0.15 + text.replace(/ /g, '').length * 0.045, ease: 'easeOut' }}
+          />
+        </span>
+      )}
+    </motion.h1>
+  );
 }
 
 export function HeroSection() {
@@ -87,17 +190,10 @@ export function HeroSection() {
           <ThemeAndLangSwitcher />
         </motion.div>
 
-        <motion.h1
-          variants={fadeUp}
-          className="font-display text-4xl sm:text-6xl font-black uppercase tracking-tight leading-none"
-        >
-          {t.hero.headline1} <br />
-          <AnimatedText gradient={['#FF1E42', '#FF1E42', '#C5A059']}>{t.hero.headline2}</AnimatedText> <br />
-          {t.hero.headline3}
-        </motion.h1>
+        <AnimatedHeadline text={t.hero.headline} />
 
         <motion.p variants={fadeUp} className="text-zinc-400 text-sm sm:text-base max-w-xl leading-relaxed">
-          {t.hero.subtitleLead} {SAAS_CONFIG.brandName}. {t.hero.subtitleTail}
+          {t.hero.subtitle}
         </motion.p>
 
         <motion.div variants={fadeUp} className="flex flex-wrap gap-4 pt-2">

@@ -190,7 +190,10 @@ export async function getCustomerProfile(accessToken: string): Promise<UserProfi
     const hypeScore = productId ? (productInfoById.get(productId)?.hypeScore ?? 0) : 0;
     return acc + calculateHypeXp(price, hypeScore);
   }, 0);
-  const tier = calculateGamificationTier(xp).currentTier;
+  // El rango ya no depende solo del XP: también del número de piezas
+  // verificadas (ver utils/gamification.ts). `collection` es exactamente esa
+  // lista, una entrada por unidad comprada.
+  const tier = calculateGamificationTier(xp, collection.length).currentTier;
 
   const recentOrders: OrderSummary[] = orderEdges.slice(0, 15).map((e: any) => ({
     id: e.node.id,
