@@ -7,30 +7,55 @@
 // scroll infinito para no bloquear el hilo principal pintando cientos de
 // tarjetas de una sola vez.
 //
-// --- Los filtros son un ÁRBOL, no cuatro filas (2026-09-03, ronda 3) ---
+// =========================================================================
+//  Cómo se navega el catálogo (2026-09-03, ronda 4) — y por qué así
+// =========================================================================
 //
-// La versión anterior ponía todo plano y a la vista: siete categorías, 54
-// marcas, cuatro tramos de precio y seis colecciones, cuatro filas de
-// pastillas seguidas. El cliente lo cortó en seco — "no quiero tantas
-// categorías, que se muestren las principales y que de ahí se desplieguen
-// jerárquicamente" — y tenía razón: un filtro que exige leer setenta opciones
-// antes de elegir la primera no es un filtro, es un índice.
+// Esta parte se rehízo tres veces el mismo día, así que vale la pena dejar
+// escrito qué se probó y qué dijo la evidencia:
 //
-// Ahora son cuatro puertas (Sneakers · Ropa · Accesorios · Coleccionables,
-// las mismas que tenía la tienda anterior) y todo lo demás vive DENTRO de la
-// puerta a la que pertenece: las subsecciones y las marcas de esa rama. El
-// árbol y sus conteos viven en lib/product-taxonomy.ts.
+//   v1  Cuatro filas planas de pastillas (categorías, 54 marcas, precios,
+//       colecciones), todo visible siempre. El cliente: "no quiero tantas
+//       categorías". Setenta opciones que leer antes de elegir la primera.
+//   v2  Acordeón: seis ramas <details> apiladas. Mejor, pero el cliente
+//       insistió: "no es necesario stackear una tras otra, puede ser más
+//       simple y menos estorboso". También tenía razón — seis renglones de
+//       cabecera antes del primer producto siguen siendo un muro, solo que
+//       más ordenado.
+//   v3  Lo que hay ahora, y sale de mirar qué hacen las tiendas de verdad.
 //
-// **Las marcas se movieron dentro de cada rama a propósito**, y no es solo
-// ahorro de espacio: es como funcionaba la tienda anterior
-// (/collections/jordan-sneakers, /collections/hoodies-bape). Elegir "Jordan"
-// dentro de Sneakers significa las dos cosas a la vez, que es lo que la
-// persona quiere decir cuando lo pulsa. Una lista global de 54 marcas, en
-// cambio, ofrece "Pokémon" mientras miras tenis.
+// --- Qué hacen las tiendas de referencia (revisado, no de memoria) ---
 //
-// Se usa <details>/<summary> nativo y no un acordeón propio: trae el manejo de
-// teclado, el rol de botón y el estado abierto/cerrado ya resueltos por el
-// navegador.
+//   · La TIENDA ANTERIOR DEL PROPIO CLIENTE (Shopify, lookatmykicksmx.com):
+//     las categorías y sus doce sub-colecciones viven en el MENÚ SUPERIOR;
+//     la barra lateral solo tiene Disponibilidad, Precio y Marca. Categoría
+//     y filtro son dos cosas distintas ahí.
+//   · Nike MX: fila horizontal de "chips" de categoría (Calzado, Playeras,
+//     Shorts, Sudaderas…) y aparte un panel de filtros con "Ocultar filtros".
+//   · StockX: tira horizontal de categorías bajo el nav, filtros en panel.
+//   · Shopify Dawn (el tema por defecto): panel en escritorio, CAJÓN en móvil.
+//
+// El patrón es el mismo en las cuatro: **la categoría es navegación, no un
+// filtro**, y va arriba, corta y horizontal. Los atributos (marca, precio)
+// son filtros y viven detrás de un control que se abre cuando alguien los
+// pide. Nada de eso ocupa espacio permanente encima de los productos.
+//
+// --- Lo que se construyó ---
+//
+//   [Todo] [Sneakers] [Ropa] [Accesorios] [Coleccionables]   ← navegación
+//      [Hoodies] [Playeras] [Chamarras] …                    ← solo si aplica
+//   [Filtros · 2]   Jordan ×   $10,000+ ×   Limpiar todo     ← barra
+//
+// Dos renglones cortos en vez de seis, y el resto en un cajón lateral.
+//
+// **Las pastillas de filtro activo NO son adorno**: son el precio de meter los
+// filtros en un cajón. Un filtro puesto que no se ve desde fuera es un
+// catálogo que parece incompleto sin motivo aparente, y es el fallo clásico
+// de este patrón. Cada una se quita con un clic, sin volver a abrir el cajón.
+//
+// El cajón es un `<dialog>` nativo con `showModal()`: la trampa de foco, la
+// tecla Escape, el fondo inerte y el `::backdrop` los pone el navegador. Un
+// panel propio serían cuarenta líneas para reimplementar peor lo mismo.
 //
 // --- Los conteos son facetados, y eso NO es cosmético ---
 //
@@ -46,9 +71,15 @@ import { motion } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
 import { Product, ProductVariant } from '@/types/product';
 import { useApp } from '@/context/AppContext';
-import { DiscoveryTabs } from './DiscoveryTabs';
 import { ProductCard } from './ProductCard';
-import { DiscoveryTab, matchesDiscoveryTab, PRICE_BANDS, PriceBandId, matchesPriceBand } from '@/lib/discovery';
+import {
+  DiscoveryTab,
+  DISCOVERY_TABS,
+  matchesDiscoveryTab,
+  PRICE_BANDS,
+  PriceBandId,
+  matchesPriceBand,
+} from '@/lib/discovery';
 import { fadeUp } from '@/lib/motion';
 import {
   CATALOG_GROUPS,
@@ -63,10 +94,10 @@ import { brandOf } from '@/lib/product-brand';
 
 const PAGE_SIZE = 24;
 
-// Cuántas marcas se ven dentro de una rama antes de "Ver todas". Con el árbol
-// esto ya casi no se usa —dentro de Sneakers hay 19 marcas, no 54— pero
-// Accesorios sigue teniendo suficientes para necesitarlo.
-const BRANDS_VISIBLE = 10;
+// Cuántas marcas se ven en el cajón antes de "Ver todas". Dentro de una
+// categoría casi nunca hace falta (Sneakers tiene 15); sin categoría elegida
+// son 54 y sí.
+const BRANDS_VISIBLE = 12;
 
 interface CatalogGridProps {
   products: Product[];
@@ -99,8 +130,8 @@ const AXIS_KEYS = Object.keys(AXES) as AxisKey[];
 
 export function CatalogGrid({ products }: CatalogGridProps) {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const [openGroups, setOpenGroups] = useState<string[]>([]);
-  const [expandedBrands, setExpandedBrands] = useState<string[]>([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showAllBrands, setShowAllBrands] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { addItem } = useCart();
   const { t } = useApp();
@@ -108,8 +139,8 @@ export function CatalogGrid({ products }: CatalogGridProps) {
 
   const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
-  // El catálogo filtrado por todos los ejes MENOS el que se pasa — la base
-  // sobre la que se cuenta ese eje. Con `except` en null es el resultado final.
+  // El catálogo filtrado por todos los ejes MENOS los que se pasen — la base
+  // sobre la que se cuenta ese eje. Sin argumentos, es el resultado final.
   const subsetExcept = useMemo(() => {
     const cache = new Map<string, Product[]>();
     return (...except: AxisKey[]): Product[] => {
@@ -124,7 +155,11 @@ export function CatalogGrid({ products }: CatalogGridProps) {
 
   const filtered = useMemo(() => subsetExcept(), [subsetExcept]);
 
-  // Conteos del árbol: una pasada sobre el catálogo sin filtrar por nodo.
+  const selectedGroup = groupOfNode(filters.node);
+  const activeGroup = CATALOG_GROUPS.find((g) => g.key === selectedGroup) ?? null;
+  const selectedChild = filters.node.startsWith('c:') ? filters.node.slice(2) : null;
+
+  // Conteos del árbol: una sola pasada sobre el catálogo sin filtrar por nodo.
   const treeCounts = useMemo(() => {
     const base = subsetExcept('node');
     const groups = new Map<string, number>();
@@ -137,28 +172,17 @@ export function CatalogGrid({ products }: CatalogGridProps) {
     return { groups, children, total: base.length };
   }, [subsetExcept]);
 
-  // Marcas DENTRO de una rama: se cuentan sobre las piezas de ese grupo,
-  // respetando el hijo seleccionado si pertenece a esa misma rama. Sin eso,
-  // abrir Accesorios con "Relojes" puesto ofrecería marcas de gorras.
-  const brandsInGroup = useMemo(() => {
-    const base = subsetExcept('node', 'brand');
-    const selectedGroup = groupOfNode(filters.node);
-    const selectedChild = filters.node.startsWith('c:') ? filters.node.slice(2) : null;
-
-    return (groupKey: string) => {
-      const counts = new Map<string, number>();
-      for (const p of base) {
-        const path = catalogPathOf(p);
-        if (path.group !== groupKey) continue;
-        if (selectedChild && selectedGroup === groupKey && path.child !== selectedChild) continue;
-        const b = brandOf(p);
-        if (b) counts.set(b, (counts.get(b) ?? 0) + 1);
-      }
-      return [...counts.entries()]
-        .map(([key, count]) => ({ key, count }))
-        .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
-    };
-  }, [subsetExcept, filters.node]);
+  const brandOptions = useMemo(() => {
+    const base = subsetExcept('brand');
+    const counts = new Map<string, number>();
+    for (const p of base) {
+      const b = brandOf(p);
+      if (b) counts.set(b, (counts.get(b) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([key, count]) => ({ key, count }))
+      .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+  }, [subsetExcept]);
 
   const bandOptions = useMemo(() => {
     const base = subsetExcept('band');
@@ -172,12 +196,13 @@ export function CatalogGrid({ products }: CatalogGridProps) {
     })).filter((b) => b.count > 0 || b.key === filters.band);
   }, [subsetExcept, filters.band]);
 
-  // La rama del filtro activo se abre sola: si alguien llega con "Gorras"
-  // puesto y todas las ramas cerradas, no hay forma de ver qué está filtrando.
-  useEffect(() => {
-    const g = groupOfNode(filters.node);
-    if (g) setOpenGroups((prev) => (prev.includes(g) ? prev : [...prev, g]));
-  }, [filters.node]);
+  const tabOptions = useMemo(() => {
+    const base = subsetExcept('tab');
+    return DISCOVERY_TABS.map((tab) => ({
+      ...tab,
+      count: base.filter((p, i) => matchesDiscoveryTab(p, tab.id, i)).length,
+    })).filter((tab) => tab.count > 0 || tab.id === filters.tab);
+  }, [subsetExcept, filters.tab]);
 
   // Reinicia la paginación cuando cambian los filtros — evita mostrar 0
   // tarjetas si el usuario ya había scrolleado más allá del nuevo total.
@@ -204,206 +229,181 @@ export function CatalogGrid({ products }: CatalogGridProps) {
 
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
-  const anyFilter =
-    filters.tab !== 'ALL' || filters.node !== ALL_NODE || filters.brand !== 'TODAS' || filters.band !== 'ALL';
+
+  // Solo cuentan marca, precio y colección: la categoría no es un "filtro
+  // puesto", es dónde estás parado, y ya se ve encendida en la fila de arriba.
+  const activeFilters = [
+    filters.brand !== 'TODAS' && { key: 'brand' as const, label: filters.brand, clear: () => set({ brand: 'TODAS' }) },
+    filters.band !== 'ALL' && {
+      key: 'band' as const,
+      label: PRICE_BANDS.find((b) => b.id === filters.band)?.label ?? '',
+      clear: () => set({ band: 'ALL' }),
+    },
+    filters.tab !== 'ALL' && {
+      key: 'tab' as const,
+      label: DISCOVERY_TABS.find((d) => d.id === filters.tab)?.label ?? '',
+      clear: () => set({ tab: 'ALL' }),
+    },
+  ].filter(Boolean) as Array<{ key: string; label: string; clear: () => void }>;
 
   const handleAddToCart = (product: Product, variant: ProductVariant) => {
     addItem(product.title, product.id, product.images[0], variant);
   };
 
-  const toggleGroup = (key: string, open: boolean) =>
-    setOpenGroups((prev) => (open ? (prev.includes(key) ? prev : [...prev, key]) : prev.filter((k) => k !== key)));
+  const visibleBrands = (() => {
+    if (showAllBrands) return brandOptions;
+    const top = brandOptions.slice(0, BRANDS_VISIBLE);
+    // La marca activa siempre se ve: un filtro puesto sin su pastilla
+    // encendida es un cajón que miente sobre su propio estado.
+    const sel = brandOptions.find((b) => b.key === filters.brand);
+    return sel && !top.includes(sel) ? [...top, sel] : top;
+  })();
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-background text-foreground min-h-screen space-y-6">
 
-      {/* Header Catálogo */}
-      <motion.div variants={fadeUp} initial="hidden" animate="show" className="border-b border-border pb-6 flex flex-col gap-5">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-          <div>
-            <span className="text-xs font-mono text-[#FF1E42] uppercase">{t.catalogPage.eyebrow}</span>
-            <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">{t.catalogPage.title}</h1>
-            <p className="text-[11px] font-mono text-zinc-400 mt-1">
-              {filtered.length} pieza{filtered.length !== 1 ? 's' : ''} en inventario
-            </p>
-          </div>
-          {anyFilter && (
-            <button
-              type="button"
-              onClick={() => { setFilters(NO_FILTERS); setExpandedBrands([]); }}
-              className="rounded-full border border-border px-3.5 py-1.5 text-[10px] font-bold font-mono uppercase tracking-wide text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
-            >
-              Limpiar filtros
-            </button>
-          )}
+      <motion.div variants={fadeUp} initial="hidden" animate="show" className="flex flex-col gap-4 border-b border-border pb-5">
+        <div>
+          <span className="text-xs font-mono text-[#FF1E42] uppercase">{t.catalogPage.eyebrow}</span>
+          <h1 className="font-display text-3xl font-black uppercase tracking-tight mt-1">{t.catalogPage.title}</h1>
         </div>
 
-        <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
-          {/* Categorías: cuatro puertas, todo lo demás cuelga de ellas. */}
+        {/* Navegación de categoría: horizontal y corta, como en las cuatro
+            tiendas revisadas. No es un filtro, es dónde estás parado. */}
+        <nav className="flex flex-wrap gap-2" aria-label="Categorías">
+          <Chip active={filters.node === ALL_NODE} onClick={() => set({ node: ALL_NODE })}>
+            Todo
+          </Chip>
           {CATALOG_GROUPS.map((group) => {
             const count = treeCounts.groups.get(group.key) ?? 0;
-            const isSelectedGroup = groupOfNode(filters.node) === group.key;
-            if (count === 0 && !isSelectedGroup) return null;
-
-            const brands = brandsInGroup(group.key);
-            const showAll = expandedBrands.includes(group.key);
-            const topBrands = showAll ? brands : brands.slice(0, BRANDS_VISIBLE);
-            // La marca activa siempre se ve, aunque esté fuera de las primeras:
-            // un filtro puesto sin pastilla encendida que lo delate es un
-            // catálogo que se ve roto.
-            const selectedBrand = brands.find((b) => b.key === filters.brand);
-            const visibleBrands =
-              selectedBrand && !topBrands.includes(selectedBrand) ? [...topBrands, selectedBrand] : topBrands;
-
+            if (count === 0 && selectedGroup !== group.key) return null;
             return (
-              <details
+              <Chip
                 key={group.key}
-                open={openGroups.includes(group.key)}
-                onToggle={(e) => toggleGroup(group.key, (e.currentTarget as HTMLDetailsElement).open)}
-                className="group"
+                active={selectedGroup === group.key}
+                count={count}
+                onClick={() => set({ node: groupNode(group.key) })}
               >
-                <summary
-                  className={`flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition select-none marker:hidden [&::-webkit-details-marker]:hidden ${
-                    isSelectedGroup ? 'bg-[#FF1E42]/10' : 'hover:bg-muted'
-                  }`}
-                >
-                  <Chevron />
-                  <span
-                    className={`flex-1 font-mono text-xs font-bold uppercase tracking-wide ${
-                      isSelectedGroup ? 'text-[#FF1E42]' : 'text-foreground'
-                    }`}
-                  >
-                    {group.label}
-                  </span>
-                  <span className="font-mono text-[10px] text-muted-foreground">{count}</span>
-                </summary>
-
-                <div className="space-y-3 border-t border-border bg-muted/30 px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <Pill
-                      active={filters.node === groupNode(group.key)}
-                      count={count}
-                      onClick={() => set({ node: groupNode(group.key), brand: 'TODAS' })}
-                    >
-                      Todo {group.label}
-                    </Pill>
-                    {group.children.map((child) => {
-                      const c = treeCounts.children.get(child.key) ?? 0;
-                      if (c === 0 && filters.node !== childNode(child.key)) return null;
-                      return (
-                        <Pill
-                          key={child.key}
-                          active={filters.node === childNode(child.key)}
-                          count={c}
-                          onClick={() => set({ node: childNode(child.key), brand: 'TODAS' })}
-                        >
-                          {child.label}
-                        </Pill>
-                      );
-                    })}
-                  </div>
-
-                  {brands.length > 0 && (
-                    <div className="space-y-2 border-t border-border/60 pt-3">
-                      {/* El rótulo nombra lo que de verdad se está listando:
-                          con "Relojes" puesto, estas son las marcas de relojes,
-                          no las de accesorios. Decir "en accesorios" mientras
-                          se ven cuatro relojeras es un número correcto con una
-                          etiqueta que miente. */}
-                      <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-500">
-                        // Marcas en{' '}
-                        {(isSelectedGroup &&
-                          group.children.find((c) => filters.node === childNode(c.key))?.label) ||
-                          group.label}
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        <Pill
-                          active={filters.brand === 'TODAS'}
-                          count={brands.reduce((a, b) => a + b.count, 0)}
-                          onClick={() => set({ brand: 'TODAS' })}
-                        >
-                          Todas
-                        </Pill>
-                        {visibleBrands.map((b) => (
-                          <Pill
-                            key={b.key}
-                            active={filters.brand === b.key}
-                            count={b.count}
-                            onClick={() =>
-                              set({
-                                brand: b.key,
-                                // Elegir una marca dentro de una rama significa
-                                // las dos cosas: esa marca, en esa rama.
-                                node: isSelectedGroup ? filters.node : groupNode(group.key),
-                              })
-                            }
-                          >
-                            {b.key}
-                          </Pill>
-                        ))}
-                        {brands.length > BRANDS_VISIBLE && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setExpandedBrands((prev) =>
-                                prev.includes(group.key) ? prev.filter((k) => k !== group.key) : [...prev, group.key]
-                              )
-                            }
-                            className="rounded-full border border-dashed border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
-                          >
-                            {showAll ? 'Ver menos' : `Ver todas (${brands.length})`}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </details>
+                {group.label}
+              </Chip>
             );
           })}
+        </nav>
 
-          {/* Precio y Colección: mismo trato que las categorías — cerrados
-              hasta que alguien los pide. */}
-          <FilterDrawer
-            label="Precio"
-            hint="MXN"
-            active={filters.band !== 'ALL'}
-            open={openGroups.includes('__precio')}
-            onToggle={(o) => toggleGroup('__precio', o)}
-          >
-            <Pill active={filters.band === 'ALL'} count={subsetExcept('band').length} onClick={() => set({ band: 'ALL' })}>
-              Cualquiera
-            </Pill>
-            {bandOptions.map((b) => (
-              <Pill key={b.key} active={filters.band === b.key} count={b.count} onClick={() => set({ band: b.key })}>
-                {b.label}
-              </Pill>
-            ))}
-          </FilterDrawer>
+        {/* Subcategorías: solo cuando la categoría abierta tiene, y solo esa.
+            Es el segundo renglón de Nike, no una lista permanente. */}
+        {activeGroup && activeGroup.children.length > 0 && (
+          <nav className="flex flex-wrap gap-2 -mt-1" aria-label={`Subcategorías de ${activeGroup.label}`}>
+            {activeGroup.children.map((child) => {
+              const count = treeCounts.children.get(child.key) ?? 0;
+              if (count === 0 && selectedChild !== child.key) return null;
+              const isActive = selectedChild === child.key;
+              return (
+                <Chip
+                  key={child.key}
+                  small
+                  active={isActive}
+                  count={count}
+                  // Volver a pulsar la activa sube un nivel: sin esto, salir de
+                  // una subcategoría obliga a pasar por "Todo" y perder la
+                  // categoría en la que estabas.
+                  onClick={() => set({ node: isActive ? groupNode(activeGroup.key) : childNode(child.key) })}
+                >
+                  {child.label}
+                </Chip>
+              );
+            })}
+          </nav>
+        )}
 
-          <FilterDrawer
-            label="Colección"
-            hint="Cruza con lo de arriba"
-            active={filters.tab !== 'ALL'}
-            open={openGroups.includes('__coleccion')}
-            onToggle={(o) => toggleGroup('__coleccion', o)}
-          >
-            <DiscoveryTabs active={filters.tab} onChange={(tab) => set({ tab })} />
-          </FilterDrawer>
-        </div>
-
-        {/* Todo el catálogo: fuera del acordeón, porque salir de un filtro no
-            debería exigir abrir la rama en la que te metiste. */}
-        {filters.node !== ALL_NODE && (
+        {/* Barra: el botón del cajón, lo que hay puesto, y el conteo. */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => set({ node: ALL_NODE, brand: 'TODAS' })}
-            className="self-start font-mono text-[10px] uppercase tracking-widest text-zinc-400 underline-offset-4 transition hover:text-foreground hover:underline"
+            onClick={() => setDrawerOpen(true)}
+            className="flex items-center gap-2 rounded-lg border border-border bg-muted px-4 py-2 text-[11px] font-bold font-mono uppercase tracking-wide text-foreground transition hover:border-zinc-500"
           >
-            ← Ver todo el catálogo ({treeCounts.total})
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+              <path d="M3 6h18M7 12h10M11 18h2" />
+            </svg>
+            Filtros
+            {activeFilters.length > 0 && (
+              <span className="rounded-full bg-[#FF1E42] px-1.5 text-[9px] leading-4 text-white">{activeFilters.length}</span>
+            )}
           </button>
-        )}
+
+          {activeFilters.map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={f.clear}
+              className="flex items-center gap-1.5 rounded-full border border-[#FF1E42] bg-[#FF1E42]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[#FF1E42] transition hover:bg-[#FF1E42]/20"
+              aria-label={`Quitar filtro ${f.label}`}
+            >
+              {f.label}
+              <span aria-hidden className="text-[11px] leading-none">×</span>
+            </button>
+          ))}
+
+          {activeFilters.length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setFilters((prev) => ({ ...NO_FILTERS, node: prev.node })); setShowAllBrands(false); }}
+              className="font-mono text-[10px] uppercase tracking-widest text-zinc-400 underline-offset-4 transition hover:text-foreground hover:underline"
+            >
+              Limpiar
+            </button>
+          )}
+
+          <span className="ml-auto font-mono text-[11px] text-zinc-400">
+            {filtered.length} pieza{filtered.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </motion.div>
+
+      <FilterDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} count={filtered.length}>
+        <DrawerSection title="Marca" hint={`${brandOptions.length} con piezas`}>
+          <Pill active={filters.brand === 'TODAS'} count={subsetExcept('brand').length} onClick={() => set({ brand: 'TODAS' })}>
+            Todas
+          </Pill>
+          {visibleBrands.map((b) => (
+            <Pill key={b.key} active={filters.brand === b.key} count={b.count} onClick={() => set({ brand: b.key })}>
+              {b.key}
+            </Pill>
+          ))}
+          {brandOptions.length > BRANDS_VISIBLE && (
+            <button
+              type="button"
+              onClick={() => setShowAllBrands((v) => !v)}
+              className="rounded-full border border-dashed border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
+            >
+              {showAllBrands ? 'Ver menos' : `Ver todas (${brandOptions.length})`}
+            </button>
+          )}
+        </DrawerSection>
+
+        <DrawerSection title="Precio" hint="MXN">
+          <Pill active={filters.band === 'ALL'} count={subsetExcept('band').length} onClick={() => set({ band: 'ALL' })}>
+            Cualquiera
+          </Pill>
+          {bandOptions.map((b) => (
+            <Pill key={b.key} active={filters.band === b.key} count={b.count} onClick={() => set({ band: b.key })}>
+              {b.label}
+            </Pill>
+          ))}
+        </DrawerSection>
+
+        <DrawerSection title="Colección" hint="Cruza con la categoría">
+          <Pill active={filters.tab === 'ALL'} count={subsetExcept('tab').length} onClick={() => set({ tab: 'ALL' })}>
+            Todas
+          </Pill>
+          {tabOptions.map((tab) => (
+            <Pill key={tab.id} active={filters.tab === tab.id} count={tab.count} onClick={() => set({ tab: tab.id })}>
+              {tab.label}
+            </Pill>
+          ))}
+        </DrawerSection>
+      </FilterDrawer>
 
       {filtered.length === 0 ? (
         <div className="p-16 border border-dashed border-border rounded-lg text-center text-zinc-400 text-sm">
@@ -434,55 +434,131 @@ export function CatalogGrid({ products }: CatalogGridProps) {
   );
 }
 
-// Flecha de la rama. Gira con `group-open` en vez de con estado de React: el
-// navegador ya sabe si el <details> está abierto, no hace falta contárselo.
-function Chevron() {
+// Cajón de filtros. `<dialog>` + `showModal()` y no un panel propio: el
+// navegador aporta trampa de foco, Escape, fondo inerte y `::backdrop`. La
+// alternativa es reimplementar las cuatro cosas, peor.
+function FilterDrawer({
+  open,
+  onClose,
+  count,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  count: number;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  // El panel entra deslizándose. La clase se aplica un frame DESPUÉS de
+  // abrir: <dialog> pasa a `display:block` al llamar showModal(), y sin ese
+  // frame el navegador no tiene un estado inicial desde el que animar.
+  const [slid, setSlid] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (open && !el.open) {
+      el.showModal();
+      requestAnimationFrame(() => setSlid(true));
+    } else if (!open && el.open) {
+      setSlid(false);
+      el.close();
+    }
+  }, [open]);
+
   return (
-    <svg
-      className="h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-90"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      aria-hidden
+    <dialog
+      ref={ref}
+      onClose={onClose}
+      // Clic en el ::backdrop: el evento cae en el propio <dialog> (el panel
+      // está dentro), así que basta comprobar que el objetivo es el diálogo.
+      onClick={(e) => { if (e.target === ref.current) onClose(); }}
+      /* `fixed inset-y-0 right-0` explícito: la hoja de estilos del navegador
+         le da al <dialog> `position: absolute` con `margin: auto`, y con solo
+         `h-full` el panel quedaba despegado del borde superior en móvil. */
+      className="fixed inset-y-0 right-0 m-0 h-full max-h-full w-full max-w-sm bg-transparent p-0 backdrop:bg-black/60 backdrop:backdrop-blur-sm"
     >
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+      <div
+        className={`flex h-full flex-col border-l border-border bg-card text-foreground transition-transform duration-300 ease-out motion-reduce:transition-none ${
+          slid ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="font-mono text-xs font-bold uppercase tracking-[0.2em]">// Filtros</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-bold font-mono uppercase text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
+            aria-label="Cerrar filtros"
+          >
+            Cerrar
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">{children}</div>
+
+        {/* El conteo va también aquí abajo: con el cajón abierto tapa la
+            rejilla, así que sin este número no hay forma de ver el efecto de
+            lo que acabas de pulsar sin cerrarlo. */}
+        <div className="border-t border-border px-5 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-lg bg-[#FF1E42] px-4 py-3 text-[11px] font-black font-mono uppercase tracking-widest text-white transition hover:bg-[#e0182f]"
+          >
+            Ver {count} pieza{count !== 1 ? 's' : ''}
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
 
-// Una rama que no es de categoría (Precio, Colección). Misma forma que las
-// otras para que el acordeón se lea como una sola lista.
-function FilterDrawer({
-  label,
-  hint,
+function DrawerSection({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-2.5">
+      <div className="flex items-baseline gap-2">
+        <h3 className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{title}</h3>
+        {hint && <span className="font-mono text-[9px] uppercase tracking-wide text-zinc-500">// {hint}</span>}
+      </div>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </section>
+  );
+}
+
+// Pastilla de NAVEGACIÓN (categoría). Más grande y con más peso que las del
+// cajón: es lo primero que se lee de la página.
+function Chip({
   active,
-  open,
-  onToggle,
+  count,
+  small,
+  onClick,
   children,
 }: {
-  label: string;
-  hint?: string;
   active: boolean;
-  open: boolean;
-  onToggle: (open: boolean) => void;
+  count?: number;
+  small?: boolean;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <details open={open} onToggle={(e) => onToggle((e.currentTarget as HTMLDetailsElement).open)} className="group">
-      <summary
-        className={`flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition select-none marker:hidden [&::-webkit-details-marker]:hidden ${
-          active ? 'bg-[#FF1E42]/10' : 'hover:bg-muted'
-        }`}
-      >
-        <Chevron />
-        <span className={`font-mono text-xs font-bold uppercase tracking-wide ${active ? 'text-[#FF1E42]' : 'text-foreground'}`}>
-          {label}
-        </span>
-        {hint && <span className="font-mono text-[9px] uppercase tracking-wide text-zinc-500">// {hint}</span>}
-      </summary>
-      <div className="flex flex-wrap gap-2 border-t border-border bg-muted/30 px-4 py-4">{children}</div>
-    </details>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? 'true' : undefined}
+      className={`flex items-center gap-1.5 rounded-lg border font-bold uppercase tracking-wide transition ${
+        small ? 'px-3 py-1.5 text-[10px]' : 'px-4 py-2 text-[11px]'
+      } ${
+        active
+          ? 'border-[#FF1E42] bg-[#FF1E42] text-white'
+          : 'border-border bg-muted text-muted-foreground hover:border-zinc-500 hover:text-foreground'
+      }`}
+    >
+      {children}
+      {count !== undefined && (
+        <span className={`font-mono text-[9px] ${active ? 'text-white/70' : 'opacity-60'}`}>{count}</span>
+      )}
+    </button>
   );
 }
 

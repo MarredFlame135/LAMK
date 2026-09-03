@@ -1024,65 +1024,103 @@ pieza cada una. Se conservó tal cual para lo suyo.
   (7), Star Hats (6), Rude Awakenings (5)… Sin ellas, "filtrar por marca"
   dejaría fuera a una de cada cuatro piezas de la tienda.
 
-**Los filtros son un ÁRBOL de dos niveles, no cuatro filas** (`CatalogGrid.tsx`
-+ `CATALOG_GROUPS` en `lib/product-taxonomy.ts`).
+**Cómo se navega el catálogo.** Esto se rehízo TRES veces el mismo día, así que
+vale la pena dejar la secuencia escrita — el error se repite solo si nadie
+anota por qué se corrigió:
 
-La primera versión de esta ronda los puso todos planos y a la vista: siete
-categorías, 54 marcas, cuatro tramos de precio y seis colecciones, cuatro filas
-de pastillas seguidas. El cliente lo cortó en seco — *"no quiero tantas
-categorías, que se muestren las principales y que de ahí se desplieguen
-jerárquicamente"* — y tenía razón: **un filtro que exige leer setenta opciones
-antes de elegir la primera no es un filtro, es un índice.**
+| | Qué era | Qué dijo el cliente |
+|---|---|---|
+| v1 | Cuatro filas planas de pastillas: 7 categorías, 54 marcas, 4 precios, 6 colecciones, todo visible siempre | *"No quiero tantas categorías"* |
+| v2 | Acordeón: seis ramas `<details>` apiladas | *"No es necesario stackear una tras otra, puede ser más simple y menos estorboso"* |
+| v3 | Navegación horizontal + cajón de filtros | La que está |
 
-Cuatro puertas, las mismas que tenía la tienda anterior, y todo lo demás vive
-dentro de la puerta a la que pertenece:
+Las dos veces tenía razón, y la segunda cuesta más de aceptar que la primera:
+**v2 no era un mal acordeón, era un acordeón donde no iba un acordeón.** Seis
+renglones de cabecera antes del primer producto siguen siendo un muro, solo que
+ordenado. Ordenar el desorden no es lo mismo que quitarlo.
+
+**Qué hacen las tiendas de referencia** (revisado en la web, no de memoria):
+
+- **La tienda anterior del propio cliente** (Shopify, `lookatmykicksmx.com`):
+  las categorías y sus doce sub-colecciones viven en el **menú superior**; la
+  barra lateral solo tiene Disponibilidad, Precio y Marca.
+- **Nike MX**: fila horizontal de chips de categoría (Calzado, Playeras,
+  Shorts, Sudaderas…) y, aparte, un panel de filtros con "Ocultar filtros".
+- **StockX**: tira horizontal de categorías bajo el nav; los atributos
+  (Category, Brands, Size, Color, Price) en panel lateral.
+- **Shopify Dawn**, el tema por defecto: panel en escritorio, **cajón** en móvil.
+
+El patrón es el mismo en las cuatro y es la conclusión que ordenó el rediseño:
+**la categoría es NAVEGACIÓN, no un filtro.** Va arriba, corta y horizontal.
+Los atributos (marca, precio, colección) sí son filtros y viven detrás de un
+control que se abre cuando alguien los pide. Ninguno de los dos ocupa espacio
+permanente encima de los productos.
+
+Lo que quedó:
 
 ```
-Sneakers        75   →  marcas de sneakers (19)
-Ropa            75   →  Hoodies y sudaderas 31 · Playeras 29 · Chamarras 6 ·
-                        Pants y shorts 5 · Ropa interior 4   +  marcas (20)
-Accesorios      95   →  Gorras 74 · Bolsos y mochilas 9 · Relojes 7 ·
-                        Joyería 5                            +  marcas (26)
-Coleccionables  20   →  marcas de coleccionables
-Precio · Colección   →  ramas propias, cerradas hasta que alguien las pide
+[Todo] [Sneakers 75] [Ropa 75] [Accesorios 95] [Coleccionables 20]   ← navegación
+   [Hoodies 31] [Playeras 29] [Chamarras 6] …                        ← solo si aplica
+[⚙ Filtros · 1]  SUPREME ×  Limpiar                     12 piezas    ← barra
+```
+
+Dos renglones cortos en vez de seis. Medido: la primera tarjeta de producto
+subió de ~640 px a ~290 px desde el borde superior.
+
+- **Las pastillas de filtro activo NO son adorno**: son el precio de meter los
+  filtros en un cajón. Un filtro puesto que no se ve desde fuera es un catálogo
+  que parece incompleto sin motivo aparente, y es el fallo clásico de este
+  patrón. Cada una se quita con un clic, sin volver a abrir el cajón.
+- **El cajón es un `<dialog>` nativo con `showModal()`**: trampa de foco, tecla
+  Escape, fondo inerte y `::backdrop` los pone el navegador. Un panel propio
+  serían cuarenta líneas para reimplementar peor lo mismo. Dos detalles que sí
+  hubo que poner a mano: `fixed inset-y-0 right-0` (la hoja del navegador le da
+  `position: absolute` con `margin: auto`, y el panel quedaba despegado del
+  borde superior en móvil) y la clase de deslizamiento aplicada **un frame
+  después** de abrir, porque `showModal()` pasa el elemento a `display: block`
+  y sin ese frame no hay estado inicial desde el que animar.
+- **El botón del cajón lleva el conteo del resultado** ("Ver 12 piezas"): con
+  el cajón abierto la rejilla queda tapada, así que sin ese número no hay forma
+  de ver el efecto de lo que acabas de pulsar sin cerrarlo.
+- **Volver a pulsar la subcategoría activa sube un nivel.** Sin eso, salir de
+  "Playeras" obliga a pasar por "Todo" y perder la categoría en la que estabas.
+- **Sin scroll horizontal en las tiras de chips**: `flex-wrap`. En 390 px las
+  cinco categorías caen en dos renglones y ya. Una tira con scroll y la barra
+  oculta es justo la trampa que este repo ya documentó con `DepthStrip`
+  (ocultar la barra de scroll es ocultar el control).
+
+El árbol de categorías en sí (`CATALOG_GROUPS` en `lib/product-taxonomy.ts`) no
+cambió entre v2 y v3 — lo que cambió es cómo se presenta:
+
+```
+Sneakers        75
+Ropa            75  →  Hoodies y sudaderas 31 · Playeras 29 · Chamarras 6 ·
+                       Pants y shorts 5 · Ropa interior 4
+Accesorios      95  →  Gorras 74 · Bolsos y mochilas 9 · Relojes 7 · Joyería 5
+Coleccionables  20
 ```
 
 Conteos reales al 2026-09-03, suman 265 exactas.
 
-- **`<details>`/`<summary>` nativo**, no un acordeón propio: trae el manejo de
-  teclado, el rol de botón y el estado abierto/cerrado ya resueltos. La flecha
-  gira con la variante `group-open` de Tailwind — el navegador ya sabe si la
-  rama está abierta, no hace falta contárselo a React.
-- **Las marcas se movieron DENTRO de cada rama**, y no es solo ahorro de
-  espacio: es como funcionaba la tienda anterior
-  (`/collections/jordan-sneakers`, `/collections/hoodies-bape`). Elegir
-  "Jordan" dentro de Sneakers significa las dos cosas a la vez, que es lo que
-  la persona quiere decir al pulsarlo. Una lista global de 54 marcas, en
-  cambio, ofrece "Pokémon" mientras miras tenis.
-- **El nivel 1 se DERIVA de `sectionOf()`, no se resuelve con predicados
-  propios.** Una pieza se clasifica una sola vez y el grupo sale de a qué cajón
-  cayó. Con predicados propios, una "GORRA POKEMON" cumpliría a la vez el
-  patrón de Gorras y el de Coleccionables y saldría en dos ramas — que es justo
-  lo que el orden de `PRODUCT_SECTIONS` existe para evitar. Hay prueba.
+- **El nivel 1 se DERIVA de `sectionOf()`, no de predicados propios.** Una pieza
+  se clasifica una sola vez y el grupo sale de a qué cajón cayó. Con predicados
+  propios, una "GORRA POKEMON" cumpliría a la vez el patrón de Gorras y el de
+  Coleccionables y saldría en dos ramas — que es justo lo que el orden de
+  `PRODUCT_SECTIONS` existe para evitar. Hay prueba.
 - **`PRODUCT_SECTIONS` no se tocó**: sigue siendo la clasificación plana de
   siete cajones y sigue alimentando el menú de TENISIN. El árbol se monta
   encima, no la reemplaza.
-- **La rama del filtro activo se abre sola.** Llegar con "Gorras" puesto y todas
-  las ramas cerradas deja a la persona sin forma de ver qué está filtrando.
 
 **Los conteos son facetados y eso NO es cosmético.** El número de cada opción se
 calcula contra el catálogo ya filtrado por los OTROS ejes. Sin eso, un tramo de
 precio podría decir 27 y al pulsarlo dar 0: cada opción sería una posible vía
-muerta. Verificado en navegador: con "Relojes" seleccionado, las marcas de la
-rama pasan de 26 a cuatro (Seiko 3 · Laarvee 2 · Bape 1 · Casio 1) y suman
-exactamente las 7 piezas del resultado.
+muerta. Verificado en navegador: con Ropa + Supreme, las categorías se recalculan
+a Ropa 12 y Accesorios 2 (Sneakers y Coleccionables desaparecen, Supreme no
+tiene), y las subcategorías a 5+2+1+4 = las 12 piezas del resultado.
 
-> Dos detalles que sí hay que recordar: **la opción ACTIVA se mantiene visible
-> aunque su conteo caiga a 0** —si la pastilla encendida desaparece, la persona
-> ve un catálogo vacío sin ninguna pista de cuál de sus filtros lo dejó así—, y
-> **el rótulo de las marcas nombra lo que de verdad se está listando**: con
-> "Relojes" puesto dice "marcas en relojes", no "en accesorios". Un número
-> correcto bajo una etiqueta que miente se lee como un bug.
+> Detalle que sí hay que recordar: **la opción ACTIVA se mantiene visible aunque
+> su conteo caiga a 0.** Si la pastilla encendida desaparece, la persona ve un
+> catálogo vacío sin ninguna pista de cuál de sus filtros lo dejó así.
 
 **Rangos de precio** (`PRICE_BANDS` en `lib/discovery.ts`): hasta $2,500 ·
 $2,500–5,000 · $5,000–10,000 · $10,000+. Los cortes salen de la distribución
