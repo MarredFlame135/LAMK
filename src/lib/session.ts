@@ -93,3 +93,39 @@ export async function verifyAdminSession(token: string | undefined | null): Prom
     return null;
   }
 }
+
+// Nombre y opciones de la cookie, en UN solo lugar. Antes vivían copiadas en
+// api/admin/login (set) y api/admin/logout (clear); dos copias de los mismos
+// atributos son justo la forma en que una sesión "se pierde" sin que nadie
+// entienda por qué (basta que una copia cambie `path` y la otra no para que
+// el logout deje viva una cookie que el middleware ya no encuentra, o al
+// revés). El middleware también las necesita ahora para el refresco de abajo.
+export const ADMIN_SESSION_COOKIE = 'lamk_admin_session';
+
+const ADMIN_SESSION_MAX_AGE_S = 60 * 60 * 12; // 12h — mismo tope que verifyAdminSession
+
+export function adminSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: ADMIN_SESSION_MAX_AGE_S,
+  };
+}
+
+// Sliding window. La sesión dura 12h desde que se EMITIÓ, no desde el último
+// uso: alguien que abre el panel a las 9am y sigue trabajando a las 9pm es
+// expulsado a media tarea, y desde fuera eso se lee como "se perdió la
+// sesión al navegar". Con esto, cada request de admin que ya rebasó la hora
+// re-firma el token con `issuedAt` nuevo y reescribe la cookie.
+//
+// Por qué una hora y no en cada request: esto corre en TODAS las rutas de
+// /admin y /api/admin, y reescribir Set-Cookie en cada una hace que ninguna
+// respuesta del panel se pueda cachear. Una hora mantiene la sesión viva sin
+// ese costo.
+const REFRESH_AFTER_MS = 60 * 60 * 1000;
+
+export function shouldRefreshAdminSession(payload: AdminSessionPayload): boolean {
+  return Date.now() - payload.issuedAt > REFRESH_AFTER_MS;
+}

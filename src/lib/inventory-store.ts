@@ -1,8 +1,7 @@
 // src/lib/inventory-store.ts
 //
-// Control de inventario local (server-side, JSON en /data — mismo patrón que
-// hype.ts) mientras el token de Shopify no tenga el scope write_products de
-// la Admin API:
+// Control de inventario local mientras el token de Shopify no tenga el scope
+// write_products de la Admin API:
 //  - "Ocultos del catálogo PWA": IDs de productos reales de Shopify que el
 //    admin desactivó — se filtran en catalog-source.ts antes de mostrarse a
 //    clientes, sin tocar ni borrar nada en Shopify (RF-3.2: "sin borrar su
@@ -10,13 +9,17 @@
 //  - "Borradores": artículos nuevos capturados desde el admin (con imagen ya
 //    procesada por el pipeline IA) en espera de publicarse en Shopify en
 //    cuanto haya credenciales de escritura.
+//
+// Vivían en `data/hidden-products.json` y `data/product-drafts.json`; desde el
+// 2026-09-02 están en Postgres — ver la cabecera de sales-store.ts.
+//
+// Ocultar un producto era el caso más grave de los cinco stores: al perderse
+// el archivo, los productos ocultos volvían a aparecer solos en el catálogo
+// público, sin ninguna señal de que había pasado.
 
-import fs from 'fs';
-import path from 'path';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-const HIDDEN_FILE = path.join(DATA_DIR, 'hidden-products.json');
-const DRAFTS_FILE = path.join(DATA_DIR, 'product-drafts.json');
+import { desc, eq } from 'drizzle-orm';
+import { getDb } from '@/db';
+import { hiddenProducts, productDrafts } from '@/db/schema';
 
 export interface ProductDraft {
   id: string;
@@ -31,49 +34,60 @@ export interface ProductDraft {
   status: 'DRAFT';
 }
 
-function readJson<T>(file: string, fallback: T): T {
-  try {
-    if (!fs.existsSync(file)) return fallback;
-    return JSON.parse(fs.readFileSync(file, 'utf-8'));
-  } catch (err) {
-    console.error(`Error al leer ${file}:`, err);
-    return fallback;
+export async function getHiddenProductIds(): Promise<string[]> {
+  const rows = await getDb().select({ productId: hiddenProducts.productId }).from(hiddenProducts);
+  return rows.map((r) => r.productId);
+}
+
+export async function setProductHidden(productId: string, hidden: boolean): Promise<string[]> {
+  const db = getDb();
+  if (hidden) {
+    await db.insert(hiddenProducts).values({ productId }).onConflictDoNothing();
+  } else {
+    await db.delete(hiddenProducts).where(eq(hiddenProducts.productId, productId));
   }
+  return getHiddenProductIds();
 }
 
-function writeJson(file: string, data: unknown) {
-  try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(file, JSON.stringify(data));
-  } catch (err) {
-    console.error(`Error al guardar ${file}:`, err);
-  }
+type DraftRow = typeof productDrafts.$inferSelect;
+
+function toDraft(row: DraftRow): ProductDraft {
+  return {
+    id: row.id,
+    title: row.title,
+    brand: row.brand,
+    category: row.category,
+    price: Number(row.price),
+    sizeOptions: row.sizeOptions,
+    description: row.description,
+    imageUrl: row.imageUrl,
+    createdAt: row.createdAt.toISOString(),
+    status: 'DRAFT',
+  };
 }
 
-export function getHiddenProductIds(): string[] {
-  return readJson<string[]>(HIDDEN_FILE, []);
+export async function getProductDrafts(): Promise<ProductDraft[]> {
+  const rows = await getDb().select().from(productDrafts).orderBy(desc(productDrafts.createdAt));
+  return rows.map(toDraft);
 }
 
-export function setProductHidden(productId: string, hidden: boolean): string[] {
-  const current = new Set(getHiddenProductIds());
-  if (hidden) current.add(productId);
-  else current.delete(productId);
-  const next = Array.from(current);
-  writeJson(HIDDEN_FILE, next);
-  return next;
+export async function addProductDraft(draft: Omit<ProductDraft, 'id' | 'createdAt' | 'status'>): Promise<ProductDraft> {
+  const [row] = await getDb()
+    .insert(productDrafts)
+    .values({
+      id: `DRAFT-${Date.now()}`,
+      title: draft.title,
+      brand: draft.brand,
+      category: draft.category,
+      price: draft.price.toFixed(2),
+      sizeOptions: draft.sizeOptions,
+      description: draft.description,
+      imageUrl: draft.imageUrl,
+    })
+    .returning();
+  return toDraft(row);
 }
 
-export function getProductDrafts(): ProductDraft[] {
-  return readJson<ProductDraft[]>(DRAFTS_FILE, []);
-}
-
-export function addProductDraft(draft: Omit<ProductDraft, 'id' | 'createdAt' | 'status'>): ProductDraft {
-  const full: ProductDraft = { ...draft, id: `DRAFT-${Date.now()}`, createdAt: new Date().toISOString(), status: 'DRAFT' };
-  const current = getProductDrafts();
-  writeJson(DRAFTS_FILE, [full, ...current]);
-  return full;
-}
-
-export function deleteProductDraft(id: string): void {
-  writeJson(DRAFTS_FILE, getProductDrafts().filter((d) => d.id !== id));
+export async function deleteProductDraft(id: string): Promise<void> {
+  await getDb().delete(productDrafts).where(eq(productDrafts.id, id));
 }

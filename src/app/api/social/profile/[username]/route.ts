@@ -11,8 +11,28 @@ import { socialProfiles } from '@/db/schema';
 import { getProfileView } from '@/lib/social/profile-view';
 import { requireCustomer } from '@/lib/social/auth';
 import { getStoreCustomersWithXp } from '@/lib/shopify/admin';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest, { params }: { params: { username: string } }) {
+  // Rate limiting (auditoría 2026-09-02). Este endpoint responde por
+  // username, así que sin tope es una máquina de ENUMERAR handles: se le
+  // disparan miles de nombres y los 404 contra los 200 dibujan la lista de
+  // quién tiene cuenta en LAMK. El propio archivo ya cuidaba no delatar la
+  // diferencia entre "no existe" y "es privado" (mismo 404 para ambos) — el
+  // límite es la otra mitad de esa misma protección: sin él, basta con
+  // preguntar suficientes veces.
+  //
+  // 60 en 5 minutos: nadie navegando perfiles a mano se acerca; un script
+  // que barre un diccionario se topa con el muro de inmediato.
+  const limitKey = `social-profile:${getClientIp(request)}`;
+  const { allowed, retryAfterMs } = checkRateLimit(limitKey, 60, 5 * 60 * 1000);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: `Demasiadas consultas. Espera ${Math.ceil(retryAfterMs / 60000)} minuto(s).` },
+      { status: 429 }
+    );
+  }
+
   const username = params.username.trim().toLowerCase();
   const db = getDb();
 

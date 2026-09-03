@@ -231,3 +231,399 @@ Segunda ronda de auditoría, brief nuevo (Fases A→B→C→D: Fundamentos → B
 - **Bug real encontrado y corregido de paso:** `api/admin/analytics/route.ts` llamaba a `getAllViews24h()` sin `await` desde el refactor async de Fase A — "más deseados" en ese panel llevaba tiempo mostrando 0 en silencio.
 
 **No empezado:** nada — las 4 fases del "Prompt Maestro v4" (A, B, C, D) están completas, cada una con sus límites de datos/permisos documentados explícitamente en vez de rellenados con números inventados.
+
+## Secuencia de despiece en Home (2026-09-01)
+
+Sección nueva en la home entre `VolumetricShowcase` y `DropsCoverflow`:
+**`src/components/home/AnatomySequence.tsx`** — "Anatomía de un par
+verificado". El tenis se desarma capa por capa (suela, entresuela, plantilla,
+corte, lengüeta, agujetas) conforme bajas. Justificación de producto, no
+decorativa: la promesa de `t.product.authenticGuarantee` ("producto 100%
+verificado") nunca había tenido una imagen detrás.
+
+**No es video ni GIF:** son 96 fotogramas WebP dibujados en un `<canvas>`, con
+el índice del cuadro atado al progreso del scroll (patrón de las páginas de
+producto de Apple). `<video>` + `currentTime` se descartó porque el seek en
+scroll se atora en Safari/iOS.
+
+- **Assets:** `public/assets/anatomy/{desktop,mobile}/f-0001..0096.webp`.
+  Escritorio 1280×720 (2.95 MB), móvil 640×576 con **encuadre propio** —
+  recorte cerrado, no el mismo 16:9 en chiquito, porque el despiece es una
+  composición vertical y con `cover` en pantalla vertical se perdían las
+  agujetas y la suela (1.84 MB). Solo se descarga un juego por dispositivo, y
+  solo cuando la sección viene entrando al viewport — no toca el LCP.
+- **Manifiesto:** `src/lib/anatomy-sequence.ts` (fuente única de `frameCount`,
+  rutas y patrón de nombre). Si se regenera el video con otra duración, ese
+  número se cambia ahí y en `FRAMES` del script.
+- **Regeneración:** `scripts/anatomy-frames.sh <video.mp4>` (ffmpeg) +
+  `scripts/anatomy-webp.js` (sharp vía `SHARP_PATH`, tomado prestado de otro
+  proyecto — **sharp no es dependencia de este repo** y no debe agregarse: solo
+  genera assets, no corre en build ni en runtime). El video original salió de
+  Higgsfield: imagen de despiece con `nano_banana_pro` a partir de
+  `public/assets/hero/hero-sneaker.png`, y luego `kling3_0` interpolando
+  armado→despiezado con esa imagen como `end_image`. El .mp4 fuente queda en
+  `docs/assets-source/anatomy-source.mp4` (ignorado por git, 8 MB — solo hace
+  falta para regenerar, no para correr el sitio).
+
+**Dos bugs propios encontrados y corregidos en el camino, que valen como
+advertencia para la próxima sección de este tipo:**
+
+1. **`body { overflow-x: hidden }` rompía `position: sticky`** (`globals.css`).
+   `hidden` convierte al `<body>` en contenedor de scroll y cualquier elemento
+   pegajoso que cuelgue de él se despega. Se cambió a `overflow-x: clip`, que
+   corta igual pero no crea contenedor de scroll. **Esto era global** — afectaba
+   a cualquier futura sección fija, no solo a esta.
+2. **`useScroll` de framer-motion cachea la medición del elemento.** Si algo
+   ARRIBA de la sección cambia de alto después (fotos que cargan tarde), el
+   progreso queda desfasado hasta el siguiente evento de scroll — reproducido:
+   parado a mitad de sección, el lienzo seguía en el primer cuadro. Se
+   reemplazó por leer `getBoundingClientRect()` dentro del propio rAF, que ya
+   estaba corriendo. Para scroll-scrub sobre canvas, preferir esto a
+   `useScroll`.
+
+**Bug PREEXISTENTE detectado de paso, NO corregido** (fuera del alcance de esta
+tarea): `src/components/ui/coverflow-carousel.tsx` renderiza condicionalmente
+según `useReducedMotion` en el JSX (línea ~131, `{!reduceMotion && ...}`). Con
+`prefers-reduced-motion: reduce` activo, servidor y cliente no coinciden y React
+tira la hidratación de **toda la página** ("the entire root will switch to
+client rendering"). El arreglo es el mismo patrón que se usó en
+`AnatomySequence`: gatear el valor con un estado `mounted` para que el primer
+render del cliente coincida con el del servidor. Pendiente de decisión.
+
+## Carrusel insignia del home: coverflow → vitrina SNKRS (2026-09-01)
+
+`DropsCoverflow` dejó de usar el coverflow 3D de 5 miniaturas y ahora usa
+**`src/components/ui/spotlight-carousel.tsx`**: una pieza grande a la vez,
+flotando sobre su propio nombre en tipografía gigante, con los vecinos
+asomándose recortados por la orilla de la pantalla. Referencia que trajo el
+cliente: la home de SNKRS.
+
+La curaduría diversificada, el `displayName()` y el tracking de
+`carousel_impression`/`carousel_click` (Fase 5) se conservaron intactos. Bajó de
+8 a 5 piezas: los nombres de todas se muestran como pastillas y 8 nombres largos
+de sneaker se comían la sección en tres renglones.
+
+**La banda es CLARA en un sitio negro, y la razón principal es técnica.** Las
+fotos de Shopify vienen del mismo pipeline de estudio: producto flotando con
+sombra sobre fondo gris, **sin canal alfa**. Sobre negro se verían como un
+recuadro gris. Medido en las piezas que salen hoy, ese gris va de `#E2E2E3` a
+`#ADADAD` y varias traen degradado, así que **no se puede igualar con un color
+fijo** — se desvanece la orilla con `PHOTO_MASK` y el fondo de banda (`#DFDCD4`)
+se eligió dentro de ese rango para que lo que quede se lea como viñeta de
+reflector. Dentro de la banda los colores van hardcodeados, no con tokens de
+tema: la banda no cambia con el tema porque las fotos tampoco.
+
+**Tres cosas que se probaron y NO funcionaron** (para no repetirlas):
+
+1. **Ampliar la foto al 140%** para que el producto se viera más grande. Se ve
+   bien con tenis (anchos y bajos) y se rompe con el resto del catálogo: al
+   hoodie le borraba la capucha y el ruedo. El catálogo tiene ropa, gorras y
+   joyería — la foto va al 100% y el tamaño se recupera con un escenario más
+   alto (`sm:h-[40rem]`).
+2. **Recortar el fondo por producto.** No se puede prehornear: el catálogo son
+   265 piezas vivas de Shopify y cuáles 5 salen depende del Hype.
+3. **La tipografía gigante en celular.** En 390 px el producto ocupa todo el
+   ancho y del nombre solo asomaban letras sueltas. Se oculta abajo de `sm` y
+   el nombre lo carga la pastilla activa.
+
+**Detalle que costó tiempo:** framer-motion escribe `transform` en línea al
+animar, así que una clase `-translate-*` de Tailwind en el mismo elemento no
+tiene ningún efecto. Si hay que desplazar algo animado, se hace con padding en
+el contenedor o dentro del propio `animate`.
+
+**Sin copy descriptivo bajo el producto, a propósito:** solo 8 de los 265
+productos traen `description`, y `storytelling.storySummary` es la MISMA frase
+genérica para los 265 ("Edición limitada seleccionada por Look At My Kicks MX").
+Ponerla ahí diría lo mismo 5 veces. Se muestran precio, HEAT y estado de stock,
+que sí cambian por pieza y salen de una fuente real.
+
+**El coverflow anterior** (`src/components/ui/coverflow-carousel.tsx`) ya no se
+monta en ningún lado — mismo criterio que `CustomCursor.tsx` en la Fase 6: el
+archivo se conserva, pero deja de renderizarse. Efecto secundario bueno: su bug
+de hidratación con `prefers-reduced-motion` (documentado arriba) deja de afectar
+a los usuarios, aunque sigue en el archivo si algún día se retoma.
+
+## Movimiento reducido, rotación diaria y transición del carrusel (2026-09-01, ronda 2)
+
+**Lo que se reportó como "la animación del tenis dejó de funcionar" NO era un
+bug.** El sistema del cliente tiene activado *Accesibilidad › Efectos visuales ›
+Efectos de animación* en Windows 11, que enciende `prefers-reduced-motion`.
+`AnatomySequence` respondía con su versión estática (correcto) y el carrusel no
+avanzaba solo (correcto) — pero desde fuera las dos cosas se leen como "está
+roto". Vale la pena tenerlo presente: **ese interruptor lo trae mucha gente
+prendido sin saberlo**, así que cualquier cosa que dependa de él necesita una
+salida visible, no solo un fallback silencioso.
+
+Qué se hizo, en los dos componentes:
+
+- **Opt-in explícito por sesión.** La preferencia del sistema sigue mandando por
+  defecto (con movimiento reducido no se descarga ni un cuadro del despiece ni
+  arranca ningún `requestAnimationFrame`), pero ahora hay un botón: *"VER EL
+  DESPIECE COMPLETO"* en la vista fija de `AnatomySequence`, y el botón de
+  pausa del carrusel se convierte en *"Reproducir"*. No se guarda nada, es por
+  sesión.
+- **Patrón obligatorio para este repo:** los EFECTOS pueden leer la media query
+  cruda; el JSX **nunca**. Todo lo que se renderiza pasa por un valor gateado
+  con `mounted` (`reducedUI`). Se volvió a caer en esto al agregar el botón de
+  pausa —el servidor mandaba "Pausar" y el cliente montaba "Reproducir",
+  tumbando la hidratación de toda la página— y se corrigió igual.
+- **Fallback al cuadro más cercano** en `AnatomySequence.draw()`: si el cuadro
+  que pide el scroll todavía no baja, se dibuja el vecino ya cargado en vez de
+  no dibujar nada. Antes, en conexión lenta, el lienzo se quedaba negro mientras
+  la persona ya estaba scrolleando dentro de la sección.
+
+**Rotación diaria de la vitrina** (`buildSelection` en `DropsCoverflow.tsx`): el
+objetivo final sigue siendo "las más hypeadas", pero hoy ningún producto llega a
+`MIN_HYPE_SAMPLE = 50` porque el sitio no se ha compartido, así que todos los
+scores empatan y el orden salía estable pero arbitrario — las mismas piezas para
+siempre. Mientras no haya señal real, la selección rota por día con un `daySeed`
+**calculado en el servidor** (`page.tsx`) y pasado como prop: determinista, todo
+el mundo ve lo mismo el mismo día, recargar no lo cambia (importante para que la
+analítica de posiciones de la Fase 5 siga siendo comparable). En cuanto exista
+Hype real, `hasRealHype` se vuelve true y la rotación se apaga sola — no hay que
+venir a borrar nada. De paso subió de 5 a 6 piezas.
+
+**No calcular `new Date()` en el componente de cliente**: cerca de la medianoche
+servidor y cliente elegirían días distintos y React tiraría la hidratación. Un
+solo reloj, el del servidor.
+
+**Transición del carrusel**, tres capas que juntas dan la sensación de volumen:
+direccional (la pieza entra por el lado del que viene, con `rotate` y `scale`,
+y se endereza), paralaje invertido (el nombre gigante entra desde el lado
+CONTRARIO y recorre menos distancia — dos planos a distinta profundidad), y
+profundidad de campo (`blur(3px)` fijo en las vecinas, solo la activa enfocada,
+como en la foto macro). Más una barra de avance del autoplay: la vitrina se
+mueve sola y esa barra es lo único que lo anuncia antes de que pase.
+
+**Bug PREEXISTENTE detectado, NO corregido:** `ScrollMacroBackground.tsx` pasa
+`prefersReducedMotion` directo a los rangos de `useTransform`, así que con
+movimiento reducido el `style` inicial difiere entre servidor y cliente
+("Prop `style` did not match"). Es solo warning —React parcha el estilo y no
+tumba la hidratación, a diferencia de un desajuste de texto— pero es la misma
+familia de error y solo aparece para quien tiene la preferencia activada. El
+arreglo es el mismo patrón `mounted` de arriba.
+
+## Auditoría integral (2026-09-02) — sesiones, persistencia, webhook, Closet Digital
+
+Ronda completa sobre `feature/social-qr-follow-vault`. Lo que cambió y, sobre
+todo, **por qué**, para no volver a tropezar con lo mismo.
+
+### Sesión de admin: el fix propuesto ya estaba, el hueco era otro
+
+Se reportó "al volver al menú principal de admin se pierde la sesión" y se pidió
+configurar la cookie con `path:'/'`, `SameSite:'Lax'`, `HttpOnly` y `Secure` en
+producción. **Todo eso ya estaba puesto desde la Fase 1.** Se verificó con
+trazado de cookies en dev y contra producción: el login devuelve
+`Path=/; Secure; HttpOnly; SameSite=lax`, y `/admin` responde 200 con ella en
+ambos entornos. El bucle no se reproduce por ahí.
+
+Lo que sí faltaba: la sesión duraba 12h **desde que se emitió**, no desde el
+último uso. Quien abre el panel en la mañana y sigue capturando en la tarde era
+expulsado a media tarea — y visto desde fuera eso se lee exactamente como
+"se perdió la sesión al navegar".
+
+- `shouldRefreshAdminSession()` + refresco en `middleware.ts`: cada request de
+  admin que rebasó la hora re-firma el token con `issuedAt` nuevo. El rol se
+  re-firma tal cual venía; este camino **nunca** puede elevar de `staff` a
+  `admin`.
+- Se refresca cada hora y no en cada request a propósito: esto corre en TODAS
+  las rutas de `/admin` y `/api/admin`, y reescribir `Set-Cookie` en cada una
+  hace que ninguna respuesta del panel se pueda cachear.
+- Los atributos de la cookie viven ahora en UN solo lugar
+  (`adminSessionCookieOptions()` en `lib/session.ts`), usados por login,
+  logout y middleware. Estaban copiados en dos archivos: basta que una copia
+  cambie `path` para que el logout deje viva una cookie que el middleware ya
+  no encuentra.
+
+### Los 5 stores de filesystem: migrados a Postgres
+
+`data/*.json` + `fs.writeFileSync` desaparecieron. Seis tablas nuevas:
+`offline_sales`, `layaway_reservations`, `product_demand_requests`,
+`verified_reviews`, `hidden_products`, `product_drafts`.
+
+- **Dinero en `numeric(12,2)`, nunca float.** Drizzle lo devuelve como string y
+  cada store lo convierte en la frontera, así que `src/types/admin.ts` no
+  cambió para ningún consumidor.
+- **`paymentNotes` en jsonb con append atómico** (el operador `||` de Postgres
+  dentro del propio UPDATE). Leer-modificar-escribir desde Node hacía que dos
+  abonos capturados casi al mismo tiempo se pisaran.
+- **`updateLead`/`updateLayaway` ya no hacen spread del patch completo**: lista
+  explícita de campos. Antes, cualquier cosa que llegara en el body se escribía.
+- **Las dos ventas de ejemplo del store viejo NO se migraron** ("Carlos
+  Mendoza", "Sofía Guerrero"): eran inventadas, y la regla del repo es no
+  simular contenido.
+- **Bug silencioso encontrado de paso:** al volver async los stores, 7 rutas de
+  API quedaron serializando Promises (`NextResponse.json({ leads: getLeads() })`
+  sin `await`). TypeScript no lo veía porque `NextResponse.json()` acepta `any`
+  — habrían devuelto `{}` en producción. Si alguna vez se vuelve async algo que
+  una ruta consume, revisar TODAS sus llamadas a mano; el compilador no ayuda ahí.
+
+### Webhook `orders/paid`: la deuda técnica #3, cerrada
+
+`src/app/api/webhooks/shopify/orders-paid/route.ts` + `lib/shopify/webhook.ts` +
+`lib/vault-purchase.ts`.
+
+- Firma HMAC-SHA256 sobre el **cuerpo crudo** (`request.text()`, nunca
+  reserializar el JSON) y comparación en tiempo constante. **Fail-closed**: sin
+  `SHOPIFY_WEBHOOK_SECRET` responde 503 y no procesa nada, ni en desarrollo.
+- **Idempotencia en dos capas, porque Shopify reintenta hasta 19 veces en 48h:**
+  índice único `(order_id, product_id, customer_id)` en `vault_items`, y una
+  columna `dedupe_key` en `product_events` (`<pedido>#<producto>#<unidad>`).
+  Sin la segunda, cada reintento volvía a contar las ventas e inflaba solo el
+  Índice — se detectó probando el reintento, no leyendo el código.
+- Responde **500 a propósito** ante un error de base de datos (que Shopify
+  reintente, la escritura es idempotente) y **200** ante un cuerpo firmado pero
+  ilegible (reintentar 19 veces algo que nunca va a funcionar no ayuda a nadie).
+- **XP se calcula pero NO se guarda** en `vault_items`. El XP de una pieza es su
+  precio disfrazado, y esa tabla alimenta bóvedas públicas — la Fase 2 (sección
+  1.2) decidió que no tenga columnas de precio ni valor justamente para que no
+  puedan filtrarse. El XP del cliente se sigue derivando en vivo de sus pedidos
+  con la misma `calculateHypeXp()`, así que el número no se contradice.
+
+**Número de serie estable.** Antes salía de la POSICIÓN de la pieza en el
+arreglo de pedidos: comprar otro par le cambiaba el número de serie a piezas que
+el cliente ya tenía. Un serial que cambia no es un serial. Ahora `#LK-007/26` =
+séptima unidad de ESE modelo registrada en LAMK, en 2026, asignada al pagar y
+calculada **dentro del INSERT** (subconsulta) para que dos compras simultáneas
+del mismo par no reciban el mismo número. El sufijo es el AÑO y no el total de
+la edición: no sabemos cuántas unidades existen de nada, y un denominador que
+crece con cada venta reintroduce exactamente el defecto que este campo viene a
+corregir.
+
+**El Índice ya no está capado en 80.** Con ventas reales, el término de
+velocidad (20%) dejó de estar reservado en 0 — los cuatro términos tienen
+fuente y el score puede llegar a 100. Cap de 10 ventas en 30 días (ventana más
+larga que las otras señales: una venta es un evento mucho más raro que una
+vista, y en 7 días casi todo daría 0 por falta de ventana, no por falta de
+demanda).
+
+### La Bóveda como "Closet Digital": tres zonas
+
+`components/vault/VaultZones.tsx` reemplaza la rejilla uniforme, en `/vault` y
+en `/vault/[handle]` (la misma pieza en ambas: un coleccionista debe reconocer
+el mismo closet cuando visita el de alguien más).
+
+- **ZONA A · SNEAKER VAULT** — pedestal de museo con canto iluminado y sombra
+  proyectada. **ZONA B · APPAREL WARDROBE** — un solo riel metálico cruzando la
+  sala, con gancho por prenda. **ZONA C · LUXURY VITRINE** — marco de oro,
+  terciopelo vino y cristal ahumado (tinte + reflejo diagonal: con una sola
+  capa no se lee como vidrio).
+- **La restricción que mandó sobre todo el diseño:** las fotos de Shopify vienen
+  sobre fondo gris de estudio y **sin canal alfa** (mismo problema que obligó a
+  que la banda del carrusel de la home fuera clara). Un tenis no puede "flotar"
+  sobre un pedestal oscuro: se vería el recuadro gris de su propia foto. La
+  salida es la del museo real, no la del recorte — **sala oscura, nicho
+  iluminado**: el nicho es claro (dentro del rango tonal de las fotos, con
+  viñeta radial que se come la orilla) y la arquitectura de alrededor es
+  oscura. Dentro del nicho los colores van hardcodeados; afuera, tokens de tema.
+- **El reparto en zonas NO tiene tabla propia**: `lib/vault-zones.ts` usa
+  `mapCategory()`, que se sacó de `lib/shopify/index.ts` a
+  `lib/product-category.ts` para poder compartirla con un componente de
+  cliente. Con dos tablas, el día que Shopify devuelva un `productType` nuevo
+  la misma gorra saldría en Accesorios en el catálogo y en otra zona aquí.
+  Un `productType` desconocido cae en la vitrina, nunca en Sneakers: meterlo en
+  Sneakers sería afirmar que es calzado sin saberlo.
+- **El año que se muestra es de ADQUISICIÓN, no de lanzamiento.** Shopify no
+  guarda cuándo salió al mercado un modelo, y `publishedAt` es cuándo LAMK lo
+  publicó en SU tienda. Etiquetar eso como "lanzamiento" sería inventar un dato.
+- **`next/image`, no `<img>` crudo.** Las fotos del catálogo son PNG de hasta
+  **3.6 MB** y la rejilla anterior de la Bóveda las servía en tamaño completo
+  para mostrarlas a ~200px. Además la CSP manda las imágenes por el optimizador
+  de Next (mismo origen), que es como ya las cargaba el catálogo — un `<img>`
+  apuntando al CDN se queda en blanco.
+- **`whileInView` fue un error aquí**: la Zona C nacía debajo del pliegue y se
+  quedaba en `opacity: 0` hasta que alguien scrolleara. El resto de la Bóveda
+  usa `animate="show"`; se unificó.
+
+### `/profile/[username]` redirige, y `mock-users.ts` murió
+
+En vez de "conectarla a Postgres" como una segunda vista, `/profile/[username]`
+ahora hace `permanentRedirect` (308) a `/vault/@usuario`. El perfil público real
+ya existe ahí, y **no solo lee datos: aplica el modelo de privacidad completo**
+(visibilidad según relación, bloqueos en ambos sentidos, reglas de menores,
+vista conservadora forzada cuando la visita viene de un QR). Reimplementar eso
+aquí serían dos superficies obligadas a aplicar las mismas reglas — y el día que
+una cambie y la otra no, la que se quede atrás filtra la bóveda de alguien.
+
+Con esto se cierra la **deuda técnica #2**: ya no queda ningún archivo del
+proyecto sirviendo datos inventados a una pantalla real.
+
+### Vercel Analytics llevaba desde la Fase 5 sin registrar un solo evento
+
+Encontrado por una línea roja en la consola, no por el código: la CSP de la
+Fase 1 dejaba `script-src` en `'self'`, así que el navegador **rechazaba el
+loader de Vercel Analytics**. Todo el embudo de compra, los clics de carrusel
+por posición y las búsquedas que la Fase 5 dejó instrumentados nunca se
+enviaron. Se abrieron los dos hosts que usa (`va.vercel-scripts.com` para el
+script, `vitals.vercel-insights.com` para los eventos) y nada más.
+
+**Lección para la próxima:** instrumentar analítica y no verificar en el
+navegador que el script CARGA deja un sistema que se ve completo en el código y
+está muerto en producción.
+
+### Rate limiting: dos huecos de los cuatro caminos críticos
+
+- **`/api/cart/checkout`** no tenía tope. Cada llamada crea un carrito REAL en
+  Shopify: sin límite, una sola IP puede quemar la cuota de API de la tienda y
+  dejar sin poder pagar a los clientes reales. 20 / 10 min.
+- **`/api/social/profile/[username]`** tampoco. Responde por username, así que
+  sin tope es una máquina de ENUMERAR handles: los 404 contra los 200 dibujan
+  la lista de quién tiene cuenta. El archivo ya cuidaba no delatar la diferencia
+  entre "no existe" y "es privado" — el límite es la otra mitad de esa misma
+  protección. 60 / 5 min.
+
+OTP y login ya estaban cubiertos desde la Fase 1.
+
+### Modal de bienvenida (`components/ui/WelcomeModal.tsx`)
+
+TENISIN festejando a la izquierda, beneficios reales y CTA a la derecha
+(referencia de estructura que trajo el cliente: el modal de membresía de Nike).
+La animación se "forma desde las esquinas": cuatro escuadras entran desde fuera
+de pantalla por su diagonal, se clavan en las esquinas, y el panel se abre entre
+ellas con un `clip-path` desde el centro.
+
+- **No se muestra a quien ya inició sesión** — invita a hacerse miembro.
+- **Espera a que el banner de privacidad esté contestado.** Su condición real
+  son DOS decisiones (`noticeSeen && analyticsDecided`); mirar solo la primera
+  hacía que el modal se abriera encima del aviso legal, que es justo el patrón
+  oscuro que el propio aviso dice no practicar. Se reusa `getAnalyticsConsent()`
+  en vez de leer otra clave a mano.
+- Una vez por sesión (`sessionStorage`, no `localStorage`), Escape cierra, foco
+  al botón de cerrar, y sin animación con `prefers-reduced-motion`.
+- **La imagen es `tenisin-happy.webp`, la que ya existía.** No se generó una
+  nueva: la cuenta de Higgsfield está sin créditos. El copy no promete nada que
+  el sitio no haga hoy (bóveda real, serial del webhook, Collector Pass con QR).
+
+### Estado de la suite
+
+`npm run test`: **117 pruebas en 13 archivos** (antes 59 en 9). Nuevas:
+`shopify/webhook.test.ts` (6, con regresión del fail-closed),
+`vault-zones.test.ts` (11), sliding-window y opciones de cookie en
+`session.test.ts` (5), y el término de velocidad en `hype.test.ts`.
+
+### Lo que sigue pendiente (no se tocó)
+
+1. **Dar de alta el webhook en Shopify.** El código está listo y probado, pero
+   nadie lo ha conectado: Shopify Admin › Configuración › Notificaciones ›
+   Webhooks, evento "Pedido pagado" (`orders/paid`), formato JSON, URL
+   `https://<dominio>/api/webhooks/shopify/orders-paid`, y copiar el secreto
+   que muestra Shopify a `SHOPIFY_WEBHOOK_SECRET` en Vercel. **Hasta que eso
+   pase, el endpoint responde 503 y el término de velocidad del Índice sigue
+   en 0** — no porque falte código, sino porque no hay quien le hable.
+2. Login social sin probar end-to-end (faltan credenciales de Google/Apple).
+3. `SHOPIFY_ADMIN_API_ACCESS_TOKEN` sin configurar: el margen, el capital
+   inmovilizado y el tier en perfiles públicos se degradan a "—".
+4. WhatsApp/Meta sin credenciales: el OTP sigue en modo desarrollo.
+5. Rate limiting sigue en memoria por instancia, no distribuido.
+6. Next.js 14 con 3 vulnerabilidades high (requiere migrar a v16, breaking).
+7. CSP sin nonces.
+
+### Reclamos de compra manual (quedaba sin documentar)
+
+`api/vault/claims` + `api/admin/vault-claims` + `VaultClaimsPanel.tsx` +
+`lib/vault-claims.ts`: un cliente registra una compra anterior y un admin la
+aprueba. Existía en el código desde el commit `6961815` pero nunca se escribió
+aquí. Las piezas aprobadas se marcan `source: 'manual'` y **no reciben número
+de serie ni insignia de rareza** — sin pedido real detrás no se puede verificar
+ni escasez ni autenticidad, así que llevan una insignia distinta ("Aprobada por
+admin") que no se debe confundir con "Autenticidad verificada".

@@ -8,6 +8,6 @@ import { getHiddenProductIds } from '@/lib/inventory-store';
 
 export async function GET() {
   const { products } = await getCatalogLive({ includeHidden: true });
-  const hidden = getHiddenProductIds();
+  const hidden = await getHiddenProductIds();
   return NextResponse.json({ products, hidden });
 }

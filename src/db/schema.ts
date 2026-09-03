@@ -12,7 +12,7 @@
 // proyecto vía getCustomerProfile()). Así no se duplica ni se desincroniza
 // la identidad real del cliente.
 
-import { pgTable, text, timestamp, boolean, integer, date, primaryKey, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, date, numeric, jsonb, primaryKey, index, uniqueIndex } from 'drizzle-orm/pg-core';
 
 // Perfil social — uno por cliente que haya activado alguna función social.
 // No existe fila = la persona nunca activó nada social, tratar como
@@ -103,8 +103,27 @@ export const vaultItems = pgTable('vault_items', {
   imageUrl: text('image_url').notNull(),
   note: text('note'), // texto libre opcional del dueño
   addedAt: timestamp('added_at').notNull().defaultNow(),
+
+  // --- Añadido con el webhook orders/paid (2026-09-02) ---
+  // Número de serie ESTABLE, asignado una sola vez en el momento de la
+  // compra. Antes el serial se calculaba al vuelo en getCustomerProfile()
+  // como , es decir a partir de la POSICIÓN de la
+  // pieza en el arreglo de pedidos: comprar un par más le cambiaba el
+  // número de serie a piezas que el cliente ya tenía. Un serial que cambia
+  // no es un serial. Null en piezas registradas antes de esto y en las
+  // declaradas a mano (vault_purchase_claims), que nunca tuvieron uno.
+  serialNumber: text('serial_number'),
+  // GID del pedido de Shopify que trajo esta pieza. Es la clave de
+  // idempotencia: Shopify REINTENTA los webhooks (hasta 19 veces en 48h si
+  // no recibe 200), así que sin esto un solo pedido podía sembrar la misma
+  // pieza varias veces en la bóveda. Null = pieza agregada a mano por el
+  // dueño, no vino de un pedido.
+  orderId: text('order_id'),
 }, (table) => ({
   customerIdx: index('vault_items_customer_idx').on(table.customerId),
+  // Un pedido no puede traer dos veces la misma pieza para el mismo dueño.
+  // Es lo que hace que el reintento de Shopify sea inofensivo.
+  orderProductUnique: uniqueIndex('vault_items_order_product_idx').on(table.orderId, table.productId, table.customerId),
 }));
 
 // --- Añadido en Fase A (auditoría "Prompt Maestro v4", 2026-08-29) ---
@@ -138,10 +157,20 @@ export const productEvents = pgTable('product_events', {
   id: text('id').primaryKey(), // uuid generado en la app
   productId: text('product_id').notNull(), // GID de Shopify Product
   type: text('type', { enum: ['view', 'cart', 'wishlist', 'sale'] }).notNull(),
+  // Clave de deduplicación (2026-09-02, con el webhook orders/paid). Shopify
+  // REINTENTA los webhooks, y sin esto cada reintento del mismo pedido volvía
+  // a insertar sus ventas: el término de velocidad del Índice se inflaba solo,
+  // sin que hubiera vendido nada más. Para ventas vale
+  // `<pedido>#<producto>#<unidad>`; para vistas/carrito/wishlist va NULL, y en
+  // Postgres los NULL no chocan entre sí en un índice único, así que esos
+  // eventos se siguen registrando todas las veces (que es lo correcto: ver un
+  // producto diez veces SON diez vistas).
+  dedupeKey: text('dedupe_key'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (table) => ({
   productTypeIdx: index('product_events_product_type_idx').on(table.productId, table.type),
   createdAtIdx: index('product_events_created_at_idx').on(table.createdAt),
+  dedupeIdx: uniqueIndex('product_events_dedupe_idx').on(table.dedupeKey),
 }));
 
 // Vinculación de cuentas OAuth (Google/Apple) a la cuenta real de Shopify
@@ -253,3 +282,113 @@ export const vaultPurchaseClaims = pgTable('vault_purchase_claims', {
   customerIdx: index('vault_purchase_claims_customer_idx').on(table.customerId),
   statusIdx: index('vault_purchase_claims_status_idx').on(table.status),
 }));
+
+// ---------------------------------------------------------------------------
+// Migración de los 5 stores de filesystem (2026-09-02)
+//
+// Estas 6 tablas reemplazan a `data/*.json` + `fs.writeFileSync`. El motivo no
+// es estética: el filesystem de una función serverless de Vercel es efímero y
+// no se comparte entre instancias, así que cada venta en piso, apartado, lead
+// de TENISIN o reseña podía desaparecer sin dejar rastro ni error — el
+// `catch` de los stores viejos escribía a consola y devolvía `[]`, que desde
+// la UI se lee igual que "todavía no hay nada".
+//
+// Dinero: `numeric(12,2)`, nunca float. Drizzle devuelve numeric como string,
+// y cada store lo convierte a `number` en la frontera para no cambiar el
+// contrato de los tipos en src/types/admin.ts (que ya eran `number`).
+// ---------------------------------------------------------------------------
+
+// Ventas en piso / deudas (antes data/offline-sales.json).
+export const offlineSales = pgTable('offline_sales', {
+  id: text('id').primaryKey(),
+  customerName: text('customer_name').notNull(),
+  customerPhone: text('customer_phone').notNull(),
+  itemsSummary: text('items_summary').notNull(),
+  totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull(),
+  amountPaid: numeric('amount_paid', { precision: 12, scale: 2 }).notNull(),
+  pendingBalance: numeric('pending_balance', { precision: 12, scale: 2 }).notNull(),
+  dueDate: date('due_date').notNull(),
+  paymentStatus: text('payment_status', { enum: ['PAID', 'PARTIAL_DEBT', 'OVERDUE'] }).notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  createdIdx: index('offline_sales_created_idx').on(table.createdAt),
+}));
+
+// Apartados capturados por TENISIN (antes data/layaway.json).
+//
+// `paymentNotes` va en jsonb y no en tabla aparte a propósito: es un historial
+// que solo se lee completo junto con su apartado, nunca se consulta ni agrega
+// por sí solo. El append se hace con el operador `||` de jsonb en SQL (ver
+// addPaymentNote), así que dos abonos simultáneos no se pisan — que era el
+// único motivo real para normalizarlo.
+export const layawayReservations = pgTable('layaway_reservations', {
+  id: text('id').primaryKey(),
+  productId: text('product_id').notNull(),
+  productTitle: text('product_title').notNull(),
+  productImage: text('product_image').notNull().default(''),
+  requestedSize: text('requested_size').notNull().default('N/A'),
+  totalPrice: numeric('total_price', { precision: 12, scale: 2 }).notNull(),
+  percentage: integer('percentage').notNull(),
+  depositAmount: numeric('deposit_amount', { precision: 12, scale: 2 }).notNull(),
+  hypeScore: integer('hype_score').notNull().default(0),
+  customerPhone: text('customer_phone').notNull(),
+  note: text('note').notNull().default(''),
+  paymentNotes: jsonb('payment_notes').notNull().default([]),
+  status: text('status', { enum: ['PENDING', 'CONTACTED', 'CONFIRMED', 'CANCELLED'] }).notNull().default('PENDING'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  phoneIdx: index('layaway_phone_idx').on(table.customerPhone),
+  statusIdx: index('layaway_status_idx').on(table.status),
+}));
+
+// Peticiones de demanda de TENISIN (antes data/leads.json).
+export const productDemandRequests = pgTable('product_demand_requests', {
+  id: text('id').primaryKey(),
+  productId: text('product_id').notNull(),
+  productTitle: text('product_title').notNull(),
+  requestedSize: text('requested_size').notNull().default('N/A'),
+  customerPhone: text('customer_phone').notNull().default(''),
+  customerEmail: text('customer_email').notNull().default(''),
+  notified: boolean('notified').notNull().default(false),
+  rawQuery: text('raw_query').notNull().default(''),
+  // Señal real de demanda insatisfecha: false = TENISIN no encontró el
+  // producto. Es la fuente de "Demanda no atendida" en /admin/clientes.
+  wasMatched: boolean('was_matched').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  matchedIdx: index('demand_matched_idx').on(table.wasMatched),
+}));
+
+// Reseñas con compra verificada (antes data/reviews.json).
+// `customerId` es único: un cliente, una reseña — al dejar otra se reemplaza,
+// que es la regla que ya aplicaba el store viejo al filtrar antes de escribir.
+export const verifiedReviews = pgTable('verified_reviews', {
+  id: text('id').primaryKey(),
+  customerId: text('customer_id').notNull().unique(),
+  customerName: text('customer_name').notNull(),
+  rating: integer('rating').notNull(),
+  text: text('text').notNull(),
+  photoUrl: text('photo_url'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Productos reales de Shopify que el admin ocultó del catálogo PWA
+// (antes data/hidden-products.json). No se borra nada en Shopify — RF-3.2.
+export const hiddenProducts = pgTable('hidden_products', {
+  productId: text('product_id').primaryKey(),
+  hiddenAt: timestamp('hidden_at').notNull().defaultNow(),
+});
+
+// Borradores de producto capturados en el admin, en espera de que el token
+// de Shopify tenga write_products (antes data/product-drafts.json).
+export const productDrafts = pgTable('product_drafts', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  brand: text('brand').notNull(),
+  category: text('category', { enum: ['SNEAKERS', 'APPAREL', 'ACCESSORIES', 'COLLECTIBLES', 'JEWELRY'] }).notNull(),
+  price: numeric('price', { precision: 12, scale: 2 }).notNull(),
+  sizeOptions: text('size_options').notNull().default(''),
+  description: text('description').notNull().default(''),
+  imageUrl: text('image_url').notNull().default(''),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});

@@ -33,13 +33,27 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // Exportada (no solo interna) porque lib/wishlist.ts también la necesita
 // para registrar el evento 'wishlist' — un solo lugar que escribe en
 // product_events, nunca un insert duplicado a mano en otro archivo.
-export async function recordEvent(productId: string, type: 'view' | 'cart' | 'wishlist' | 'sale'): Promise<void> {
+// `dedupeKey` opcional: si se pasa y ya existe una fila con esa clave, no se
+// inserta nada. Lo usa el webhook orders/paid, porque Shopify reintenta y una
+// venta contada dos veces infla el Índice. Devuelve si REALMENTE se insertó,
+// para que quien llama pueda reportar números honestos.
+export async function recordEvent(
+  productId: string,
+  type: 'view' | 'cart' | 'wishlist' | 'sale',
+  dedupeKey?: string
+): Promise<boolean> {
   try {
-    await getDb().insert(productEvents).values({ id: randomUUID(), productId, type });
+    const rows = await getDb()
+      .insert(productEvents)
+      .values({ id: randomUUID(), productId, type, dedupeKey: dedupeKey ?? null })
+      .onConflictDoNothing()
+      .returning({ id: productEvents.id });
+    return rows.length > 0;
   } catch (err) {
     // Nunca tirar la carga de la página por un fallo al registrar el
     // evento — mismo principio que el resto del sitio con IO no crítico.
     console.error(`No se pudo registrar evento "${type}" para ${productId}:`, err);
+    return false;
   }
 }
 
@@ -148,6 +162,13 @@ const CART_7D_CAP = 20;
 // a la wishlist es una acción más barata/impulsiva que meterlo al carrito,
 // así que hacen falta más eventos para decir lo mismo sobre la demanda.
 const WISHLIST_7D_CAP = 30;
+// Fix (webhook orders/paid, 2026-09-02): el término de velocidad deja de
+// estar reservado en 0 — ya existe señal real de venta ('sale' en
+// product_events, sembrada por el webhook). Cap por 30 días y no por 7 como
+// los demás: una venta es un evento mucho más raro que una vista o un
+// carrito, y en 7 días casi cualquier producto daría 0 y arrastraría el
+// índice hacia abajo por falta de ventana, no por falta de demanda.
+const SALES_30D_CAP = 10;
 
 // Función pura — separada de la IO de arriba a propósito, mismo patrón que
 // computeHypeMeter, para poder probarla sin una base de datos real.
@@ -155,7 +176,7 @@ export function computeHypeIndexFromCounts(counts: {
   views7d: number;
   cart7d: number;
   wishlist7d?: number;
-  velocity30d?: number; // siempre 0 hasta que exista el webhook de Shopify (deuda técnica documentada en CLAUDE.md)
+  velocity30d?: number; // ventas reales en 30 días — lo siembra el webhook orders/paid
 }): { score: number; sampleSize: number } {
   const { views7d, cart7d, wishlist7d = 0, velocity30d = 0 } = counts;
   const sampleSize = views7d + cart7d + wishlist7d + velocity30d;
@@ -163,7 +184,7 @@ export function computeHypeIndexFromCounts(counts: {
   const viewsScore = Math.min(100, (views7d / VIEWS_7D_CAP) * 100);
   const cartScore = Math.min(100, (cart7d / CART_7D_CAP) * 100);
   const wishlistScore = Math.min(100, (wishlist7d / WISHLIST_7D_CAP) * 100);
-  const velocityScore = 0; // reservado — ver comentario arriba
+  const velocityScore = Math.min(100, (velocity30d / SALES_30D_CAP) * 100);
 
   const score = 0.3 * viewsScore + 0.25 * cartScore + 0.25 * wishlistScore + 0.2 * velocityScore;
 
@@ -172,10 +193,12 @@ export function computeHypeIndexFromCounts(counts: {
 
 export async function computeHypeIndex(productId: string): Promise<{ score: number; sampleSize: number }> {
   const WEEK_MS = 7 * DAY_MS;
-  const [views7d, cart7d, wishlist7d] = await Promise.all([
+  const MONTH_MS = 30 * DAY_MS;
+  const [views7d, cart7d, wishlist7d, velocity30d] = await Promise.all([
     countEvents(productId, 'view', WEEK_MS),
     countEvents(productId, 'cart', WEEK_MS),
     countEvents(productId, 'wishlist', WEEK_MS),
+    countEvents(productId, 'sale', MONTH_MS),
   ]);
-  return computeHypeIndexFromCounts({ views7d, cart7d, wishlist7d });
+  return computeHypeIndexFromCounts({ views7d, cart7d, wishlist7d, velocity30d });
 }

@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getLeads, addLead, updateLead, deleteLead } from '@/lib/leads-store';
 
 export async function GET() {
-  return NextResponse.json({ leads: getLeads() });
+  return NextResponse.json({ leads: await getLeads() });
 }
 
 export async function POST(request: Request) {
@@ -12,20 +12,20 @@ export async function POST(request: Request) {
   if (!body.productId || !body.productTitle || !body.rawQuery || typeof body.wasMatched !== 'boolean') {
     return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
   }
-  const lead = addLead(body);
+  const lead = await addLead(body);
   return NextResponse.json({ lead });
 }
 
 export async function PATCH(request: Request) {
   const { id, patch } = await request.json();
   if (!id) return NextResponse.json({ error: 'id es obligatorio' }, { status: 400 });
-  updateLead(id, patch || {});
+  await updateLead(id, patch || {});
   return NextResponse.json({ success: true });
 }
 
 export async function DELETE(request: Request) {
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: 'id es obligatorio' }, { status: 400 });
-  deleteLead(id);
+  await deleteLead(id);
   return NextResponse.json({ success: true });
 }

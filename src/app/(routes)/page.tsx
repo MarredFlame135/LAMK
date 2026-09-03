@@ -13,6 +13,7 @@
 import React from 'react';
 import { HeroSection } from '@/components/home/HeroSection';
 import { HypeMarquee } from '@/components/home/HypeMarquee';
+import { AnatomySequence } from '@/components/home/AnatomySequence';
 import { VolumetricShowcase } from '@/components/home/VolumetricShowcase';
 import { DropsCoverflow } from '@/components/home/DropsCoverflow';
 import { HypeCarousel } from '@/components/home/HypeCarousel';
@@ -36,12 +37,26 @@ export default async function HomePage() {
   // Fuente única de verdad: catálogo real de Shopify, con fallback a mock si falla.
   const { products } = await getCatalogLive();
 
+  // Número de día (días desde 1970). Se calcula AQUÍ, en el servidor, y baja
+  // como prop: el carrusel lo usa para rotar la selección mientras no haya
+  // Hype real. Si cada lado leyera el reloj por su cuenta, cerca de la
+  // medianoche servidor y cliente elegirían días distintos y React tiraría la
+  // hidratación. Con `revalidate = 60` el valor se refresca solo.
+  const daySeed = Math.floor(Date.now() / 86400000);
+
   return (
     <div className="bg-background text-foreground min-h-screen">
       <HeroSection />
       <HypeMarquee />
       <VolumetricShowcase products={products} />
-      <DropsCoverflow products={products} />
+      {/* Secuencia de despiece atada al scroll: le pone imagen a la promesa
+          de autenticidad que hasta ahora solo estaba escrita en la ficha de
+          producto. Va justo después del showcase y antes de los drops, que
+          es donde el visitante ya vio producto y todavía no vio por qué
+          debería confiar en que es legítimo. */}
+      <AnatomySequence />
+
+      <DropsCoverflow products={products} daySeed={daySeed} />
       <HypeCarousel products={products} />
 
       {/* Tarea 3: fondo macro atado al scroll, envolviendo el Lookbook */}

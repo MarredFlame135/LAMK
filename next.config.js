@@ -15,13 +15,28 @@
 // para las texturas de Higgsfield.
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Vercel Analytics (agregado 2026-09-02). Se instaló en la Fase 5 y NUNCA
+// llegó a cargar: la CSP de la Fase 1 dejaba script-src en 'self', así que el
+// navegador rechazaba su loader ("Refused to load the script
+// 'https://va.vercel-scripts.com/...'") en silencio, salvo por una línea roja
+// en la consola. Es decir, todo el embudo de compra, los clics de carrusel
+// por posición y las búsquedas que esa fase dejó instrumentados llevaban
+// desde entonces sin registrar un solo evento.
+//
+// Se abren los dos hosts que usa, y nada más: el loader del script y el
+// endpoint al que manda los eventos. En un deploy de Vercel los eventos van
+// por /_vercel/insights (mismo origen, ya cubierto por 'self'); el host de
+// vitals hace falta fuera de ese camino.
+const VERCEL_ANALYTICS_SCRIPT = 'https://va.vercel-scripts.com';
+const VERCEL_ANALYTICS_ENDPOINT = 'https://vitals.vercel-insights.com';
+
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  `script-src 'self' 'unsafe-inline' ${VERCEL_ANALYTICS_SCRIPT}${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https://cdn.shopify.com https://images.unsplash.com https://lookatmykicksmx.com",
   "font-src 'self' data:",
-  "connect-src 'self'",
+  `connect-src 'self' ${VERCEL_ANALYTICS_ENDPOINT}`,
   "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",

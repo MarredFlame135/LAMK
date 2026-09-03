@@ -10,6 +10,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeUp, staggerContainer } from '@/lib/motion';
 import { haptics } from '@/lib/haptics';
+import { VaultZones } from './VaultZones';
+import { CollectionItem } from '@/types/user';
 
 const GOLD = '#C5A059';
 const CRIMSON = '#FF1E42';
@@ -20,7 +22,15 @@ interface PublicVaultContentProps {
   tier?: string;
   bio: string | null;
   followerCount: number | null;
-  vault: { id: string; title: string; imageUrl: string; note: string | null }[];
+  vault: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    note: string | null;
+    productId: string | null;
+    serialNumber: string | null;
+    category: string;
+  }[];
   isOwner: boolean;
   viewerLoggedIn: boolean;
 }
@@ -28,6 +38,24 @@ interface PublicVaultContentProps {
 export function PublicVaultContent({ handle, serial, tier, bio, followerCount, vault, isOwner, viewerLoggedIn }: PublicVaultContentProps) {
   const [followState, setFollowState] = useState<'idle' | 'following' | 'pending'>('idle');
   const [followBusy, setFollowBusy] = useState(false);
+
+  // Las piezas públicas traducidas a la forma que consumen las zonas. Los
+  // campos que esta vista NO conoce se dejan neutros a propósito, nunca
+  // rellenados: sin fecha de compra no se muestra año, y la rareza se manda
+  // en COMMON (que es "sin insignia") en vez de calcularse aquí — el estado
+  // de escasez de un producto no es asunto de la bóveda de otra persona.
+  const publicCollection: CollectionItem[] = vault.map((v) => ({
+    id: v.id,
+    sneakerTitle: v.title,
+    sku: '',
+    serialNumber: v.serialNumber || '',
+    purchaseDate: '',
+    imageUrl: v.imageUrl,
+    category: v.category,
+    rarity: 'COMMON',
+  }));
+
+  const notes = vault.filter((v) => v.note);
 
   const handleFollow = async () => {
     if (!viewerLoggedIn) {
@@ -85,28 +113,28 @@ export function PublicVaultContent({ handle, serial, tier, bio, followerCount, v
         </div>
       </motion.div>
 
-      {/* Bóveda curada */}
-      <motion.div variants={fadeUp} className="bg-card border border-border rounded-xl p-6 space-y-3">
-        <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// BÓVEDA ({vault.length})</h3>
+      {/* Bóveda curada — mismas tres zonas que la bóveda propia (/vault),
+          para que un coleccionista reconozca el mismo closet cuando visita el
+          de alguien más. La nota libre del dueño se conserva: es lo único que
+          esta vista tiene y la propia no. */}
+      <motion.div variants={fadeUp} className="bg-card border border-border rounded-xl p-6 space-y-4">
+        <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// EL CLOSET ({vault.length})</h3>
         {vault.length === 0 ? (
           <div className="p-8 border border-dashed border-border rounded-lg text-center">
             <p className="text-muted-foreground text-xs">Esta bóveda todavía no tiene piezas públicas.</p>
           </div>
         ) : (
-          <motion.div variants={staggerContainer(0.05)} className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {vault.map((item) => (
-              <motion.div key={item.id} variants={fadeUp} className="bg-muted border border-border/60 rounded-xl overflow-hidden">
-                <div className="aspect-square bg-black">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-2.5">
-                  <h4 className="text-[11px] font-bold line-clamp-1 uppercase text-foreground">{item.title}</h4>
-                  {item.note && <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">{item.note}</p>}
-                </div>
-              </motion.div>
+          <VaultZones collection={publicCollection} />
+        )}
+        {notes.length > 0 && (
+          <div className="pt-1 space-y-1.5 border-t border-border/60">
+            <h4 className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest pt-3">// Notas del coleccionista</h4>
+            {notes.map((n) => (
+              <p key={n.id} className="text-[10px] text-muted-foreground">
+                <span className="text-foreground font-bold uppercase">{n.title}:</span> {n.note}
+              </p>
             ))}
-          </motion.div>
+          </div>
         )}
       </motion.div>
 

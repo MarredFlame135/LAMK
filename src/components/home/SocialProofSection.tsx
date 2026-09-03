@@ -23,7 +23,7 @@ interface SocialProofSectionProps {
   products: Product[];
 }
 
-export function SocialProofSection({ products }: SocialProofSectionProps) {
+export async function SocialProofSection({ products }: SocialProofSectionProps) {
   const galleryItems: GalleryItem[] = products.slice(0, 8).map((p) => ({
     id: p.id,
     image: p.images[0] || '/placeholder-sneaker.svg',
@@ -32,7 +32,7 @@ export function SocialProofSection({ products }: SocialProofSectionProps) {
   }));
 
   // Solo reseñas reales de clientes con compra verificada — sin relleno ficticio.
-  const testimonials: TestimonialData[] = getReviews().map((r) => ({
+  const testimonials: TestimonialData[] = (await getReviews()).map((r) => ({
     id: r.id,
     name: r.customerName,
     quote: r.text,

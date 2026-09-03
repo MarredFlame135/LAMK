@@ -73,14 +73,33 @@ describe('computeHypeIndexFromCounts', () => {
     expect(score).toBe(55);
   });
 
-  it('vistas, carrito y wishlist al tope: score = 0.30*100 + 0.25*100 + 0.25*100 = 80 (velocidad sigue en 0, sin fuente de datos real todavía)', () => {
+  it('vistas, carrito y wishlist al tope, sin ventas: score = 0.30*100 + 0.25*100 + 0.25*100 = 80', () => {
     const { score } = computeHypeIndexFromCounts({ views7d: 150, cart7d: 20, wishlist7d: 30 });
     expect(score).toBe(80);
   });
 
-  it('el score nunca pasa de 80 hoy (velocidad de venta sigue reservada en 0, ver comentario en hype.ts)', () => {
+  // Antes de que existiera el webhook orders/paid este término estaba
+  // reservado en 0 y el tope real del índice era 80. Con ventas reales
+  // (product_events tipo 'sale') los cuatro términos ya tienen fuente y el
+  // índice puede llegar a 100 — que era el punto del hallazgo #2 de Fase A.
+  it('las ventas reales aportan su 20%: solo velocidad al tope da 20', () => {
+    const { score } = computeHypeIndexFromCounts({ views7d: 0, cart7d: 0, wishlist7d: 0, velocity30d: 10 });
+    expect(score).toBe(20);
+  });
+
+  it('las cuatro señales al tope dan 100 — el índice ya no está capado en 80', () => {
+    const { score } = computeHypeIndexFromCounts({ views7d: 150, cart7d: 20, wishlist7d: 30, velocity30d: 10 });
+    expect(score).toBe(100);
+  });
+
+  it('el score nunca pasa de 100 por más ventas que haya', () => {
     const { score } = computeHypeIndexFromCounts({ views7d: 99999, cart7d: 99999, wishlist7d: 99999, velocity30d: 99999 });
-    expect(score).toBeLessThanOrEqual(80);
+    expect(score).toBeLessThanOrEqual(100);
+  });
+
+  it('las ventas cuentan en el tamaño de muestra (un producto que vende sí tiene datos)', () => {
+    const { sampleSize } = computeHypeIndexFromCounts({ views7d: 10, cart7d: 5, wishlist7d: 0, velocity30d: 40 });
+    expect(sampleSize).toBe(55);
   });
 
   it('el score nunca es negativo', () => {

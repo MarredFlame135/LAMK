@@ -1,0 +1,6 @@
+# El video fuente del despiece (Higgsfield, 8 MB) se guarda aquí para poder
+# regenerar los fotogramas con scripts/anatomy-frames.sh, pero NO se commitea:
+# los assets que el sitio realmente usa ya están en public/assets/anatomy/.
+# Si necesitas este archivo y no lo tienes, hay que volver a generarlo — ver la
+# sección "Secuencia de despiece en Home" de CLAUDE.md para el prompt exacto.
+*.mp4

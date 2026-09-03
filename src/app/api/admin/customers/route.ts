@@ -26,8 +26,8 @@ export async function GET() {
     return [] as AdminCustomer[];
   });
 
-  const layaways = getLayaways();
-  const leads = getLeads();
+  const layaways = await getLayaways();
+  const leads = await getLeads();
   const knownPhones = new Set(shopifyCustomers.map((c) => c.phone).filter(Boolean));
 
   // Teléfonos que aparecen en apartados/leads pero sin cuenta Shopify conocida

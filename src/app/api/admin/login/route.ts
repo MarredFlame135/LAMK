@@ -1,7 +1,7 @@
 // src/app/api/admin/login/route.ts
 
 import { NextResponse } from 'next/server';
-import { signAdminSession } from '@/lib/session';
+import { signAdminSession, adminSessionCookieOptions, ADMIN_SESSION_COOKIE } from '@/lib/session';
 import { getAdminRole } from '@/lib/admin-access';
 import { loginCustomer } from '@/lib/shopify/customer';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -72,12 +72,8 @@ export async function POST(request: Request) {
 async function issueAdminSession(email: string, role: 'admin' | 'staff') {
   const token = await signAdminSession({ email, issuedAt: Date.now(), role });
   const response = NextResponse.json({ success: true });
-  response.cookies.set('lamk_admin_session', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 12, // 12 horas
-  });
+  // Atributos compartidos con el middleware (que re-firma esta misma cookie
+  // en el sliding window) y con logout — ver lib/session.ts.
+  response.cookies.set(ADMIN_SESSION_COOKIE, token, adminSessionCookieOptions());
   return response;
 }

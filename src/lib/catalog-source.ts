@@ -35,7 +35,7 @@ async function withRealHype(product: Product, views24h: number): Promise<Product
 // necesita ver también los productos desactivados para poder reactivarlos.
 export async function getCatalogLive(options: { includeHidden?: boolean } = {}): Promise<{ products: Product[]; source: 'shopify' | 'mock' }> {
   const viewsById = await getAllViews24h();
-  const hiddenIds = options.includeHidden ? new Set<string>() : new Set(getHiddenProductIds());
+  const hiddenIds = options.includeHidden ? new Set<string>() : new Set(await getHiddenProductIds());
   const applyFilters = (products: Product[]) =>
     Promise.all(products.filter((p) => !hiddenIds.has(p.id)).map((p) => withRealHype(p, viewsById[p.id] || 0)));
 
@@ -54,7 +54,7 @@ export async function getCatalogLive(options: { includeHidden?: boolean } = {}):
 }
 
 export async function getProductByHandleLive(handle: string): Promise<{ product: Product | null; source: 'shopify' | 'mock' }> {
-  const hiddenIds = new Set(getHiddenProductIds());
+  const hiddenIds = new Set(await getHiddenProductIds());
 
   if (hasShopifyCredentials) {
     try {

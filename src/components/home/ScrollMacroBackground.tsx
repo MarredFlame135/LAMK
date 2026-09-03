@@ -11,16 +11,36 @@
 //
 // Respeta prefers-reduced-motion: si el usuario lo pide, la textura queda
 // estática (sin rotar/escalar), solo visible como fondo.
+//
+// Fix de hidratación (2026-09-02, bug preexistente documentado en CLAUDE.md):
+// useReducedMotion() devuelve null en el servidor y el valor real en el
+// cliente, así que meter `prefersReducedMotion` directo en los rangos de
+// useTransform hacía que el `style` inicial NO coincidiera entre servidor y
+// cliente ("Prop `style` did not match"). Solo le pasaba a quien tuviera la
+// preferencia activada —que en Windows 11 es mucha más gente de la que uno
+// cree, ver la nota de la ronda 2 en CLAUDE.md— y era la misma familia de
+// error que ya había tumbado la hidratación completa de la home.
+//
+// Se aplica el patrón obligatorio del repo: los EFECTOS pueden leer la media
+// query cruda; lo que se RENDERIZA pasa por un valor gateado con `mounted`,
+// para que el primer render del cliente sea idéntico al del servidor y el
+// cambio ocurra después, ya montado.
 
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, useScroll, useTransform, useSpring, useReducedMotion } from 'framer-motion';
 
 export function ScrollMacroBackground({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  // En el servidor y en el PRIMER render del cliente esto es siempre false,
+  // así que los rangos de abajo salen idénticos en ambos lados.
+  const reducedUI = mounted && prefersReducedMotion;
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -29,9 +49,9 @@ export function ScrollMacroBackground({ children, className = '' }: { children: 
 
   const smoothProgress = useSpring(scrollYProgress, { stiffness: 60, damping: 20, mass: 0.5 });
 
-  const rotate = useTransform(smoothProgress, [0, 1], prefersReducedMotion ? [0, 0] : [-8, 8]);
-  const scale = useTransform(smoothProgress, [0, 0.5, 1], prefersReducedMotion ? [1.15, 1.15, 1.15] : [1.05, 1.25, 1.05]);
-  const translateY = useTransform(smoothProgress, [0, 1], prefersReducedMotion ? ['0%', '0%'] : ['-6%', '6%']);
+  const rotate = useTransform(smoothProgress, [0, 1], reducedUI ? [0, 0] : [-8, 8]);
+  const scale = useTransform(smoothProgress, [0, 0.5, 1], reducedUI ? [1.15, 1.15, 1.15] : [1.05, 1.25, 1.05]);
+  const translateY = useTransform(smoothProgress, [0, 1], reducedUI ? ['0%', '0%'] : ['-6%', '6%']);
   const opacity = useTransform(smoothProgress, [0, 0.15, 0.85, 1], [0, 0.4, 0.4, 0]);
 
   return (

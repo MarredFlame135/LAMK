@@ -6,7 +6,7 @@ import { getCustomerProfile } from '@/lib/shopify/customer';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET() {
-  return NextResponse.json({ reviews: getReviews() });
+  return NextResponse.json({ reviews: await getReviews() });
 }
 
 export async function POST(request: NextRequest) {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const review = addReview({
+  const review = await addReview({
     customerId: user.id,
     customerName: `${user.firstName} ${user.lastName[0] || ''}.`.trim(),
     rating: Math.max(1, Math.min(5, Number(rating))),

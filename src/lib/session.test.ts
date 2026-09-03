@@ -12,7 +12,7 @@
 // reimportar el módulo entre tests para que recoja cambios de env.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { signAdminSession, verifyAdminSession, getEffectiveRole } from './session';
+import { signAdminSession, verifyAdminSession, getEffectiveRole, shouldRefreshAdminSession, adminSessionCookieOptions } from './session';
 
 const ORIGINAL_SECRET = process.env.ADMIN_SESSION_SECRET;
 
@@ -99,5 +99,44 @@ describe('signAdminSession / verifyAdminSession', () => {
       const payload = await verifyAdminSession(token);
       expect(getEffectiveRole(payload!)).toBe('staff');
     });
+  });
+});
+
+// Sliding window (2026-09-02). El reporte era "al volver al menú de admin se
+// pierde la sesión". Se verificó que la cookie ya salía bien (Path=/, Secure,
+// HttpOnly, SameSite=lax) y que /admin responde 200 con ella tanto en dev
+// como en producción — el hueco real era que los 12h corrían desde el login,
+// no desde el último uso, así que el panel te sacaba a media jornada.
+describe('shouldRefreshAdminSession (sliding window)', () => {
+  it('no refresca una sesión recién emitida', () => {
+    expect(shouldRefreshAdminSession({ email: 'a@lamk.mx', issuedAt: Date.now() })).toBe(false);
+  });
+
+  it('no refresca antes de la hora', () => {
+    const issuedAt = Date.now() - 59 * 60 * 1000;
+    expect(shouldRefreshAdminSession({ email: 'a@lamk.mx', issuedAt })).toBe(false);
+  });
+
+  it('refresca pasada la hora', () => {
+    const issuedAt = Date.now() - 61 * 60 * 1000;
+    expect(shouldRefreshAdminSession({ email: 'a@lamk.mx', issuedAt })).toBe(true);
+  });
+
+  it('la sesión refrescada sigue siendo válida y conserva el rol sin elevarlo', async () => {
+    const viejo = { email: 'staff@lamk.mx', issuedAt: Date.now() - 2 * 60 * 60 * 1000, role: 'staff' as const };
+    expect(shouldRefreshAdminSession(viejo)).toBe(true);
+    const token = await signAdminSession({ ...viejo, issuedAt: Date.now() });
+    const payload = await verifyAdminSession(token);
+    expect(payload).not.toBeNull();
+    expect(getEffectiveRole(payload!)).toBe('staff');
+  });
+});
+
+describe('adminSessionCookieOptions', () => {
+  it('path raíz, httpOnly y sameSite lax — el middleware, el login y el logout comparten esto', () => {
+    const opts = adminSessionCookieOptions();
+    expect(opts.path).toBe('/');
+    expect(opts.httpOnly).toBe(true);
+    expect(opts.sameSite).toBe('lax');
   });
 });

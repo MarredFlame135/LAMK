@@ -82,7 +82,19 @@
 }
 
 html, body {
-  overflow-x: hidden;
+  /* `clip` y no `hidden` a propósito. Los dos cortan igual el desbordamiento
+     horizontal (que es para lo que estaba puesto: secciones anchas como el
+     marquee y el coverflow), pero `hidden` convierte al <body> en un
+     contenedor de scroll, y eso rompe `position: sticky` en todo lo que
+     cuelgue de él — el elemento se despega y se va con el scroll.
+     Se descubrió con la secuencia de despiece (AnatomySequence), que se
+     quedaba en negro a media sección; cualquier otra sección fija que se
+     construya en el futuro habría chocado con lo mismo.
+     `clip` no crea contenedor de scroll, así que sticky vuelve a funcionar.
+     Soporte: Chrome 90+, Safari 16+, Firefox 81+. En navegadores más viejos
+     `clip` se ignora y se cae a `visible` — el peor caso es una barra de
+     scroll horizontal, no una página rota. */
+  overflow-x: clip;
   max-width: 100vw;
 }
 
@@ -131,4 +143,23 @@ body {
 @keyframes slideInDrawer {
   from { transform: translateX(100%); }
   to { transform: translateX(0); }
+}
+
+/* Entrada del texto de cada beat de la secuencia de despiece
+   (AnatomySequence). Es CSS y no framer-motion a propósito: son 3 cambios en
+   toda la sección, no una animación continua — no vale montar un
+   AnimatePresence para eso. */
+@keyframes anatomyBeatIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.anatomy-beat {
+  /* Misma curva que EASE_LUXURY en src/lib/motion.ts — la firma de
+     movimiento del sitio también aplica cuando la animación es CSS. */
+  animation: anatomyBeatIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anatomy-beat { animation: none; }
 }

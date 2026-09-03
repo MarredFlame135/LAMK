@@ -14,7 +14,14 @@
 // es la única barrera, así que el matcher DEBE incluir ambos prefijos.
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAdminSession, getEffectiveRole } from '@/lib/session';
+import {
+  verifyAdminSession,
+  getEffectiveRole,
+  signAdminSession,
+  shouldRefreshAdminSession,
+  adminSessionCookieOptions,
+  ADMIN_SESSION_COOKIE,
+} from '@/lib/session';
 
 // Únicas rutas de /api/admin/* que deben quedar abiertas sin sesión: login
 // (es el propio punto de entrada) y logout (siempre debe poder limpiar la
@@ -26,7 +33,7 @@ const PUBLIC_ADMIN_API_ROUTES = new Set(['/api/admin/login', '/api/admin/logout'
 // requieren rol 'admin' completo — cualquier ruta de /admin*//api/admin*
 // que NO esté en esta lista queda abierta a cualquier rol autenticado
 // (el default es permisivo entre roles válidos, restrictivo solo contra
-// quien no tiene sesión — eso ya lo cubre `needsSession` de arriba).
+// quien no tiene sesión — eso ya lo cubre `needsSession` de abajo).
 const ADMIN_ONLY_PREFIXES = ['/admin/finanzas', '/admin/clientes', '/api/admin/customers'];
 
 function isAdminOnlyPath(pathname: string): boolean {
@@ -43,33 +50,45 @@ export async function middleware(request: NextRequest) {
 
   const needsSession = (isAdminPage && !isLoginPage) || (isAdminApi && !isPublicAdminApi);
 
-  if (needsSession) {
-    const token = request.cookies.get('lamk_admin_session')?.value;
-    const session = await verifyAdminSession(token);
+  if (!needsSession) return NextResponse.next();
 
-    if (!session) {
-      if (isAdminApi) {
-        return NextResponse.json({ error: 'No autorizado. Inicia sesión como administrador.' }, { status: 401 });
-      }
-      const loginUrl = new URL('/admin/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = await verifyAdminSession(token);
 
-    // Fase D.7: rol 'staff' no entra a finanzas/clientes — ni la página ni
-    // el endpoint que la alimenta, la misma barrera centralizada de
-    // siempre, nunca confiada solo a que la UI oculte el link.
-    if (isAdminOnlyPath(pathname) && getEffectiveRole(session) !== 'admin') {
-      if (isAdminApi) {
-        return NextResponse.json({ error: 'Tu rol (staff) no tiene acceso a esta sección.' }, { status: 403 });
-      }
-      const url = new URL('/admin', request.url);
-      url.searchParams.set('denied', pathname);
-      return NextResponse.redirect(url);
+  if (!session) {
+    if (isAdminApi) {
+      return NextResponse.json({ error: 'No autorizado. Inicia sesión como administrador.' }, { status: 401 });
     }
+    const loginUrl = new URL('/admin/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // Fase D.7: rol 'staff' no entra a finanzas/clientes — ni la página ni
+  // el endpoint que la alimenta, la misma barrera centralizada de
+  // siempre, nunca confiada solo a que la UI oculte el link.
+  if (isAdminOnlyPath(pathname) && getEffectiveRole(session) !== 'admin') {
+    if (isAdminApi) {
+      return NextResponse.json({ error: 'Tu rol (staff) no tiene acceso a esta sección.' }, { status: 403 });
+    }
+    const url = new URL('/admin', request.url);
+    url.searchParams.set('denied', pathname);
+    return NextResponse.redirect(url);
+  }
+
+  const response = NextResponse.next();
+
+  // Sliding window (ver shouldRefreshAdminSession en lib/session.ts): mientras
+  // la persona siga usando el panel, la sesión se renueva sola. Sin esto
+  // moría 12h después del login aunque estuviera a media captura de una venta.
+  // El rol se re-firma tal cual venía — este refresco NUNCA debe poder elevar
+  // de 'staff' a 'admin', solo extender lo que ya se había otorgado.
+  if (shouldRefreshAdminSession(session)) {
+    const refreshed = await signAdminSession({ ...session, issuedAt: Date.now() });
+    response.cookies.set(ADMIN_SESSION_COOKIE, refreshed, adminSessionCookieOptions());
+  }
+
+  return response;
 }
 
 export const config = {

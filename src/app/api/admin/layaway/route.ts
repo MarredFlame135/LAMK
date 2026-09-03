@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getLayaways, addLayaway, updateLayaway, deleteLayaway, addPaymentNote } from '@/lib/layaway-store';
 
 export async function GET() {
-  return NextResponse.json({ layaways: getLayaways() });
+  return NextResponse.json({ layaways: await getLayaways() });
 }
 
 export async function POST(request: Request) {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   if (!body.productId || !body.productTitle || !body.totalPrice || !body.percentage || !body.customerPhone) {
     return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
   }
-  const layaway = addLayaway(body);
+  const layaway = await addLayaway(body);
   return NextResponse.json({ layaway });
 }
 
@@ -25,18 +25,18 @@ export async function PATCH(request: Request) {
     if (typeof newPayment.amount !== 'number' || newPayment.amount <= 0) {
       return NextResponse.json({ error: 'El monto del abono debe ser un número positivo.' }, { status: 400 });
     }
-    const entry = addPaymentNote(id, { amount: newPayment.amount, note: newPayment.note || '' });
+    const entry = await addPaymentNote(id, { amount: newPayment.amount, note: newPayment.note || '' });
     if (!entry) return NextResponse.json({ error: 'Apartado no encontrado' }, { status: 404 });
     return NextResponse.json({ success: true, entry });
   }
 
-  updateLayaway(id, patch || {});
+  await updateLayaway(id, patch || {});
   return NextResponse.json({ success: true });
 }
 
 export async function DELETE(request: Request) {
   const { id } = await request.json();
   if (!id) return NextResponse.json({ error: 'id es obligatorio' }, { status: 400 });
-  deleteLayaway(id);
+  await deleteLayaway(id);
   return NextResponse.json({ success: true });
 }

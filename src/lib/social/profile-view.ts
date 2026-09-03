@@ -27,6 +27,7 @@ import { eq, and } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { socialProfiles, vaultItems, follows, blocks } from '@/db/schema';
 import { isMinor } from './age';
+import { getCatalogLive } from '@/lib/catalog-source';
 
 type Relation = 'owner' | 'follower' | 'stranger';
 
@@ -39,7 +40,19 @@ export interface ProfileView {
   // mostrarlo, no trae el valor.
   canShowTier: boolean;
   followerCount: number | null; // solo si showFollowerCount
-  vault: { id: string; title: string; imageUrl: string; note: string | null }[]; // solo si la relación alcanza vaultVisibility
+  // Solo si la relación alcanza vaultVisibility. Desde el "Closet Digital"
+  // (2026-09-02) lleva también productId, serie y categoría, que es lo que
+  // necesitan las tres zonas (lib/vault-zones.ts) para repartir las piezas.
+  // Sigue SIN llevar precio ni valor de ningún tipo — Fase 2, sección 1.2.
+  vault: {
+    id: string;
+    title: string;
+    imageUrl: string;
+    note: string | null;
+    productId: string | null;
+    serialNumber: string | null;
+    category: string;
+  }[];
   isOwner: boolean;
 }
 
@@ -111,14 +124,35 @@ export async function getProfileView(
   if (!canView(effectiveProfileVisibility, relation, isQrScan)) return null;
 
   const showVault = canView(effectiveVaultVisibility, relation, isQrScan);
-  const vault = showVault
-    ? (await db.select().from(vaultItems).where(eq(vaultItems.customerId, targetCustomerId))).map((v) => ({
-        id: v.id,
-        title: v.title,
-        imageUrl: v.imageUrl,
-        note: v.note,
-      }))
-    : [];
+  let vault: ProfileView['vault'] = [];
+  if (showVault) {
+    const rows = await db.select().from(vaultItems).where(eq(vaultItems.customerId, targetCustomerId));
+
+    // La categoría (productType de Shopify) no vive en vault_items — vive en
+    // el catálogo. Se cruza por productId para poder repartir las piezas en
+    // zonas. Si el catálogo no responde, la bóveda se muestra igual: las
+    // piezas caen todas en la vitrina (el default de mapCategory), que es
+    // menos afirmativo que meterlas en Sneakers sin saber.
+    let categoryById = new Map<string, string>();
+    if (rows.length > 0) {
+      try {
+        const { products } = await getCatalogLive({ includeHidden: true });
+        categoryById = new Map(products.map((p) => [p.id, p.category]));
+      } catch (err) {
+        console.error('No se pudo cruzar el catálogo para las zonas de la bóveda pública:', err);
+      }
+    }
+
+    vault = rows.map((v) => ({
+      id: v.id,
+      title: v.title,
+      imageUrl: v.imageUrl,
+      note: v.note,
+      productId: v.productId,
+      serialNumber: v.serialNumber,
+      category: (v.productId && categoryById.get(v.productId)) || '',
+    }));
+  }
 
   let followerCount: number | null = null;
   if (profile.showFollowerCount || relation === 'owner') {

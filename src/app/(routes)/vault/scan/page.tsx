@@ -11,6 +11,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { haptics } from '@/lib/haptics';
 
 export default function VaultScanPage() {
   const router = useRouter();
@@ -49,6 +50,10 @@ export default function VaultScanPage() {
               stopped = true;
               try {
                 const parsed = new URL(url);
+                // Vibración de confirmación: escanear es a ciegas —la persona
+                // está apuntando la cámara, no viendo la pantalla— así que el
+                // "ya quedó" tiene que llegar por el dedo, no solo por el ojo.
+                haptics.success();
                 router.push(parsed.pathname); // navegación interna — nunca window.location a una URL externa cruda
               } catch {
                 setError('El código no es un Collector Pass válido de LAMK.');

@@ -57,6 +57,24 @@ export function CoverflowCarousel({ items, className, onActiveChange, onItemClic
   const [userPaused, setUserPaused] = useState(false);
   const reduceMotion = useReducedMotion();
 
+  // Fix de hidratación (2026-09-02, bug preexistente documentado en
+  // CLAUDE.md). Este componente decidía qué renderizar leyendo
+  // `reduceMotion` directo en el JSX. useReducedMotion() devuelve null en el
+  // servidor y el valor real en el cliente, así que con
+  // `prefers-reduced-motion: reduce` activo el árbol del servidor y el del
+  // cliente NO coincidían — y un desajuste de estructura (no solo de estilo)
+  // hace que React tire la hidratación de la PÁGINA ENTERA
+  // ("the entire root will switch to client rendering").
+  //
+  // Patrón obligatorio del repo: los EFECTOS pueden leer la media query
+  // cruda (`reduceMotion` sigue mandando en el autoplay de abajo, y debe:
+  // ahí es correcto respetarla de inmediato); el JSX usa `reducedUI`, que en
+  // el primer render siempre vale false y por lo tanto coincide con el
+  // servidor.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const reducedUI = mounted && reduceMotion;
+
   // Refs para no forzar a quien use estos callbacks a memoizarlos, y para
   // que el efecto de abajo no se re-dispare solo porque el padre volvió a
   // renderizar con una función inline nueva.
@@ -128,7 +146,7 @@ export function CoverflowCarousel({ items, className, onActiveChange, onItemClic
     >
       {/* Resplandor ambiental detrás de la tarjeta activa — el "spotlight"
           que hace que el carrusel se sienta como una vitrina, no una lista */}
-      {!reduceMotion && (
+      {!reducedUI && (
         <motion.div
           key={activeItem.id}
           initial={{ opacity: 0, scale: 0.85 }}
@@ -257,7 +275,7 @@ export function CoverflowCarousel({ items, className, onActiveChange, onItemClic
         {/* Fix (hallazgo #3 de la auditoría de Fase 6): control explícito,
             no depende de mantener el mouse encima. Sin autoplay que pausar
             (reduced-motion o una sola tarjeta), no tiene sentido mostrarlo. */}
-        {!reduceMotion && items.length > 1 && (
+        {!reducedUI && items.length > 1 && (
           <button
             onClick={() => setUserPaused((p) => !p)}
             aria-label={userPaused ? 'Reanudar avance automático' : 'Pausar avance automático'}

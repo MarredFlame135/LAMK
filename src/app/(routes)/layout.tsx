@@ -13,6 +13,7 @@ import { ThemeVariantProvider } from '@/components/themes/ThemeVariantContext';
 import { PwaRegister } from '@/components/ui/PwaRegister';
 import { Navbar } from '@/components/ui/Navbar';
 import { PrivacyConsentBanner } from '@/components/ui/PrivacyConsentBanner';
+import { WelcomeModal } from '@/components/ui/WelcomeModal';
 import { AnalyticsGate } from '@/components/analytics/AnalyticsGate';
 import { CartTrigger } from '@/components/ui/CartTrigger';
 import { MobileMenu } from '@/components/ui/MobileMenu';
@@ -164,6 +165,11 @@ export default function RootLayout({
 
               {/* Aviso de privacidad (LFPDPPP) — una vez por navegador */}
               <PrivacyConsentBanner />
+              {/* Va DESPUÉS del banner de privacidad a propósito: el modal de
+                  bienvenida espera a que esa decisión esté tomada antes de
+                  aparecer (ver WelcomeModal.tsx) — el aviso legal nunca debe
+                  quedar tapado por una promoción. */}
+              <WelcomeModal />
               <AnalyticsGate />
 
               {/* Footer — misma textura "Obsidian Quarry" (Higgsfield) que el Hero,

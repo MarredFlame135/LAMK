@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getSales, addSale } from '@/lib/sales-store';
 
 export async function GET() {
-  return NextResponse.json({ sales: getSales() });
+  return NextResponse.json({ sales: await getSales() });
 }
 
 export async function POST(request: Request) {
@@ -12,6 +12,6 @@ export async function POST(request: Request) {
   if (!body.customerName || !body.itemsSummary) {
     return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
   }
-  const sale = addSale(body);
+  const sale = await addSale(body);
   return NextResponse.json({ sale });
 }

@@ -14,6 +14,7 @@ import {
   GET_CUSTOMER_QUERY,
 } from './queries';
 import { UserProfile, CollectionItem, OrderSummary } from '@/types/user';
+import { getStoredSerialsByProduct } from '@/lib/vault-purchase';
 import { calculateGamificationTier, calculateHypeXp, deriveRealRarity } from '@/utils/gamification';
 import { normalizeMexicanPhoneE164 } from '@/lib/validators';
 import { getCatalogLive } from '@/lib/catalog-source';
@@ -142,14 +143,40 @@ export async function getCustomerProfile(accessToken: string): Promise<UserProfi
     console.error('No se pudo cargar el catálogo para ponderar XP/rareza por Hype, usando valores neutros:', err);
   }
 
+  // Números de serie REALES, fijados en el momento en que el pedido se pagó
+  // (webhook orders/paid -> vault_items). El posicional de abajo queda solo
+  // como respaldo para piezas compradas ANTES de que existiera el webhook:
+  // ese cambiaba solo cada vez que el cliente compraba otra cosa, porque
+  // salía de la POSICIÓN de la pieza en el arreglo de pedidos.
+  let serialsByProduct = new Map<string, string[]>();
+  try {
+    serialsByProduct = await getStoredSerialsByProduct(customer.id);
+  } catch (err) {
+    console.error('No se pudieron leer los números de serie guardados; se usa el posicional heredado:', err);
+  }
+  // Un cliente puede tener dos unidades del mismo modelo, cada una con su
+  // propio serial — este cursor va consumiéndolos en orden.
+  const serialCursor = new Map<string, number>();
+
   const collection: CollectionItem[] = lineItems.slice(0, 24).map((li: any, idx: number) => {
     const productId = li.node.variant?.product?.id;
     const info = productId ? productInfoById.get(productId) ?? null : null;
+
+    let serialNumber = `#${String(idx + 1).padStart(3, '0')}/${String(totalPieces).padStart(3, '0')}`;
+    if (productId) {
+      const stored = serialsByProduct.get(productId);
+      const used = serialCursor.get(productId) ?? 0;
+      if (stored && stored[used]) {
+        serialNumber = stored[used];
+        serialCursor.set(productId, used + 1);
+      }
+    }
+
     return {
       id: `${customer.id}-item-${idx}`,
       sneakerTitle: li.node.title,
       sku: li.node.variant?.sku || '',
-      serialNumber: `#${String(idx + 1).padStart(3, '0')}/${String(totalPieces).padStart(3, '0')}`,
+      serialNumber,
       purchaseDate: li.orderProcessedAt || '',
       imageUrl: li.node.variant?.image?.url || '/placeholder-sneaker.svg',
       category: li.node.variant?.product?.productType || '',

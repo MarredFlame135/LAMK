@@ -3,6 +3,7 @@
 import { getStorefrontEndpoint, SHOPIFY_CONFIG } from './config';
 import { GET_PRODUCTS_QUERY, GET_PRODUCT_BY_HANDLE_QUERY } from './queries';
 import { Product, ProductVariant } from '@/types/product';
+import { mapCategory } from '@/lib/product-category';
 
 // Conector genérico HTTP para GraphQL
 export async function shopifyFetch<T>({
@@ -48,22 +49,12 @@ export async function shopifyFetch<T>({
   return body.data;
 }
 
-// Categorías de negocio reales vistas en el inventario de LAMK MX. El campo
-// `vendor` de Shopify siempre trae el nombre de la tienda, no la marca real,
-// así que la marca se extrae del título con un heurístico best-effort.
-const PRODUCT_TYPE_TO_CATEGORY: Record<string, Product['category']> = {
-  CASUAL: 'SNEAKERS',
-  CONFORT: 'SNEAKERS',
-  RUNNING: 'SNEAKERS',
-  ROPA: 'APPAREL',
-  ACCESORIOS: 'ACCESSORIES',
-  JOYERÍA: 'JEWELRY',
-  JOYERIA: 'JEWELRY',
-};
-
-function mapCategory(productType: string): Product['category'] {
-  return PRODUCT_TYPE_TO_CATEGORY[(productType || '').toUpperCase().trim()] || 'ACCESSORIES';
-}
+// La tabla productType -> categoría se mudó a lib/product-category.ts para
+// que la Bóveda (componente de cliente) pueda agrupar piezas por zona usando
+// exactamente la misma clasificación, sin importar este módulo de servidor.
+// El campo `vendor` de Shopify siempre trae el nombre de la tienda, no la
+// marca real, así que la marca se extrae del título con un heurístico
+// best-effort (ver guessBrandFromTitle abajo).
 
 // Palabras de categoría que suelen abrir el título (ej. "TENIS SAMBA OG...",
 // "GORRA DANDY HATS x JUNIOR H...") — se recortan para exponer la marca real.

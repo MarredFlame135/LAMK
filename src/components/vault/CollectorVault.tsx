@@ -6,17 +6,23 @@
 // (fadeUp/staggerContainer, mismos tokens de lib/motion.ts), y un botón real
 // de "Flexionar / Compartir" por pieza usando el Web Share API nativo — la
 // pieza social que se había quedado pendiente de una ronda anterior.
+//
+// Ronda "Closet Digital" (2026-09-02): la rejilla uniforme de tarjetas se
+// reemplazó por tres salas con arquitectura propia (pedestal / perchero /
+// vitrina) — ver VaultZones.tsx, que también se lleva el CollectionCard y el
+// botón de compartir que vivían aquí. Esta pantalla vuelve a ser lo que debe:
+// el armado de la página, no el dibujo de cada pieza.
 
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { UserProfile, CollectionItem } from '@/types/user';
+import { UserProfile } from '@/types/user';
 import { Product } from '@/types/product';
 import { MostWantedSection } from './MostWantedSection';
+import { VaultZones } from './VaultZones';
 import { calculateGamificationTier, computeCollectionIndex } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
-import { HolographicCard } from '@/components/ui/holographic-card';
 import { Magnetic } from '@/components/ui/Magnetic';
 import { ReviewForm } from './ReviewForm';
 import { PurchaseClaimForm } from './PurchaseClaimForm';
@@ -34,104 +40,6 @@ interface CollectorVaultProps {
   username?: string;
   wishlist?: Product[]; // Most Wanted — solo se pasa en la propia bóveda, ver vault/page.tsx
   isOwnProfile?: boolean;
-}
-
-// Comparte la pieza real (imagen + texto) vía Web Share API nativo; si el
-// navegador no lo soporta (la mayoría de desktop), cae a copiar el texto al
-// portapapeles — nunca falla en silencio.
-async function shareCollectionItem(item: CollectionItem, onFallback: () => void) {
-  const text = item.serialNumber
-    ? `I just copped ${item.sneakerTitle} at LAMK — Serial ${item.serialNumber}.`
-    : `I just copped ${item.sneakerTitle} at LAMK.`;
-  const url = typeof window !== 'undefined' ? window.location.origin : undefined;
-
-  if (typeof navigator === 'undefined' || !navigator.share) {
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(url ? `${text} ${url}` : text);
-      onFallback();
-    }
-    return;
-  }
-
-  try {
-    const res = await fetch(item.imageUrl);
-    const blob = await res.blob();
-    const file = new File([blob], 'lamk-vault.jpg', { type: blob.type || 'image/jpeg' });
-    if (navigator.canShare?.({ files: [file] })) {
-      await navigator.share({ title: 'Look At My Kicks', text, files: [file] });
-      return;
-    }
-  } catch {
-    // la imagen puede fallar por CORS del CDN — se cae al share de solo texto
-  }
-
-  try {
-    await navigator.share({ title: 'Look At My Kicks', text, url });
-  } catch {
-    // usuario canceló el share nativo — no es un error real, no hacer nada
-  }
-}
-
-// Rareza real (ver deriveRealRarity en utils/gamification.ts) — solo se
-// muestra la insignia para RARE/LEGENDARY; COMMON no necesita etiqueta
-// (es el caso por default, marcarlo todo sería ruido).
-const RARITY_BADGE: Record<CollectionItem['rarity'], { label: string; color: string } | null> = {
-  COMMON: null,
-  RARE: { label: 'RARE', color: '#C5A059' },
-  LEGENDARY: { label: 'LEGENDARY', color: '#FF1E42' },
-};
-
-function CollectionCard({ item, index }: { item: CollectionItem; index: number }) {
-  const [copied, setCopied] = useState(false);
-  const isManual = item.source === 'manual';
-  // Pieza verificada manualmente (ver PurchaseClaimForm/lib/vault-claims.ts):
-  // nunca se le asigna una insignia de rareza real (no hay forma de
-  // verificar escasez sin pedido/catálogo detrás) — en su lugar, una
-  // insignia distinta y honesta que deja claro que un admin la confirmó a
-  // mano, no que viene de un pedido en este sitio.
-  const badge = isManual ? { label: 'VERIFICADA', color: '#C5A059' } : RARITY_BADGE[item.rarity];
-
-  return (
-    <motion.div variants={fadeUp} custom={index}>
-      <HolographicCard className="group relative p-3 bg-card dark:bg-gradient-to-b dark:from-zinc-800/50 dark:to-zinc-950 border border-border dark:border-zinc-700/80 rounded-xl overflow-hidden hover:border-[#C5A059]/50 transition-colors">
-        <div className="relative aspect-square bg-black rounded-lg mb-2 overflow-hidden">
-          <img src={item.imageUrl} alt={item.sneakerTitle} className="w-full h-full object-cover" />
-          {badge && (
-            <span
-              className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded font-mono text-[8px] font-bold uppercase tracking-wide text-black"
-              style={{ background: badge.color }}
-            >
-              {badge.label}
-            </span>
-          )}
-        </div>
-        <h4 className="text-[11px] font-bold line-clamp-1 uppercase">{item.sneakerTitle}</h4>
-        <span className="text-[9px] font-mono text-[#C5A059] block mt-0.5">
-          {isManual ? 'Verificada por LAMK' : item.serialNumber}
-        </span>
-
-        <Magnetic className="absolute top-2 right-2" strength={0.25}>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              haptics.tap();
-              shareCollectionItem(item, () => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
-            }}
-            className="flex items-center justify-center h-7 w-7 rounded-full bg-black/70 backdrop-blur-sm border border-white/10 text-zinc-300 hover:text-white hover:border-[#C5A059]/50 transition opacity-0 group-hover:opacity-100"
-            aria-label="Flexionar / compartir esta pieza"
-            title="Flexionar / Compartir"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5 15.4 17.5M15.4 6.5 8.6 10.5"/></svg>
-          </button>
-        </Magnetic>
-        {copied && (
-          <span className="absolute top-2 right-11 text-[9px] font-mono bg-black/80 text-emerald-400 px-1.5 py-0.5 rounded whitespace-nowrap">
-            Copiado ✓
-          </span>
-        )}
-      </HolographicCard>
-    </motion.div>
-  );
 }
 
 export function CollectorVault({ user, username, wishlist, isOwnProfile = true }: CollectorVaultProps) {
@@ -201,7 +109,7 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
           {/* Colección de Piezas (Tarjetas Cromadas) */}
           <div className="space-y-3">
             <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">
-              // MI COLECCIÓN ({user.collection.length} PIEZAS)
+              // MI CLOSET ({user.collection.length} {user.collection.length === 1 ? 'PIEZA' : 'PIEZAS'})
             </h3>
 
             {user.collection.length === 0 ? (
@@ -214,11 +122,7 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
                 </Magnetic>
               </div>
             ) : (
-              <motion.div variants={staggerContainer(0.06)} initial="hidden" animate="show" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {user.collection.map((item, i) => (
-                  <CollectionCard key={item.id} item={item} index={i} />
-                ))}
-              </motion.div>
+              <VaultZones collection={user.collection} />
             )}
           </div>
 
