@@ -7,27 +7,37 @@
 // scroll infinito para no bloquear el hilo principal pintando cientos de
 // tarjetas de una sola vez.
 //
-// --- Los cuatro filtros (rediseño 2026-09-03, pedido del cliente) ---
+// --- Los filtros son un ÁRBOL, no cuatro filas (2026-09-03, ronda 3) ---
 //
-// El cliente pidió el catálogo "como la página anterior": secciones, marcas y
-// un filtro de precio. Los cuatro ejes cruzan entre sí:
+// La versión anterior ponía todo plano y a la vista: siete categorías, 54
+// marcas, cuatro tramos de precio y seis colecciones, cuatro filas de
+// pastillas seguidas. El cliente lo cortó en seco — "no quiero tantas
+// categorías, que se muestren las principales y que de ahí se desplieguen
+// jerárquicamente" — y tenía razón: un filtro que exige leer setenta opciones
+// antes de elegir la primera no es un filtro, es un índice.
 //
-//   CATEGORÍA  lib/product-taxonomy.ts  — Sneakers, Ropa, Gorras…
-//   MARCA      lib/product-brand.ts     — Jordan, Bape, 31 Hats…
-//   PRECIO     lib/discovery.ts         — cuatro tramos de la distribución real
-//   COLECCIÓN  lib/discovery.ts         — MOST HYPE / MOST DROPPED / GRAILS…
+// Ahora son cuatro puertas (Sneakers · Ropa · Accesorios · Coleccionables,
+// las mismas que tenía la tienda anterior) y todo lo demás vive DENTRO de la
+// puerta a la que pertenece: las subsecciones y las marcas de esa rama. El
+// árbol y sus conteos viven en lib/product-taxonomy.ts.
 //
-// Las secciones NO son las cuatro categorías que devuelve Shopify: ahí 114 de
-// las 265 piezas caen en "ACCESSORIES", y dentro hay 74 gorras, relojes,
-// cartas de Pokémon y hasta ropa mal archivada. Ver product-taxonomy.ts.
+// **Las marcas se movieron dentro de cada rama a propósito**, y no es solo
+// ahorro de espacio: es como funcionaba la tienda anterior
+// (/collections/jordan-sneakers, /collections/hoodies-bape). Elegir "Jordan"
+// dentro de Sneakers significa las dos cosas a la vez, que es lo que la
+// persona quiere decir cuando lo pulsa. Una lista global de 54 marcas, en
+// cambio, ofrece "Pokémon" mientras miras tenis.
 //
-// --- Los conteos son facetados, y eso NO es adorno ---
+// Se usa <details>/<summary> nativo y no un acordeón propio: trae el manejo de
+// teclado, el rol de botón y el estado abierto/cerrado ya resueltos por el
+// navegador.
 //
-// El número de cada pastilla se calcula contra el catálogo ya filtrado por los
-// OTROS tres ejes, no contra el catálogo entero. Si no, estando en "Gorras" la
-// pastilla "Jordan" diría 27 y al pulsarla daría 0 resultados: cada pastilla
-// sería una posible vía muerta. Así, un 0 nunca se ofrece — las opciones sin
-// piezas ni se pintan.
+// --- Los conteos son facetados, y eso NO es cosmético ---
+//
+// El número de cada opción se calcula contra el catálogo ya filtrado por los
+// OTROS ejes, no contra el catálogo entero. Si no, un tramo de precio podría
+// decir 27 y al pulsarlo dar 0 resultados: cada opción sería una posible vía
+// muerta. Así, un 0 nunca se ofrece — las opciones sin piezas ni se pintan.
 
 'use client';
 
@@ -40,16 +50,23 @@ import { DiscoveryTabs } from './DiscoveryTabs';
 import { ProductCard } from './ProductCard';
 import { DiscoveryTab, matchesDiscoveryTab, PRICE_BANDS, PriceBandId, matchesPriceBand } from '@/lib/discovery';
 import { fadeUp } from '@/lib/motion';
-import { PRODUCT_SECTIONS, sectionOf } from '@/lib/product-taxonomy';
+import {
+  CATALOG_GROUPS,
+  catalogPathOf,
+  matchesCatalogNode,
+  groupOfNode,
+  ALL_NODE,
+  groupNode,
+  childNode,
+} from '@/lib/product-taxonomy';
 import { brandOf } from '@/lib/product-brand';
 
 const PAGE_SIZE = 24;
 
-// Cuántas marcas se ven antes de "Ver todas". El catálogo real tiene 54, y
-// pintarlas todas de entrada entierra el resto de la página bajo un muro de
-// pastillas. Las 14 primeras (ordenadas por conteo) ya cubren la mayoría del
-// inventario; el resto queda a un clic.
-const BRANDS_VISIBLE = 14;
+// Cuántas marcas se ven dentro de una rama antes de "Ver todas". Con el árbol
+// esto ya casi no se usa —dentro de Sneakers hay 19 marcas, no 54— pero
+// Accesorios sigue teniendo suficientes para necesitarlo.
+const BRANDS_VISIBLE = 10;
 
 interface CatalogGridProps {
   products: Product[];
@@ -57,14 +74,14 @@ interface CatalogGridProps {
 
 interface Filters {
   tab: DiscoveryTab;
-  category: string;   // 'TODAS' o clave de PRODUCT_SECTIONS
+  node: string;       // ALL_NODE | 'g:<grupo>' | 'c:<hijo>'
   brand: string;      // 'TODAS' o nombre de marca
   band: PriceBandId;  // 'ALL' o id de PRICE_BANDS
 }
 
-const NO_FILTERS: Filters = { tab: 'ALL', category: 'TODAS', brand: 'TODAS', band: 'ALL' };
+const NO_FILTERS: Filters = { tab: 'ALL', node: ALL_NODE, brand: 'TODAS', band: 'ALL' };
 
-type AxisKey = 'tab' | 'category' | 'brand' | 'band';
+type AxisKey = 'tab' | 'node' | 'brand' | 'band';
 
 // Un predicado por eje. `index` es la posición en el catálogo COMPLETO: la
 // pestaña MOST DROPPED la usa como respaldo cuando el producto no trae
@@ -73,7 +90,7 @@ type AxisKey = 'tab' | 'category' | 'brand' | 'band';
 // según qué otro filtro estuviera puesto.
 const AXES: Record<AxisKey, (p: Product, i: number, f: Filters) => boolean> = {
   tab: (p, i, f) => matchesDiscoveryTab(p, f.tab, i),
-  category: (p, _i, f) => f.category === 'TODAS' || sectionOf(p)?.key === f.category,
+  node: (p, _i, f) => matchesCatalogNode(p, f.node),
   brand: (p, _i, f) => f.brand === 'TODAS' || brandOf(p) === f.brand,
   band: (p, _i, f) => matchesPriceBand(p, f.band),
 };
@@ -82,73 +99,85 @@ const AXIS_KEYS = Object.keys(AXES) as AxisKey[];
 
 export function CatalogGrid({ products }: CatalogGridProps) {
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const [showAllBrands, setShowAllBrands] = useState(false);
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [expandedBrands, setExpandedBrands] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { addItem } = useCart();
   const { t } = useApp();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
-    setFilters((f) => ({ ...f, [key]: value }));
+  const set = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
   // El catálogo filtrado por todos los ejes MENOS el que se pasa — la base
   // sobre la que se cuenta ese eje. Con `except` en null es el resultado final.
   const subsetExcept = useMemo(() => {
     const cache = new Map<string, Product[]>();
-    return (except: AxisKey | null): Product[] => {
-      const key = except ?? '*';
+    return (...except: AxisKey[]): Product[] => {
+      const key = except.join('|') || '*';
       const hit = cache.get(key);
       if (hit) return hit;
-      const out = products.filter((p, i) => AXIS_KEYS.every((k) => k === except || AXES[k](p, i, filters)));
+      const out = products.filter((p, i) => AXIS_KEYS.every((k) => except.includes(k) || AXES[k](p, i, filters)));
       cache.set(key, out);
       return out;
     };
   }, [products, filters]);
 
-  const filtered = useMemo(() => subsetExcept(null), [subsetExcept]);
+  const filtered = useMemo(() => subsetExcept(), [subsetExcept]);
 
-  const categoryOptions = useMemo(() => {
-    const base = subsetExcept('category');
-    const counts = new Map<string, number>();
+  // Conteos del árbol: una pasada sobre el catálogo sin filtrar por nodo.
+  const treeCounts = useMemo(() => {
+    const base = subsetExcept('node');
+    const groups = new Map<string, number>();
+    const children = new Map<string, number>();
     for (const p of base) {
-      const sec = sectionOf(p);
-      if (sec) counts.set(sec.key, (counts.get(sec.key) ?? 0) + 1);
+      const { group, child } = catalogPathOf(p);
+      if (group) groups.set(group, (groups.get(group) ?? 0) + 1);
+      if (child) children.set(child, (children.get(child) ?? 0) + 1);
     }
-    return [
-      { key: 'TODAS', label: 'Todo', count: base.length },
-      // El eje seleccionado se mantiene visible aunque su conteo caiga a 0
-      // (pasa cuando el cruce con otro filtro se queda sin piezas): si la
-      // pastilla activa desaparece, la persona ve un catálogo vacío sin
-      // ninguna pista de cuál de sus filtros lo dejó así.
-      ...PRODUCT_SECTIONS.filter((s) => (counts.get(s.key) ?? 0) > 0 || s.key === filters.category).map((s) => ({
-        key: s.key,
-        label: s.label,
-        count: counts.get(s.key) ?? 0,
-      })),
-    ];
-  }, [subsetExcept, filters.category]);
-
-  const brandOptions = useMemo(() => {
-    const base = subsetExcept('brand');
-    const counts = new Map<string, number>();
-    for (const p of base) {
-      const b = brandOf(p);
-      if (b) counts.set(b, (counts.get(b) ?? 0) + 1);
-    }
-    return [...counts.entries()]
-      .map(([key, count]) => ({ key, count }))
-      .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+    return { groups, children, total: base.length };
   }, [subsetExcept]);
+
+  // Marcas DENTRO de una rama: se cuentan sobre las piezas de ese grupo,
+  // respetando el hijo seleccionado si pertenece a esa misma rama. Sin eso,
+  // abrir Accesorios con "Relojes" puesto ofrecería marcas de gorras.
+  const brandsInGroup = useMemo(() => {
+    const base = subsetExcept('node', 'brand');
+    const selectedGroup = groupOfNode(filters.node);
+    const selectedChild = filters.node.startsWith('c:') ? filters.node.slice(2) : null;
+
+    return (groupKey: string) => {
+      const counts = new Map<string, number>();
+      for (const p of base) {
+        const path = catalogPathOf(p);
+        if (path.group !== groupKey) continue;
+        if (selectedChild && selectedGroup === groupKey && path.child !== selectedChild) continue;
+        const b = brandOf(p);
+        if (b) counts.set(b, (counts.get(b) ?? 0) + 1);
+      }
+      return [...counts.entries()]
+        .map(([key, count]) => ({ key, count }))
+        .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key));
+    };
+  }, [subsetExcept, filters.node]);
 
   const bandOptions = useMemo(() => {
     const base = subsetExcept('band');
     return PRICE_BANDS.map((b) => ({
-      id: b.id,
       key: b.id,
       label: b.label,
       count: base.filter((p) => matchesPriceBand(p, b.id)).length,
-    })).filter((b) => b.count > 0 || b.id === filters.band);
+      // La opción ACTIVA se mantiene visible aunque su conteo caiga a 0: si la
+      // pastilla encendida desaparece, la persona ve un catálogo vacío sin
+      // ninguna pista de cuál de sus filtros lo dejó así.
+    })).filter((b) => b.count > 0 || b.key === filters.band);
   }, [subsetExcept, filters.band]);
+
+  // La rama del filtro activo se abre sola: si alguien llega con "Gorras"
+  // puesto y todas las ramas cerradas, no hay forma de ver qué está filtrando.
+  useEffect(() => {
+    const g = groupOfNode(filters.node);
+    if (g) setOpenGroups((prev) => (prev.includes(g) ? prev : [...prev, g]));
+  }, [filters.node]);
 
   // Reinicia la paginación cuando cambian los filtros — evita mostrar 0
   // tarjetas si el usuario ya había scrolleado más allá del nuevo total.
@@ -176,23 +205,14 @@ export function CatalogGrid({ products }: CatalogGridProps) {
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
   const anyFilter =
-    filters.tab !== 'ALL' || filters.category !== 'TODAS' || filters.brand !== 'TODAS' || filters.band !== 'ALL';
+    filters.tab !== 'ALL' || filters.node !== ALL_NODE || filters.brand !== 'TODAS' || filters.band !== 'ALL';
 
   const handleAddToCart = (product: Product, variant: ProductVariant) => {
     addItem(product.title, product.id, product.images[0], variant);
   };
 
-  // La marca activa siempre se ve, aunque esté fuera de las 14 primeras: si
-  // no, elegir una marca de la cola y luego colapsar la lista dejaría un
-  // filtro puesto sin ninguna pastilla encendida que lo delate.
-  const visibleBrands = showAllBrands
-    ? brandOptions
-    : (() => {
-        const top = brandOptions.slice(0, BRANDS_VISIBLE);
-        const sel = brandOptions.find((b) => b.key === filters.brand);
-        return sel && !top.includes(sel) ? [...top, sel] : top;
-      })();
-  const brandTotal = brandOptions.reduce((acc, b) => acc + b.count, 0);
+  const toggleGroup = (key: string, open: boolean) =>
+    setOpenGroups((prev) => (open ? (prev.includes(key) ? prev : [...prev, key]) : prev.filter((k) => k !== key)));
 
   return (
     <div className="max-w-7xl mx-auto p-6 bg-background text-foreground min-h-screen space-y-6">
@@ -210,7 +230,7 @@ export function CatalogGrid({ products }: CatalogGridProps) {
           {anyFilter && (
             <button
               type="button"
-              onClick={() => { setFilters(NO_FILTERS); setShowAllBrands(false); }}
+              onClick={() => { setFilters(NO_FILTERS); setExpandedBrands([]); }}
               className="rounded-full border border-border px-3.5 py-1.5 text-[10px] font-bold font-mono uppercase tracking-wide text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
             >
               Limpiar filtros
@@ -218,54 +238,171 @@ export function CatalogGrid({ products }: CatalogGridProps) {
           )}
         </div>
 
-        <FilterRow label="Categoría" hint="Sección de la tienda">
-          {categoryOptions.map((c) => (
-            <Pill key={c.key} active={filters.category === c.key} count={c.count} onClick={() => set('category', c.key)}>
-              {c.label}
-            </Pill>
-          ))}
-        </FilterRow>
+        <div className="rounded-xl border border-border divide-y divide-border overflow-hidden">
+          {/* Categorías: cuatro puertas, todo lo demás cuelga de ellas. */}
+          {CATALOG_GROUPS.map((group) => {
+            const count = treeCounts.groups.get(group.key) ?? 0;
+            const isSelectedGroup = groupOfNode(filters.node) === group.key;
+            if (count === 0 && !isSelectedGroup) return null;
 
-        {/* Marca — el menú que tenía la tienda anterior (Jordan, Nike, Yeezy,
-            Bape, Supreme…). Las 13 piezas cuyo título no nombra ninguna marca
-            conocida no aparecen bajo ninguna pastilla, y eso es correcto: no
-            se les inventa una. Ver lib/product-brand.ts. */}
-        {brandOptions.length > 0 && (
-          <FilterRow label="Marca" hint={`${brandOptions.length} con piezas`}>
-            <Pill active={filters.brand === 'TODAS'} count={brandTotal} onClick={() => set('brand', 'TODAS')}>
-              Todas
+            const brands = brandsInGroup(group.key);
+            const showAll = expandedBrands.includes(group.key);
+            const topBrands = showAll ? brands : brands.slice(0, BRANDS_VISIBLE);
+            // La marca activa siempre se ve, aunque esté fuera de las primeras:
+            // un filtro puesto sin pastilla encendida que lo delate es un
+            // catálogo que se ve roto.
+            const selectedBrand = brands.find((b) => b.key === filters.brand);
+            const visibleBrands =
+              selectedBrand && !topBrands.includes(selectedBrand) ? [...topBrands, selectedBrand] : topBrands;
+
+            return (
+              <details
+                key={group.key}
+                open={openGroups.includes(group.key)}
+                onToggle={(e) => toggleGroup(group.key, (e.currentTarget as HTMLDetailsElement).open)}
+                className="group"
+              >
+                <summary
+                  className={`flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition select-none marker:hidden [&::-webkit-details-marker]:hidden ${
+                    isSelectedGroup ? 'bg-[#FF1E42]/10' : 'hover:bg-muted'
+                  }`}
+                >
+                  <Chevron />
+                  <span
+                    className={`flex-1 font-mono text-xs font-bold uppercase tracking-wide ${
+                      isSelectedGroup ? 'text-[#FF1E42]' : 'text-foreground'
+                    }`}
+                  >
+                    {group.label}
+                  </span>
+                  <span className="font-mono text-[10px] text-muted-foreground">{count}</span>
+                </summary>
+
+                <div className="space-y-3 border-t border-border bg-muted/30 px-4 py-4">
+                  <div className="flex flex-wrap gap-2">
+                    <Pill
+                      active={filters.node === groupNode(group.key)}
+                      count={count}
+                      onClick={() => set({ node: groupNode(group.key), brand: 'TODAS' })}
+                    >
+                      Todo {group.label}
+                    </Pill>
+                    {group.children.map((child) => {
+                      const c = treeCounts.children.get(child.key) ?? 0;
+                      if (c === 0 && filters.node !== childNode(child.key)) return null;
+                      return (
+                        <Pill
+                          key={child.key}
+                          active={filters.node === childNode(child.key)}
+                          count={c}
+                          onClick={() => set({ node: childNode(child.key), brand: 'TODAS' })}
+                        >
+                          {child.label}
+                        </Pill>
+                      );
+                    })}
+                  </div>
+
+                  {brands.length > 0 && (
+                    <div className="space-y-2 border-t border-border/60 pt-3">
+                      {/* El rótulo nombra lo que de verdad se está listando:
+                          con "Relojes" puesto, estas son las marcas de relojes,
+                          no las de accesorios. Decir "en accesorios" mientras
+                          se ven cuatro relojeras es un número correcto con una
+                          etiqueta que miente. */}
+                      <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-zinc-500">
+                        // Marcas en{' '}
+                        {(isSelectedGroup &&
+                          group.children.find((c) => filters.node === childNode(c.key))?.label) ||
+                          group.label}
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        <Pill
+                          active={filters.brand === 'TODAS'}
+                          count={brands.reduce((a, b) => a + b.count, 0)}
+                          onClick={() => set({ brand: 'TODAS' })}
+                        >
+                          Todas
+                        </Pill>
+                        {visibleBrands.map((b) => (
+                          <Pill
+                            key={b.key}
+                            active={filters.brand === b.key}
+                            count={b.count}
+                            onClick={() =>
+                              set({
+                                brand: b.key,
+                                // Elegir una marca dentro de una rama significa
+                                // las dos cosas: esa marca, en esa rama.
+                                node: isSelectedGroup ? filters.node : groupNode(group.key),
+                              })
+                            }
+                          >
+                            {b.key}
+                          </Pill>
+                        ))}
+                        {brands.length > BRANDS_VISIBLE && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedBrands((prev) =>
+                                prev.includes(group.key) ? prev.filter((k) => k !== group.key) : [...prev, group.key]
+                              )
+                            }
+                            className="rounded-full border border-dashed border-border px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
+                          >
+                            {showAll ? 'Ver menos' : `Ver todas (${brands.length})`}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </details>
+            );
+          })}
+
+          {/* Precio y Colección: mismo trato que las categorías — cerrados
+              hasta que alguien los pide. */}
+          <FilterDrawer
+            label="Precio"
+            hint="MXN"
+            active={filters.band !== 'ALL'}
+            open={openGroups.includes('__precio')}
+            onToggle={(o) => toggleGroup('__precio', o)}
+          >
+            <Pill active={filters.band === 'ALL'} count={subsetExcept('band').length} onClick={() => set({ band: 'ALL' })}>
+              Cualquiera
             </Pill>
-            {visibleBrands.map((b) => (
-              <Pill key={b.key} active={filters.brand === b.key} count={b.count} onClick={() => set('brand', b.key)}>
-                {b.key}
+            {bandOptions.map((b) => (
+              <Pill key={b.key} active={filters.band === b.key} count={b.count} onClick={() => set({ band: b.key })}>
+                {b.label}
               </Pill>
             ))}
-            {brandOptions.length > BRANDS_VISIBLE && (
-              <button
-                type="button"
-                onClick={() => setShowAllBrands((v) => !v)}
-                className="rounded-full border border-dashed border-border px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-400 transition hover:border-[#FF1E42] hover:text-foreground"
-              >
-                {showAllBrands ? 'Ver menos' : `Ver todas (${brandOptions.length})`}
-              </button>
-            )}
-          </FilterRow>
+          </FilterDrawer>
+
+          <FilterDrawer
+            label="Colección"
+            hint="Cruza con lo de arriba"
+            active={filters.tab !== 'ALL'}
+            open={openGroups.includes('__coleccion')}
+            onToggle={(o) => toggleGroup('__coleccion', o)}
+          >
+            <DiscoveryTabs active={filters.tab} onChange={(tab) => set({ tab })} />
+          </FilterDrawer>
+        </div>
+
+        {/* Todo el catálogo: fuera del acordeón, porque salir de un filtro no
+            debería exigir abrir la rama en la que te metiste. */}
+        {filters.node !== ALL_NODE && (
+          <button
+            type="button"
+            onClick={() => set({ node: ALL_NODE, brand: 'TODAS' })}
+            className="self-start font-mono text-[10px] uppercase tracking-widest text-zinc-400 underline-offset-4 transition hover:text-foreground hover:underline"
+          >
+            ← Ver todo el catálogo ({treeCounts.total})
+          </button>
         )}
-
-        <FilterRow label="Precio" hint="MXN">
-          <Pill active={filters.band === 'ALL'} count={subsetExcept('band').length} onClick={() => set('band', 'ALL')}>
-            Cualquiera
-          </Pill>
-          {bandOptions.map((b) => (
-            <Pill key={b.key} active={filters.band === b.key} count={b.count} onClick={() => set('band', b.key)}>
-              {b.label}
-            </Pill>
-          ))}
-        </FilterRow>
-
-        <FilterRow label="Colección" hint="Cruza con todo lo de arriba">
-          <DiscoveryTabs active={filters.tab} onChange={(tab) => set('tab', tab)} />
-        </FilterRow>
       </motion.div>
 
       {filtered.length === 0 ? (
@@ -297,19 +434,55 @@ export function CatalogGrid({ products }: CatalogGridProps) {
   );
 }
 
-// Un eje de filtro con su etiqueta. Con cuatro filas de pastillas seguidas y
-// sin nombre, nadie sabe qué está eligiendo en cada una.
-function FilterRow({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+// Flecha de la rama. Gira con `group-open` en vez de con estado de React: el
+// navegador ya sabe si el <details> está abierto, no hace falta contárselo.
+function Chevron() {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
+    <svg
+      className="h-3 w-3 shrink-0 text-muted-foreground transition-transform duration-200 group-open:rotate-90"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      aria-hidden
+    >
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+// Una rama que no es de categoría (Precio, Colección). Misma forma que las
+// otras para que el acordeón se lea como una sola lista.
+function FilterDrawer({
+  label,
+  hint,
+  active,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  active: boolean;
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <details open={open} onToggle={(e) => onToggle((e.currentTarget as HTMLDetailsElement).open)} className="group">
+      <summary
+        className={`flex cursor-pointer list-none items-center gap-3 px-4 py-3 transition select-none marker:hidden [&::-webkit-details-marker]:hidden ${
+          active ? 'bg-[#FF1E42]/10' : 'hover:bg-muted'
+        }`}
+      >
+        <Chevron />
+        <span className={`font-mono text-xs font-bold uppercase tracking-wide ${active ? 'text-[#FF1E42]' : 'text-foreground'}`}>
+          {label}
+        </span>
         {hint && <span className="font-mono text-[9px] uppercase tracking-wide text-zinc-500">// {hint}</span>}
-      </div>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={`Filtrar por ${label.toLowerCase()}`}>
-        {children}
-      </div>
-    </div>
+      </summary>
+      <div className="flex flex-wrap gap-2 border-t border-border bg-muted/30 px-4 py-4">{children}</div>
+    </details>
   );
 }
 

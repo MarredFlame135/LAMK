@@ -1024,21 +1024,65 @@ pieza cada una. Se conservó tal cual para lo suyo.
   (7), Star Hats (6), Rude Awakenings (5)… Sin ellas, "filtrar por marca"
   dejaría fuera a una de cada cuatro piezas de la tienda.
 
-**Cuatro filtros que cruzan**, en `CatalogGrid.tsx`: Categoría (taxonomía) ·
-Marca · Precio · Colección (las pestañas de descubrimiento).
+**Los filtros son un ÁRBOL de dos niveles, no cuatro filas** (`CatalogGrid.tsx`
++ `CATALOG_GROUPS` en `lib/product-taxonomy.ts`).
 
-**Los conteos son facetados y eso NO es cosmético.** El número de cada pastilla
-se calcula contra el catálogo ya filtrado por los OTROS tres ejes. Sin eso,
-estando en "Gorras" la pastilla "Jordan" diría 27 y al pulsarla daría 0
-resultados: cada pastilla sería una posible vía muerta. Verificado en
-navegador: en Gorras el eje de marca pasa de 54 a 18 marcas y el de precio de 4
-tramos a 3, y los tramos siguen sumando exactamente el total (29+43+2 = 74).
+La primera versión de esta ronda los puso todos planos y a la vista: siete
+categorías, 54 marcas, cuatro tramos de precio y seis colecciones, cuatro filas
+de pastillas seguidas. El cliente lo cortó en seco — *"no quiero tantas
+categorías, que se muestren las principales y que de ahí se desplieguen
+jerárquicamente"* — y tenía razón: **un filtro que exige leer setenta opciones
+antes de elegir la primera no es un filtro, es un índice.**
 
-> Detalle que sí hay que recordar: **la opción ACTIVA se mantiene visible
-> aunque su conteo caiga a 0.** Si la pastilla encendida desaparece, la persona
-> se queda mirando un catálogo vacío sin ninguna pista de cuál de sus filtros
-> lo dejó así. Lo mismo con la marca seleccionada cuando está fuera de las 14
-> que se muestran antes de "Ver todas".
+Cuatro puertas, las mismas que tenía la tienda anterior, y todo lo demás vive
+dentro de la puerta a la que pertenece:
+
+```
+Sneakers        75   →  marcas de sneakers (19)
+Ropa            75   →  Hoodies y sudaderas 31 · Playeras 29 · Chamarras 6 ·
+                        Pants y shorts 5 · Ropa interior 4   +  marcas (20)
+Accesorios      95   →  Gorras 74 · Bolsos y mochilas 9 · Relojes 7 ·
+                        Joyería 5                            +  marcas (26)
+Coleccionables  20   →  marcas de coleccionables
+Precio · Colección   →  ramas propias, cerradas hasta que alguien las pide
+```
+
+Conteos reales al 2026-09-03, suman 265 exactas.
+
+- **`<details>`/`<summary>` nativo**, no un acordeón propio: trae el manejo de
+  teclado, el rol de botón y el estado abierto/cerrado ya resueltos. La flecha
+  gira con la variante `group-open` de Tailwind — el navegador ya sabe si la
+  rama está abierta, no hace falta contárselo a React.
+- **Las marcas se movieron DENTRO de cada rama**, y no es solo ahorro de
+  espacio: es como funcionaba la tienda anterior
+  (`/collections/jordan-sneakers`, `/collections/hoodies-bape`). Elegir
+  "Jordan" dentro de Sneakers significa las dos cosas a la vez, que es lo que
+  la persona quiere decir al pulsarlo. Una lista global de 54 marcas, en
+  cambio, ofrece "Pokémon" mientras miras tenis.
+- **El nivel 1 se DERIVA de `sectionOf()`, no se resuelve con predicados
+  propios.** Una pieza se clasifica una sola vez y el grupo sale de a qué cajón
+  cayó. Con predicados propios, una "GORRA POKEMON" cumpliría a la vez el
+  patrón de Gorras y el de Coleccionables y saldría en dos ramas — que es justo
+  lo que el orden de `PRODUCT_SECTIONS` existe para evitar. Hay prueba.
+- **`PRODUCT_SECTIONS` no se tocó**: sigue siendo la clasificación plana de
+  siete cajones y sigue alimentando el menú de TENISIN. El árbol se monta
+  encima, no la reemplaza.
+- **La rama del filtro activo se abre sola.** Llegar con "Gorras" puesto y todas
+  las ramas cerradas deja a la persona sin forma de ver qué está filtrando.
+
+**Los conteos son facetados y eso NO es cosmético.** El número de cada opción se
+calcula contra el catálogo ya filtrado por los OTROS ejes. Sin eso, un tramo de
+precio podría decir 27 y al pulsarlo dar 0: cada opción sería una posible vía
+muerta. Verificado en navegador: con "Relojes" seleccionado, las marcas de la
+rama pasan de 26 a cuatro (Seiko 3 · Laarvee 2 · Bape 1 · Casio 1) y suman
+exactamente las 7 piezas del resultado.
+
+> Dos detalles que sí hay que recordar: **la opción ACTIVA se mantiene visible
+> aunque su conteo caiga a 0** —si la pastilla encendida desaparece, la persona
+> ve un catálogo vacío sin ninguna pista de cuál de sus filtros lo dejó así—, y
+> **el rótulo de las marcas nombra lo que de verdad se está listando**: con
+> "Relojes" puesto dice "marcas en relojes", no "en accesorios". Un número
+> correcto bajo una etiqueta que miente se lee como un bug.
 
 **Rangos de precio** (`PRICE_BANDS` en `lib/discovery.ts`): hasta $2,500 ·
 $2,500–5,000 · $5,000–10,000 · $10,000+. Los cortes salen de la distribución
@@ -1218,9 +1262,9 @@ tramo de precio del catálogo: un solo número en todo el sitio.
 
 ### Estado
 
-`npm run test`: **148 pruebas en 17 archivos** (antes 137 en 15). Nuevas:
+`npm run test`: **155 pruebas en 18 archivos** (antes 137 en 15). Nuevas:
 `product-brand.test.ts` (4), `discovery.test.ts` (4) y 3 de regresión en
-`gamification.test.ts`. (Las 4 de `pickGrail` se fueron con la sección que el
+`gamification.test.ts`, más `product-taxonomy.test.ts` (7) para el árbol. (Las 4 de `pickGrail` se fueron con la sección que el
 cliente rechazó — ver arriba.)
 
 ### Pendiente: créditos de Higgsfield
