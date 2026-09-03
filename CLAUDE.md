@@ -853,3 +853,141 @@ funcionando — menos movimiento no es menos navegable.
 `spotlight-carousel` **no tenía este problema**: sus pastillas de nombre son
 botones reales con `aria-current`, y clicar una cambia de pieza (verificado en
 navegador: 0 → 2). No se tocó.
+
+## Variedad real de catálogo, buscador de coleccionistas y limpieza de UI (2026-09-03)
+
+Ronda pedida por Dante. El hilo que la atraviesa entera: **el sitio presumía la
+categoría equivocada.**
+
+### El dato que ordenó toda la ronda
+
+Medido contra el catálogo vivo: de **265 piezas, 114 son accesorios y solo 75
+son sneakers**. Y dentro de "accesorios" hay **74 gorras** — casi tantas como
+sneakers hay en total. La tienda es de sneakers, ropa y gorras en proporciones
+casi iguales, más una cola larga de relojes, coleccionables, bolsos y joyería.
+
+El sitio decía otra cosa en cada pantalla: el titular empezaba con "NO VENDES
+TENIS", la vitrina se llenaba de calzado, y el catálogo escondía las categorías
+en un `<select>` de esquina.
+
+### `lib/product-taxonomy.ts` — las secciones con las que alguien busca
+
+Shopify solo distingue SNEAKERS / APPAREL / ACCESSORIES / JEWELRY, y ese tercer
+cajón son 114 piezas que nadie buscaría juntas: gorras, relojes, cartas de
+Pokémon, figuras de KAWS y Bearbrick, y hasta ropa mal archivada (los boxers y
+calcetas Supreme están como "accesorio").
+
+Siete secciones reales, y **el orden importa** porque cada pieza cae en la
+primera que la reconoce: Coleccionables va antes que Bolsos (un "monedero
+Murakami" es pieza de colección, no un bolso de uso) y Ropa va casi primero,
+para rescatar lo que Shopify archivó mal.
+
+Conteos reales al 2026-09-03: Sneakers 75 · Ropa 75 · Gorras 74 ·
+Coleccionables 20 · Bolsos y mochilas 9 · Relojes 7 · Joyería 5. **Suman 265,
+sin sobrantes.**
+
+### Catálogo: la categoría deja de estar escondida
+
+Las secciones pasan de un `<select>` en la esquina a pastillas con **el conteo
+real** al lado. El número no es adorno: sin él, "Joyería" y "Gorras" se ven
+igual de importantes cuando una tiene 5 piezas y la otra 74, y nadie sabe dónde
+vale la pena entrar. Las pestañas de descubrimiento (HOT / GRAILS / …) siguen
+ahí, ahora como filtro secundario que cruza con la sección.
+
+### `lib/showcase-selection.ts` — una sola curaduría para las dos vitrinas
+
+`DropsCoverflow` ya repartía por categoría con rotación diaria; `HypeCarousel`
+hacía `sort(hype).slice(0, 14)` a secas y salía casi puro sneaker. En vez de
+copiar la lógica, se extrajo a un módulo compartido.
+
+Dos reglas, y una trampa que costó una prueba:
+
+1. **Primero una pieza de cada categoría**, antes de repetir ninguna.
+2. **El relleno va por RONDAS**, tomando la siguiente mejor de cada categoría
+   por vuelta. La primera versión ordenaba todo el catálogo junto para rellenar,
+   así que a partir de la pieza 6 volvía a ser casi puro sneaker: **el sesgo
+   entraba por la puerta de atrás justo después de haberlo corregido**. La
+   prueba `sneakers <= 5 de 14` lo fija.
+
+La rotación diaria se apaga sola en cuanto haya Hype real (`hasRealHype`), sin
+que nadie tenga que venir a borrarla.
+
+### El hero decía lo contrario de lo que la tienda es
+
+- **"NO VENDES TENIS." fuera.** La primera línea de la página nombraba la
+  categoría que menos pesa. Queda "Construyes un club de coleccionistas /
+  Bienvenido al Club LAMK", y el subtítulo enumera lo que de verdad se vende.
+- **La insignia "Index 98.0" eliminada.** El cliente preguntó qué indicaba: no
+  indicaba **nada**. Era un número escrito a mano dentro de un bloque cuyo
+  propio comentario decía "insignias flotantes decorativas".
+
+> **Por qué importa más de lo que parece.** El Hype Index de la ficha de
+> producto SÍ es real, y cuando no tiene muestra suficiente muestra un guion en
+> vez de rellenar el hueco. Un 98.0 inventado en la primera pantalla le enseña a
+> la gente a no creerle al que sí está calculado. Los `INDEX 14.7` / `INDEX —`
+> que se ven en la home son los reales y se quedan.
+
+### TENISIN: sin emojis y con el inventario de verdad
+
+- **Sin emoji.** La convención del repo ya lo decía —nada de emoji informal en
+  botones y títulos de UI de cliente, sí en el copy de WhatsApp saliente— y este
+  widget se la había saltado por completo.
+- **Las secciones salen del inventario vivo**, con el número de piezas
+  disponibles al lado, y una sección sin piezas ni se ofrece.
+- **Bug encontrado de paso:** el botón "PELUCHES" buscaba en la categoría
+  `COLLECTIBLES` de Shopify, donde **no hay ni una sola pieza**. Siempre
+  devolvía cero y mandaba al flujo de "te aviso cuando llegue". Un botón que
+  nunca encuentra nada es peor que no tener el botón.
+
+### Buscador de coleccionistas y calificación de colección
+
+`lib/social/discover.ts` + `/api/social/discover` + `CollectorSearch`, dentro de
+la propia Bóveda (es donde ya estás mirando colecciones).
+
+- **Solo aparecen perfiles en PÚBLICO.** Ni "solo seguidores", ni privados, ni
+  cuentas de menores. No es una decisión de producto: un perfil de "solo
+  seguidores" dice *primero sígueme, después ves*; listarlo en un buscador ya
+  sería decir que existe y quién es. **Un buscador vacío es un resultado
+  correcto** mientras nadie se haya hecho público, y la pantalla lo dice.
+- **Bloqueos en ambos sentidos.** Ni quien me bloqueó aparece, ni yo aparezco
+  para quien bloqueé — si no, el buscador sería la puerta trasera del bloqueo.
+- **La edad se recalcula en cada consulta**, nunca se confía en la fila: una
+  cuenta de menor no puede aparecer ni con un estado viejo que diga 'public'.
+- Sin término de búsqueda es un **directorio** ordenado por número de piezas.
+- Rebote de 300 ms en el input: sin él se dispara una consulta por tecla y el
+  límite de la ruta se agota escribiendo un nombre.
+
+**Calificar la colección** (`vault_collection_ratings`, 1-5 estrellas) es
+distinto del me gusta por pieza: aquello valora un objeto, esto la CURADURÍA del
+closet entero. Una calificación por persona, nadie se califica a sí mismo, la
+visibilidad se valida reusando `getProfileView()` —no una segunda copia de las
+reglas— y hacia afuera solo sale el promedio y el número de votos. Desde un
+escaneo de QR se ve pero no se vota, igual que las reacciones.
+
+Si nadie ha calificado se muestra "Sin calificar todavía" y no un 0, que se
+leería como una colección mala.
+
+### Export de clientes: de 7 a 13 columnas
+
+Lo que faltaba no era "más datos" por acumular, sino lo que hace falta para
+**decidir a quién escribirle y por dónde**:
+
+- **Origen y WhatsApp en E.164.** Los contactos `LEAD_ONLY` no tienen correo
+  —nunca compraron, solo dejaron su teléfono con TENISIN— así que una campaña
+  por email los deja fuera sin que nadie se entere.
+- **Días sin comprar**, además de la fecha: es la "R" de RFM y en una hoja de
+  cálculo se filtra por número.
+- **Tier y XP**, que es el eje sobre el que está construido el producto entero.
+- **Ticket promedio**, que separa a quien gastó mucho una vez de quien vuelve.
+
+Y **BOM al inicio del archivo**: sin él Excel abre el CSV en la codificación del
+sistema y "Martínez" se vuelve "MartÃ­nez" en media base de clientes mexicana.
+
+### Estado
+
+`npm run test`: **137 pruebas en 15 archivos**. Build limpio.
+
+> **Nota del build local:** salen miles de `NeonDbError: fetch failed` al
+> construir. Es la generación de 265 páginas de producto pegándole a Neon en
+> paralelo desde una conexión doméstica; el build termina en 0 porque el código
+> degrada sin romperse. No aparece en el build de Vercel.
