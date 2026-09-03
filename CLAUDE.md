@@ -405,6 +405,9 @@ arreglo es el mismo patrón `mounted` de arriba.
 
 ## Auditoría integral (2026-09-02) — sesiones, persistencia, webhook, Closet Digital
 
+> Informe completo con hallazgos numerados, severidades y áreas de mejora por
+> prioridad: `docs/audit/AUDITORIA-INTEGRAL-2026-09-02.md`.
+
 Ronda completa sobre `feature/social-qr-follow-vault`. Lo que cambió y, sobre
 todo, **por qué**, para no volver a tropezar con lo mismo.
 
