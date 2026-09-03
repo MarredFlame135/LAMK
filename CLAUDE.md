@@ -822,12 +822,33 @@ horizontal de un trackpad— así que quien usa ratón se quedaba sin nada.
 
 **Arreglo:** dos flechas circulares, visibles desde `sm` (en un teléfono se
 arrastra con el dedo y dos botones encima de las piezas estorbarían). Avanzan de
-UNA pieza, no de una página, porque el enganche es `snap-center` y así cada
-pulsación deja exactamente una pieza centrada y de frente. La flecha del extremo
-se **deshabilita**, no se esconde: un botón que desaparece mueve la fila y deja
-al cursor apuntando a otra cosa. Con `prefers-reduced-motion` la tira sigue
-plana pero las flechas siguen funcionando — menos movimiento no es menos
-navegable.
+UNA pieza, no de una página: cada pulsación deja exactamente una pieza centrada
+y de frente. La flecha del extremo se **deshabilita**, no se esconde: un botón
+que desaparece mueve la fila y deja al cursor apuntando a otra cosa. Con
+`prefers-reduced-motion` la tira sigue plana pero las flechas siguen
+funcionando — menos movimiento no es menos navegable.
+
+**Dos cosas más que salieron de perseguir este bug, y ninguna es obvia:**
+
+1. **`scroll-snap` es incompatible con estas transformaciones 3D.** El navegador
+   calcula los puntos de anclaje con la caja YA TRANSFORMADA, no con la de
+   maquetación, así que sus anclajes no coinciden con `offsetLeft`. Con
+   `snap-mandatory` el navegador REVIERTE cualquier desplazamiento programático
+   que no caiga en SU punto: medido, un `scrollTo({ left: 542 })` se quedaba
+   clavado en 233. Se quitó el snap de `DepthStrip`.
+2. **El desplazamiento suave no funciona en esta máquina.**
+   `scrollTo({ behavior: "smooth" })` no mueve el contenedor ni un píxel
+   (`scrollLeft = 900` sí lo mueve a 900), y una animación propia con
+   `requestAnimationFrame` corre UN SOLO frame y se detiene. Las dos son
+   síntomas del mismo interruptor: el sistema tiene los efectos de animación
+   reducidos, y en ese estado el navegador desactiva el scroll suave. Es el
+   mismo ajuste que ya había causado el reporte de "la animación del tenis dejó
+   de funcionar". Las flechas hacen un **salto directo** (`scrollLeft = destino`),
+   que responde siempre.
+
+> Perseguir el desplazamiento suave habría dejado un botón que funciona en la
+> máquina de quien lo programó y no en la del cliente — que es exactamente el
+> bug que se estaba corrigiendo.
 
 `spotlight-carousel` **no tenía este problema**: sus pastillas de nombre son
 botones reales con `aria-current`, y clicar una cambia de pieza (verificado en
