@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { fadeUp, staggerContainer } from '@/lib/motion';
 import { haptics } from '@/lib/haptics';
 import { VaultZones } from './VaultZones';
+import { CollectionRatingBar } from './CollectionRatingBar';
 import { CollectionItem } from '@/types/user';
 import type { ReactionSummary } from '@/lib/vault-reactions';
 
@@ -38,9 +39,12 @@ interface PublicVaultContentProps {
   // reacción de quien mira; nunca la de terceros.
   reactions?: Record<string, ReactionSummary>;
   canReact?: boolean;
+  /** Calificación de la colección completa. Ver CollectionRatingBar. */
+  rating?: { average: number | null; count: number; mine: number | null };
+  canRate?: boolean;
 }
 
-export function PublicVaultContent({ handle, serial, tier, bio, followerCount, vault, isOwner, viewerLoggedIn, reactions, canReact = false }: PublicVaultContentProps) {
+export function PublicVaultContent({ handle, serial, tier, bio, followerCount, vault, isOwner, viewerLoggedIn, reactions, canReact = false, rating, canRate = false }: PublicVaultContentProps) {
   const [followState, setFollowState] = useState<'idle' | 'following' | 'pending'>('idle');
   const [followBusy, setFollowBusy] = useState(false);
 
@@ -123,7 +127,10 @@ export function PublicVaultContent({ handle, serial, tier, bio, followerCount, v
           de alguien más. La nota libre del dueño se conserva: es lo único que
           esta vista tiene y la propia no. */}
       <motion.div variants={fadeUp} className="bg-card border border-border rounded-xl p-6 space-y-4">
-        <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// EL CLOSET ({vault.length})</h3>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h3 className="text-xs font-mono uppercase text-muted-foreground tracking-wider">// EL CLOSET ({vault.length})</h3>
+          {rating && <CollectionRatingBar username={handle} {...rating} canRate={canRate} />}
+        </div>
         {vault.length === 0 ? (
           <div className="p-8 border border-dashed border-border rounded-lg text-center">
             <p className="text-muted-foreground text-xs">Esta bóveda todavía no tiene piezas públicas.</p>

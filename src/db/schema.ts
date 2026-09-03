@@ -421,3 +421,24 @@ export const vaultItemReactions = pgTable('vault_item_reactions', {
   pk: primaryKey({ columns: [table.vaultItemId, table.customerId] }),
   itemIdx: index('vault_item_reactions_item_idx').on(table.vaultItemId),
 }));
+
+// Calificación de la colección COMPLETA de un coleccionista (2026-09-03,
+// pedido de Dante: "poder calificar la colección"). Distinta de
+// `vault_item_reactions`, que es pieza por pieza: esta valora la curaduría como
+// conjunto — qué tan bien armado está el closet, no si un tenis concreto gusta.
+//
+// Mismas cuatro barreras que las reacciones por pieza, por las mismas razones:
+// una calificación por persona (llave primaria compuesta), exige sesión, nadie
+// se califica a sí mismo, y hacia afuera solo sale el PROMEDIO y el número de
+// votos — nunca quién puso qué.
+export const vaultCollectionRatings = pgTable('vault_collection_ratings', {
+  ownerId: text('owner_id').notNull(), // dueño de la colección calificada
+  raterId: text('rater_id').notNull(), // quien califica
+  // 1 a 5. Se valida en la API antes de escribir; la restricción de rango vive
+  // en el código y no en la tabla para poder devolver un error legible.
+  stars: integer('stars').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.ownerId, table.raterId] }),
+  ownerIdx: index('vault_collection_ratings_owner_idx').on(table.ownerId),
+}));

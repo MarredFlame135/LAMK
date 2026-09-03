@@ -23,6 +23,7 @@ import { getCustomerProfile } from '@/lib/shopify/customer';
 import { getStoreCustomersWithXp } from '@/lib/shopify/admin';
 import { deriveCollectorSerial } from '@/lib/utils';
 import { getReactionSummaries } from '@/lib/vault-reactions';
+import { getCollectionRating } from '@/lib/social/discover';
 import { PublicVaultReveal } from '@/components/vault/PublicVaultReveal';
 import { PublicVaultContent } from '@/components/vault/PublicVaultContent';
 
@@ -61,6 +62,8 @@ export default async function PublicVaultPage({ params }: PageProps) {
     await getReactionSummaries(view.vault.map((v) => v.id), viewer?.id ?? null)
   );
 
+  const rating = await getCollectionRating(profile.customerId, viewer?.id ?? null);
+
   const serial = deriveCollectorSerial(profile.customerId).replace('LK-C-', '');
 
   return (
@@ -75,6 +78,8 @@ export default async function PublicVaultPage({ params }: PageProps) {
         followerCount={view.followerCount}
         vault={view.vault}
         reactions={reactions}
+        rating={rating}
+        canRate={Boolean(viewer) && !view.isOwner}
         // Se puede reaccionar con sesión iniciada y sin ser el dueño. El
         // servidor lo revalida igual (api/vault/reactions): esto solo evita
         // enseñar un botón que iba a rebotar.

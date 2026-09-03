@@ -18,6 +18,7 @@ import { useCart } from '@/hooks/useCart';
 import { ProductCard } from '@/components/catalog/ProductCard';
 import { CarouselItemTracker } from '@/components/analytics/CarouselItemTracker';
 import { DepthStrip } from '@/components/ui/DepthStrip';
+import { buildShowcaseSelection } from '@/lib/showcase-selection';
 
 const CAROUSEL_NAME = 'hype_carousel';
 
@@ -25,15 +26,21 @@ const HOME_CURATED_LIMIT = 14;
 
 interface HypeCarouselProps {
   products: Product[];
+  /** Calculado en el servidor (page.tsx). Ver lib/showcase-selection.ts. */
+  daySeed: number;
 }
 
-export function HypeCarousel({ products }: HypeCarouselProps) {
+export function HypeCarousel({ products, daySeed }: HypeCarouselProps) {
   const { addItem } = useCart();
-  // Curado: solo lo que de verdad está en tendencia, con tope duro.
-  const trendingProducts = [...products]
-    .filter((p) => !p.isSoldOut)
-    .sort((a, b) => b.hypeMeter.score - a.hypeMeter.score)
-    .slice(0, HOME_CURATED_LIMIT);
+
+  // Curaduría compartida con la otra vitrina de la home (lib/showcase-selection.ts):
+  // primero UNA pieza de cada categoría real y después el resto por rondas.
+  //
+  // Antes esto era `sort(por hype).slice(0, 14)` a secas, y salía casi puro
+  // sneaker: es la categoría con más interacción, pero no la más grande del
+  // catálogo — de 265 piezas, 114 son accesorios y solo 75 son sneakers. La
+  // sección que anuncia "lo que está pasando" enseñaba una sola cosa.
+  const trendingProducts = buildShowcaseSelection(products, daySeed, HOME_CURATED_LIMIT);
 
   const handleAddToCart = (product: Product, variant: ProductVariant) => {
     addItem(product.title, product.id, product.images[0], variant);

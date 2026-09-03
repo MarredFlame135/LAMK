@@ -11,11 +11,15 @@ export const TRANSLATIONS = {
     },
     hero: {
       badge: 'PLATAFORMA PWA NEXT-GEN',
-      headline1: 'NO VENDES TENIS.',
-      headline2: 'CONSTRUYES UN CLUB',
-      headline3: 'DE COLECCIONISTAS.',
+      // "NO VENDES TENIS." se retiró (2026-09-03, decisión del cliente): la
+      // primera línea de la página nombraba el producto que MENOS pesa en el
+      // catálogo real. De 265 piezas, 114 son accesorios y solo 75 son
+      // sneakers — el sitio presumía la categoría equivocada.
+      headline1: 'CONSTRUYES UN CLUB',
+      headline2: 'DE COLECCIONISTAS.',
+      headline3: 'Bienvenido al Club LAMK.',
       subtitleLead: 'Bienvenido a',
-      subtitleTail: 'Cada compra acumula puntos XP, desbloquea rangos VIP en la Bóveda del Coleccionista y te da acceso a Drops exclusivos antes que a nadie.',
+      subtitleTail: 'Sneakers, ropa, gorras, bolsos y joyería. Cada pieza que compras entra a tu Bóveda con número de serie, suma XP y desbloquea rangos y drops antes que a nadie.',
       ctaCatalog: 'VER CATÁLOGO EXCLUSIVO →',
     },
     anatomy: {
@@ -78,11 +82,11 @@ export const TRANSLATIONS = {
     },
     hero: {
       badge: 'NEXT-GEN PWA PLATFORM',
-      headline1: "YOU DON'T SELL SNEAKERS.",
-      headline2: 'YOU BUILD A CLUB',
-      headline3: 'OF COLLECTORS.',
+      headline1: 'YOU BUILD A CLUB',
+      headline2: 'OF COLLECTORS.',
+      headline3: 'Welcome to Club LAMK.',
       subtitleLead: 'Welcome to',
-      subtitleTail: 'Every purchase earns XP points, unlocks VIP ranks in the Collector Vault, and gets you access to exclusive drops before anyone else.',
+      subtitleTail: 'Sneakers, apparel, caps, bags and jewelry. Every piece you buy enters your Vault with a serial number, earns XP, and unlocks ranks and drops before anyone else.',
       ctaCatalog: 'SEE EXCLUSIVE CATALOG →',
     },
     anatomy: {

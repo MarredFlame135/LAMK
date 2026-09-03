@@ -8,16 +8,60 @@ import React, { useMemo, useState } from 'react';
 import { AdminCustomer } from '@/types/admin';
 import { CustomerSegment, SEGMENT_META, segmentCustomer } from '@/lib/customer-segmentation';
 
+// Export para armar campañas (ampliado 2026-09-03, pedido del cliente:
+// "que el admin pueda exportar la info de los clientes para segmentar público").
+//
+// Antes traía 7 columnas. Lo que faltaba no era "más datos" por acumular, sino
+// exactamente lo que hace falta para DECIDIR a quién escribirle y por dónde:
+//
+//  - **Origen y WhatsApp en formato internacional.** Los contactos LEAD_ONLY no
+//    tienen correo —nunca compraron, solo dejaron su teléfono con TENISIN— así
+//    que una campaña por email los deja fuera sin que nadie se entere. La
+//    columna Origen los separa, y el teléfono ya sale como +52XXXXXXXXXX, que
+//    es lo que piden las herramientas de envío masivo.
+//  - **Días sin comprar**, además de la fecha. Es la "R" de RFM y en una hoja de
+//    cálculo se filtra por número; por fecha hay que ponerse a restar.
+//  - **Tier y XP.** Es el eje sobre el que está construido todo el producto: sin
+//    esto no se puede hacer una campaña dirigida a un rango de coleccionista.
+//  - **Ticket promedio.** Separa a quien gastó mucho en una compra de quien
+//    vuelve seguido; el gasto total solo, los confunde.
 function toCsv(rows: (AdminCustomer & { segment: CustomerSegment })[]): string {
-  const header = ['Nombre', 'Email', 'Teléfono', 'Segmento', 'Pedidos', 'Gasto total MXN', 'Último pedido'];
-  const lines = rows.map((r) => [
-    r.name, r.email, r.phone, SEGMENT_META[r.segment].label, r.ordersCount, r.totalSpent, r.lastOrderDate ?? '',
-  ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(','));
-  return [header.join(','), ...lines].join('\n');
+  const header = [
+    'Nombre', 'Email', 'Teléfono', 'WhatsApp (E.164)', 'Origen',
+    'Segmento', 'Tier', 'XP',
+    'Pedidos', 'Gasto total MXN', 'Ticket promedio MXN',
+    'Último pedido', 'Días sin comprar',
+  ];
+
+  const hoy = Date.now();
+  const lines = rows.map((r) => {
+    const diasSinComprar = r.lastOrderDate
+      ? Math.floor((hoy - new Date(r.lastOrderDate).getTime()) / 86400000)
+      : '';
+    const ticket = r.ordersCount > 0 ? Math.round(r.totalSpent / r.ordersCount) : 0;
+    // 10 dígitos es el formato que guarda el proyecto; +52 es México.
+    const whatsapp = /^\d{10}$/.test(r.phone) ? `+52${r.phone}` : '';
+
+    return [
+      r.name, r.email, r.phone, whatsapp,
+      r.source === 'LEAD_ONLY' ? 'Solo contacto (sin cuenta)' : 'Cliente Shopify',
+      SEGMENT_META[r.segment].label, r.tier, r.xp,
+      r.ordersCount, r.totalSpent, ticket,
+      r.lastOrderDate ?? '', diasSinComprar,
+    ]
+      .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+      .join(',');
+  });
+
+  // CRLF, que es lo que espera Excel en un CSV.
+  return [header.join(','), ...lines].join('\r\n');
 }
 
 function downloadCsv(csv: string, filename: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  // El \uFEFF (BOM) va primero a propósito: sin él, Excel abre el archivo en la
+  // codificación del sistema y todos los acentos y las eñes salen rotos —
+  // "Martínez" se vuelve "MartÃ­nez" en media base de clientes mexicana.
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

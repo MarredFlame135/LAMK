@@ -21,6 +21,7 @@ import { UserProfile } from '@/types/user';
 import { Product } from '@/types/product';
 import { MostWantedSection } from './MostWantedSection';
 import { VaultZones } from './VaultZones';
+import { CollectorSearch } from './CollectorSearch';
 import { calculateGamificationTier, computeCollectionIndex } from '@/utils/gamification';
 import { useApp } from '@/context/AppContext';
 import { Magnetic } from '@/components/ui/Magnetic';
@@ -162,6 +163,12 @@ export function CollectorVault({ user, username, wishlist, isOwnProfile = true }
               Dante, 2026-08-30) — solo en tu propia bóveda, panel aparte
               por la misma razón que Most Wanted: aprobar/rechazar no debe
               reordenar visualmente la colección de arriba. */}
+          {/* Buscar a otros coleccionistas (2026-09-03). Va en la propia
+              Bóveda y no en una pantalla aparte porque es donde ya estás
+              mirando colecciones: comparar la tuya con la de alguien más es el
+              gesto natural desde aquí. */}
+          {isOwnProfile && <CollectorSearch />}
+
           {isOwnProfile && <PurchaseClaimForm />}
 
           {/* Most Wanted (solo en tu propia bóveda) — panel aparte, no

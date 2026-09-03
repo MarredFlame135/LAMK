@@ -12,15 +12,23 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useCart } from '@/hooks/useCart';
-import { CATEGORY_LABELS } from '@/lib/catalog';
 import { Product, ProductVariant } from '@/types/product';
 import { useApp } from '@/context/AppContext';
 import { DiscoveryTabs } from './DiscoveryTabs';
 import { ProductCard } from './ProductCard';
 import { DiscoveryTab, filterByDiscoveryTab } from '@/lib/discovery';
 import { fadeUp } from '@/lib/motion';
+import { PRODUCT_SECTIONS, sectionOf } from '@/lib/product-taxonomy';
 
-const CATEGORIES: Array<'TODAS' | Product['category']> = ['TODAS', 'SNEAKERS', 'APPAREL', 'ACCESSORIES', 'COLLECTIBLES', 'JEWELRY'];
+// Las secciones del catálogo salen de lib/product-taxonomy.ts, NO de las
+// cuatro categorías que devuelve Shopify.
+//
+// El motivo se ve con los números reales: Shopify mete 114 de las 265 piezas en
+// "ACCESSORIES", y ahí dentro caben 74 gorras, 7 relojes, cartas de Pokémon,
+// figuras de Bearbrick y hasta ropa mal archivada. Enseñar eso como una sola
+// pastilla —"Bolsos y gorras · 114"— es esconder el catálogo detrás de una
+// etiqueta que ni siquiera describe lo que hay. Con la taxonomía real salen
+// siete secciones navegables, que es la variedad que la tienda de verdad tiene.
 const PAGE_SIZE = 24;
 
 interface CatalogGridProps {
@@ -29,17 +37,42 @@ interface CatalogGridProps {
 
 export function CatalogGrid({ products }: CatalogGridProps) {
   const [discoveryTab, setDiscoveryTab] = useState<DiscoveryTab>('ALL');
-  const [category, setCategory] = useState<'TODAS' | Product['category']>('TODAS');
+  // 'TODAS' o la clave de una sección de PRODUCT_SECTIONS.
+  const [category, setCategory] = useState<string>('TODAS');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { addItem } = useCart();
   const { t } = useApp();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const availableCategories = CATEGORIES.filter((c) => c === 'TODAS' || products.some((p) => p.category === c));
+  // Cuántas piezas hay REALMENTE en cada categoría, dentro de la pestaña de
+  // descubrimiento activa. El número va en la pastilla: sin él, "ACCESORIOS" y
+  // "JOYERÍA" se ven igual de importantes cuando una tiene 114 piezas y la otra
+  // 6, y nadie sabe dónde vale la pena entrar.
+  const countsByCategory = useMemo(() => {
+    const base = filterByDiscoveryTab(products, discoveryTab);
+    const counts = new Map<string, number>();
+    for (const p of base) {
+      const sec = sectionOf(p);
+      if (sec) counts.set(sec.key, (counts.get(sec.key) ?? 0) + 1);
+    }
+    counts.set('TODAS', base.length);
+    return counts;
+  }, [products, discoveryTab]);
+
+  const availableCategories: Array<{ key: string; label: string }> = [
+    { key: 'TODAS', label: 'Todo' },
+    ...PRODUCT_SECTIONS.filter((sec) => (countsByCategory.get(sec.key) ?? 0) > 0).map((sec) => ({
+      key: sec.key,
+      label: sec.label,
+    })),
+  ];
 
   const filtered = useMemo(() => {
     let result = filterByDiscoveryTab(products, discoveryTab);
-    if (category !== 'TODAS') result = result.filter((p) => p.category === category);
+    if (category !== 'TODAS') {
+      const sec = PRODUCT_SECTIONS.find((x) => x.key === category);
+      if (sec) result = result.filter((p) => sectionOf(p)?.key === sec.key);
+    }
     return result;
   }, [products, discoveryTab, category]);
 
@@ -87,19 +120,41 @@ export function CatalogGrid({ products }: CatalogGridProps) {
             </p>
           </div>
 
-          {/* Filtro secundario por categoría — compacto, las pestañas de descubrimiento son el filtro principal */}
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as typeof category)}
-            className="bg-muted border border-border rounded-lg px-3 py-2 text-xs font-mono uppercase text-foreground"
-          >
-            {availableCategories.map((c) => (
-              <option key={c} value={c}>{c === 'TODAS' ? 'TODAS LAS CATEGORÍAS' : CATEGORY_LABELS[c]}</option>
-            ))}
-          </select>
         </div>
 
-        {/* Pestañas de descubrimiento */}
+        {/* Categoría como filtro PRINCIPAL (2026-09-03, pedido del cliente:
+            "el catálogo debe ser de categorías, se hace mucho énfasis en tenis").
+            Estaba escondida en un <select> en la esquina mientras las pestañas
+            grandes eran de descubrimiento — así, la variedad real del catálogo
+            no se veía por ningún lado. Los números no son decorativos: son el
+            conteo real, y son la forma más rápida de que se note que Accesorios
+            es la categoría más grande de la tienda, no Sneakers. */}
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoría">
+          {availableCategories.map((c) => {
+            const activa = category === c.key;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setCategory(c.key)}
+                aria-pressed={activa}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide transition ${
+                  activa
+                    ? 'border-[#FF1E42] bg-[#FF1E42] text-white'
+                    : 'border-border text-muted-foreground hover:border-zinc-500 hover:text-foreground'
+                }`}
+              >
+                {c.label}
+                <span className={`font-mono text-[9px] ${activa ? 'text-white/70' : 'opacity-60'}`}>
+                  {countsByCategory.get(c.key) ?? 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Descubrimiento, ahora como filtro secundario: cruza con la categoría
+            elegida arriba. */}
         <DiscoveryTabs active={discoveryTab} onChange={setDiscoveryTab} />
       </motion.div>
 

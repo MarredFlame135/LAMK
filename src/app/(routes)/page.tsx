@@ -57,7 +57,7 @@ export default async function HomePage() {
       <AnatomySequence />
 
       <DropsCoverflow products={products} daySeed={daySeed} />
-      <HypeCarousel products={products} />
+      <HypeCarousel products={products} daySeed={daySeed} />
 
       {/* Tarea 3: fondo macro atado al scroll, envolviendo el Lookbook */}
       <ScrollMacroBackground>

@@ -27,6 +27,7 @@ import React from 'react';
 import { SpotlightCarousel, SpotlightItem } from '@/components/ui/spotlight-carousel';
 import { Product } from '@/types/product';
 import { track } from '@/lib/analytics';
+import { buildShowcaseSelection } from '@/lib/showcase-selection';
 
 // 6 piezas. La vitrina enseña los nombres de TODAS en las pastillas de abajo,
 // y arriba de ~6 nombres largos de sneaker se envuelven en tres renglones y se
@@ -57,38 +58,6 @@ const MIN_HYPE_SAMPLE = 50;
  * El día que exista Hype real, `hasRealHype` se vuelve true y la rotación se
  * apaga sola: manda el score y ya. No hay que venir a borrar nada.
  */
-function buildSelection(products: Product[], daySeed: number): Product[] {
-  const available = products.filter((p) => !p.isSoldOut);
-  if (available.length === 0) return [];
-
-  const byScore = (a: Product, b: Product) => b.hypeMeter.score - a.hypeMeter.score;
-  const hasRealHype = available.some((p) => p.hypeMeter.sampleSize >= MIN_HYPE_SAMPLE);
-
-  const categories = Array.from(new Set(available.map((p) => p.category))).sort();
-  const picked = new Map<string, Product>();
-
-  // 1) Una pieza de cada categoría real del catálogo — así la vitrina no se
-  //    vuelve puro sneaker (que es la categoría con más piezas e interacción).
-  //    Con Hype real es la de más score; sin él, la que le toque hoy.
-  for (const cat of categories) {
-    const inCat = available.filter((p) => p.category === cat).sort(byScore);
-    if (inCat.length === 0) continue;
-    const idx = hasRealHype ? 0 : daySeed % inCat.length;
-    picked.set(inCat[idx].id, inCat[idx]);
-  }
-
-  // 2) Rellena el resto. Con Hype real, las siguientes de mayor score. Sin él,
-  //    se recorre el catálogo desde un punto de arranque distinto cada día.
-  const rest = [...available].sort(byScore);
-  const start = hasRealHype ? 0 : daySeed % rest.length;
-  for (let i = 0; i < rest.length && picked.size < MAX_ITEMS; i += 1) {
-    const p = rest[(start + i) % rest.length];
-    if (!picked.has(p.id)) picked.set(p.id, p);
-  }
-
-  return Array.from(picked.values()).sort(byScore).slice(0, MAX_ITEMS);
-}
-
 // Los títulos reales de Shopify vienen como "TENIS DUNK LOW REVERSE UNC": el
 // prefijo de categoría es ruido cuando el nombre se va a pintar a 8vw, y se
 // repetiría idéntico en todas las piezas de calzado. Se quita solo cuando de
@@ -131,7 +100,7 @@ interface DropsCoverflowProps {
 }
 
 export function DropsCoverflow({ products, daySeed }: DropsCoverflowProps) {
-  const items: SpotlightItem[] = buildSelection(products, daySeed).map((p) => ({
+  const items: SpotlightItem[] = buildShowcaseSelection(products, daySeed, MAX_ITEMS).map((p) => ({
     id: p.id,
     image: p.images[0] || '/placeholder-sneaker.svg',
     name: displayName(p.title),

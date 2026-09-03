@@ -11,9 +11,14 @@ import { logDemandRequest, updateDemandRequest } from '@/hooks/useLeads';
 import { logLayawayRequest } from '@/hooks/useLayaway';
 import { haptics } from '@/lib/haptics';
 import { Product } from '@/types/product';
+import { PRODUCT_SECTIONS, sectionsWithProducts } from '@/lib/product-taxonomy';
 
 type MascotState = 'idle' | 'thinking' | 'happy' | 'notFound';
-type CategoryKey = 'SNEAKERS' | 'APPAREL' | 'GORRAS' | 'BOLSOS' | 'PELUCHES';
+// La clave de una sección de lib/product-taxonomy.ts. Antes era una unión fija
+// de cinco valores escritos aquí; ahora las secciones salen del catálogo real,
+// así que este alias solo documenta qué es la cadena que se pasea entre estas
+// funciones.
+type CategoryKey = string;
 
 interface ChatOption {
   label: string;
@@ -57,23 +62,19 @@ function parseCustomDeposit(text: string, price: number): { percentage: number; 
   return null;
 }
 
-const CATEGORY_OPTIONS: { key: CategoryKey; label: string }[] = [
-  { key: 'SNEAKERS', label: '👟 SNEAKERS' },
-  { key: 'APPAREL', label: '👕 ROPA / APPAREL' },
-  { key: 'GORRAS', label: '🧢 GORRAS' },
-  { key: 'BOLSOS', label: '👜 BOLSOS' },
-  { key: 'PELUCHES', label: '🧸 PELUCHES' },
-];
-
-function matchCategory(key: CategoryKey, catalog: Product[]): Product[] {
-  switch (key) {
-    case 'SNEAKERS': return catalog.filter((p) => p.category === 'SNEAKERS');
-    case 'APPAREL': return catalog.filter((p) => p.category === 'APPAREL');
-    case 'GORRAS': return catalog.filter((p) => p.category === 'ACCESSORIES' && /gorra|cap\b/i.test(p.title));
-    case 'BOLSOS': return catalog.filter((p) => p.category === 'ACCESSORIES' && /bolso|bag|mini/i.test(p.title));
-    case 'PELUCHES': return catalog.filter((p) => p.category === 'COLLECTIBLES');
-  }
-}
+// Las secciones salen del catálogo REAL (lib/product-taxonomy.ts), no de una
+// lista fija en este archivo.
+//
+// La lista fija anterior tenía dos defectos que solo se ven con el inventario
+// delante: ofrecía cinco opciones para un catálogo de siete secciones reales
+// —dejando fuera relojes, joyería y coleccionables, que sí hay— y su botón
+// "PELUCHES" buscaba en la categoría COLLECTIBLES de Shopify, donde no hay ni
+// una pieza: **siempre devolvía cero**. Ahora las secciones se calculan del
+// inventario vivo y una sección sin piezas ni siquiera se ofrece.
+//
+// Sin emoji, además. La convención del repo ya lo decía: nada de emoji informal
+// en botones y títulos de la UI de cliente (sí en los mensajes de WhatsApp
+// salientes, que son contenido de negocio). Este widget se la había saltado.
 
 const inStock = (p: Product) => !p.isSoldOut && p.variants.some((v) => v.isAvailable);
 const getProductPrice = (p: Product) => p.variants.find((v) => v.isAvailable)?.price ?? p.variants[0]?.price ?? 0;
@@ -116,7 +117,7 @@ export function TenisinWidget() {
     if (isOpen && !hasGreeted.current) {
       hasGreeted.current = true;
       setMessages([
-        { sender: 'TENISIN', text: '¡Hola! Soy TENISIN 👟, voy a ayudarte a encontrar lo que buscas.' },
+        { sender: 'TENISIN', text: 'Hola, soy TENISIN. Te ayudo a encontrar lo que buscas en el inventario.' },
       ]);
       setTimeout(() => showCategoryMenu(), 400);
     }
@@ -124,10 +125,16 @@ export function TenisinWidget() {
   }, [isOpen]);
 
   const showCategoryMenu = () => {
-    respond('¿Qué tipo de producto buscas?', {
+    const secciones = sectionsWithProducts(catalogRef.current.filter(inStock));
+    respond('¿Qué estás buscando?', {
       options: [
-        ...CATEGORY_OPTIONS.map((c) => ({ label: c.label, onClick: () => handleCategoryClick(c.key, c.label) })),
-        { label: '🔍 OTRO / PEDIDO ESPECIAL', onClick: () => handleOtherClick() },
+        ...secciones.map((sec) => ({
+          // El número real de piezas disponibles. No es adorno: orienta sin
+          // tener que entrar a ver, y evita prometer surtido donde hay dos.
+          label: `${sec.label} · ${sec.products.length}`,
+          onClick: () => handleSectionClick(sec.key, sec.label),
+        })),
+        { label: 'Otro o pedido especial', onClick: () => handleOtherClick() },
       ],
     });
   };
@@ -141,26 +148,34 @@ export function TenisinWidget() {
       wasMatched: false,
     });
     setPendingLeadId(lead.id);
-    respond('Ya anoté tu búsqueda para que el equipo la revise antes de comprar más inventario. Si me dejas tu WhatsApp (10 dígitos) te aviso apenas esté disponible 📲');
+    respond('Anoté tu búsqueda para que el equipo la revise antes de comprar más inventario. Déjame tu WhatsApp (10 dígitos) y te aviso en cuanto esté disponible.');
   };
 
   const handleOtherClick = () => {
     haptics.tap();
-    say('🔍 Otro / Pedido especial');
+    say('Otro o pedido especial');
     respond('Perfecto, cuéntame: escribe el nombre del par o prenda que buscas y en el siguiente mensaje déjame tu WhatsApp para avisarte cuando lo consigamos.');
     setAwaitingOtherQuery(true);
   };
 
-  const handleCategoryClick = (key: CategoryKey, label: string) => {
+  // Piezas disponibles de una sección. Una sola función, para que el menú, el
+  // filtro por marca y el de talla no puedan discrepar sobre qué hay en cada
+  // sección.
+  const productsInSection = (key: CategoryKey): Product[] => {
+    const seccion = PRODUCT_SECTIONS.find((sec) => sec.key === key);
+    return seccion ? catalogRef.current.filter(seccion.matches).filter(inStock) : [];
+  };
+
+  const handleSectionClick = (key: CategoryKey, label: string) => {
     haptics.tap();
     say(label);
     setMascotState('thinking');
 
     setTimeout(() => {
-      const matches = matchCategory(key, catalogRef.current).filter(inStock);
+      const matches = productsInSection(key);
 
       if (matches.length === 0) {
-        respond(`Justo ahorita no tengo ${label.replace(/^\S+\s/, '').toLowerCase()} en inventario 😔`);
+        respond(`Ahorita no tengo ${label.toLowerCase()} disponible.`);
         notifyMeFlow(label);
         return;
       }
@@ -173,7 +188,7 @@ export function TenisinWidget() {
         return;
       }
 
-      respond(`Tengo estas marcas disponibles en ${label.replace(/^\S+\s/, '')}:`, {
+      respond(`Marcas disponibles en ${label.toLowerCase()}:`, {
         options: brands.map((b) => ({ label: b, onClick: () => handleBrandClick(key, b, label) })),
       });
     }, 700);
@@ -184,7 +199,7 @@ export function TenisinWidget() {
     say(brand);
     setMascotState('thinking');
     setTimeout(() => {
-      const matches = matchCategory(key, catalogRef.current).filter((p) => p.brand === brand && inStock(p));
+      const matches = productsInSection(key).filter((p) => p.brand === brand);
       showSizeOrResults(key, brand, matches, categoryLabel);
     }, 500);
   };
@@ -231,7 +246,7 @@ export function TenisinWidget() {
     setMascotState('happy');
     const top = products.slice(0, 3);
     logDemandRequest({ productId: top[0].id, productTitle: top[0].title, rawQuery, wasMatched: true });
-    respond(`👟 ¡Encontré ${top.length === 1 ? 'un par' : `${top.length} opciones`}! Toca la tarjeta para ver detalle o apártalo con un %.`, { products: top, resultsSizeLabel: sizeLabel });
+    respond(`Encontré ${top.length === 1 ? 'una pieza' : `${top.length} opciones`}. Toca la tarjeta para ver el detalle, o apártala con un anticipo.`, { products: top, resultsSizeLabel: sizeLabel });
     setTimeout(() => setMascotState('idle'), 4000);
   };
 
@@ -240,8 +255,8 @@ export function TenisinWidget() {
   const startLayawayFlow = (product: Product, sizeLabel?: string) => {
     haptics.tap();
     const price = getProductPrice(product);
-    say(`📌 Quiero apartar: ${product.title}`);
-    respond(`¡Va! Voy a apartarte tu ${product.title}. ¿Con qué porcentaje te gustaría apartar tu par? 👟`, {
+    say(`Quiero apartar: ${product.title}`);
+    respond(`Perfecto. ¿Con qué porcentaje quieres apartar tu ${product.title}?`, {
       options: [
         { label: '20%', onClick: () => handleLayawayPercentClick(product, sizeLabel, price, 20) },
         { label: '30%', onClick: () => handleLayawayPercentClick(product, sizeLabel, price, 30) },
@@ -254,7 +269,7 @@ export function TenisinWidget() {
   const askForLayawayPhone = (product: Product, sizeLabel: string | undefined, percentage: number, depositAmount: number) => {
     setLayawayDraft({ product, sizeLabel, percentage, depositAmount });
     setLayawayStep('phone');
-    respond(`Perfecto, tu anticipo del ${percentage}% es de $${depositAmount.toLocaleString()} MXN. Déjame tu WhatsApp (10 dígitos) para coordinar el apartado 📲`);
+    respond(`Tu anticipo del ${percentage}% es de $${depositAmount.toLocaleString()} MXN. Déjame tu WhatsApp (10 dígitos) para coordinar el apartado.`);
   };
 
   const handleLayawayPercentClick = (product: Product, sizeLabel: string | undefined, price: number, percentage: number) => {
@@ -289,7 +304,7 @@ export function TenisinWidget() {
       wasMatched: false,
     });
     setPendingLeadId(lead.id);
-    respond('🤔 No encontré nada con eso todavía. Ya le avisé al equipo de tu búsqueda. Si me dejas tu WhatsApp (10 dígitos) te aviso en cuanto entre.');
+    respond('No encontré nada con eso todavía. Ya le avisé al equipo. Déjame tu WhatsApp (10 dígitos) y te aviso en cuanto entre.');
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -306,7 +321,7 @@ export function TenisinWidget() {
       const price = getProductPrice(layawayDraft.product);
       const parsed = parseCustomDeposit(userText, price);
       if (!parsed) {
-        respond('No te entendí ese monto 🤔 Escribe algo como "40%" o "$3000".');
+        respond('No entendí ese monto. Escribe algo como "40%" o "$3000".');
         return;
       }
       askForLayawayPhone(layawayDraft.product, layawayDraft.sizeLabel, parsed.percentage, parsed.depositAmount);
@@ -316,7 +331,7 @@ export function TenisinWidget() {
     if (layawayStep === 'phone' && layawayDraft) {
       const phoneMatch = userText.match(PHONE_REGEX);
       if (!phoneMatch) {
-        respond('Ese número no me cuadra 📵 Mándame tu WhatsApp a 10 dígitos, por favor.');
+        respond('Ese número no me cuadra. Mándame tu WhatsApp a 10 dígitos, por favor.');
         return;
       }
       setLayawayDraft({ ...layawayDraft, phone: phoneMatch[0] });
@@ -359,7 +374,7 @@ export function TenisinWidget() {
         rawQuery: userText,
         wasMatched: false,
       }).then((lead) => setPendingLeadId(lead.id));
-      respond(`Anotado: "${userText}". Ahora déjame tu WhatsApp (10 dígitos) para avisarte en cuanto lo consigamos 📲`);
+      respond(`Anotado: "${userText}". Ahora déjame tu WhatsApp (10 dígitos) para avisarte en cuanto lo consigamos.`);
       return;
     }
 
@@ -370,7 +385,7 @@ export function TenisinWidget() {
       setPendingLeadId(null);
       setMascotState('happy');
       haptics.success();
-      respond(`✅ ¡Listo! Guardé tu WhatsApp ${phoneMatch[0]} — te escribimos en cuanto haya disponibilidad.`);
+      respond(`Listo, guardé tu WhatsApp ${phoneMatch[0]}. Te escribimos en cuanto haya disponibilidad.`);
       setTimeout(() => setMascotState('idle'), 3000);
       return;
     }
@@ -491,7 +506,7 @@ export function TenisinWidget() {
                             onClick={() => startLayawayFlow(p, m.resultsSizeLabel)}
                             className="shrink-0 px-2 py-2 min-h-[36px] bg-black border border-zinc-700 hover:border-red-600/60 hover:bg-red-950/20 rounded-md text-[10px] font-bold text-zinc-100 transition-colors"
                           >
-                            📌 Apartar
+                            Apartar
                           </button>
                         </div>
                       ))}

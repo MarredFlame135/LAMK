@@ -144,15 +144,18 @@ export function HeroSection() {
               {SAAS_CONFIG.mascotName} · IA en vivo
             </span>
             <p className="text-[11px] text-zinc-400 leading-snug line-clamp-2">
-              Tu asistente de caza de kicks
+              Tu asistente para encontrar cualquier pieza
             </p>
           </div>
         </motion.div>
 
-        {/* Insignias flotantes decorativas, siguen el mouse en paralaje */}
-        <FloatingElement depth={2.5} className="top-0 right-0">
-          <span className="px-2.5 py-1 bg-[#FF1E42] text-white text-[9px] font-black font-mono uppercase tracking-wide rounded-full shadow-lg">Index 98.0</span>
-        </FloatingElement>
+        {/* La insignia flotante "Index 98.0" se eliminó (2026-09-03, el cliente
+            preguntó qué indicaba). No indicaba NADA: era un número escrito a
+            mano, y el propio comentario que la acompañaba decía "decorativas".
+            Es justo lo que este repo se prohíbe — un número inventado en la
+            primera pantalla enseña a desconfiar de los que sí son reales, como
+            el Hype Index de la ficha de producto, que cuando no tiene muestra
+            suficiente muestra un guion en vez de rellenar el hueco. */}
       </Floating>
     </section>
   );

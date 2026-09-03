@@ -16,6 +16,7 @@ import {
   qrTokens,
   vaultItems,
   vaultItemReactions,
+  vaultCollectionRatings,
   wishlistItems,
   linkedAccounts,
 } from '@/db/schema';
@@ -70,6 +71,15 @@ async function purgeOwnData(customerId: string): Promise<void> {
     }
   } catch (err) {
     console.error(`Error borrando reacciones recibidas de ${customerId} (borrado de cuenta):`, err);
+  }
+
+  // Las calificaciones que RECIBIÓ su colección se borran por ownerId, y las
+  // que ELLA dio a otras, por raterId. Son datos suyos en los dos sentidos.
+  try {
+    await db.delete(vaultCollectionRatings).where(eq(vaultCollectionRatings.ownerId, customerId));
+    await db.delete(vaultCollectionRatings).where(eq(vaultCollectionRatings.raterId, customerId));
+  } catch (err) {
+    console.error(`Error borrando calificaciones de ${customerId} (borrado de cuenta):`, err);
   }
 
   const tables = [socialProfiles, vaultItems, wishlistItems, linkedAccounts, qrTokens, vaultItemReactions];
